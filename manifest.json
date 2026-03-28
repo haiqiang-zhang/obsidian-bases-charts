@@ -4,6 +4,6 @@
 	"version": "0.0.11",
 	"minAppVersion": "1.10.0",
 	"description": "Bases views for scatter, line, and bar charts.",
-	"author": "Larry Zhang, Moritz Jung",
+	"author": "Haiqiang Zhang, Moritz Jung",
 	"isDesktopOnly": false
 }
