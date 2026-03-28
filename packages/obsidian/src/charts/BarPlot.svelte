@@ -31,11 +31,18 @@
 </script>
 
 <PlotGrid view={view}>
-	{#snippet chartSnippet({ data, chartIndex, xName, groupFn, height, setHoveredData })}
+	{#snippet chartSnippet({ data, chartIndex, xName, groupFn, width, height, setHoveredData })}
 		{@const yLabel = view.getYAxisLabel(data.getChartName(chartIndex))}
 		{@const domain = hasDomainOverride ? data.getYDomainForChart(chartIndex) : undefined}
+		{@const flatData = data.getFlat(chartIndex)}
+		{@const xCount = new Set(flatData.map(d => d.x)).size}
+		{@const step = xCount > 0 ? (width - 80) / xCount : 0}
+		{@const maxBarWidth = 120}
+		{@const minPadding = 0.15}
+		{@const padding = step > 0 ? Math.max(minPadding, 1 - maxBarWidth / step) : minPadding}
+		{@const hoverInset = -(step * padding / 4)}
 		<Plot
-			x={{ label: xName, type: 'band' }}
+			x={{ label: xName, type: 'band', padding }}
 			y={{ label: yLabel, domain, tickFormat: show_percentages ? d => `${String(d)}%` : d => toCompactString(d) }}
 			height={height}
 			class="bases-charts-plot"
@@ -45,12 +52,12 @@
 			<GridY stroke="var(--bases-charts-grid)" strokeOpacity={1} />
 
 			{@const yDomain = data.getYDomainForChart(chartIndex)}
-			<Pointer data={data.getFlat(chartIndex)} x="x" maxDistance={Infinity} onupdate={setHoveredData}>
+			<Pointer data={flatData} x="x" maxDistance={Infinity} onupdate={setHoveredData}>
 				{#snippet children({ data: hovered })}
-					<BarY data={hovered} x="x" y1={domain ? domain[0] : 0} y2={yDomain[1]} fill="var(--bases-charts-grid)" opacity={0.5} />
+					<BarY data={hovered} x="x" y1={domain ? domain[0] : 0} y2={yDomain[1]} fill="var(--bases-charts-grid)" opacity={0.5} inset={hoverInset} />
 				{/snippet}
 			</Pointer>
-			<BarY data={data.getFlat(chartIndex)} x="x" y1={domain ? domain[0] : 0} y2="y" fill={groupFn} cursor="pointer" />
+			<BarY data={flatData} x="x" y1={domain ? domain[0] : 0} y2="y" fill={groupFn} cursor="pointer" />
 			{#if show_labels}
 				<Text
 					data={data.getStacked(chartIndex)}
