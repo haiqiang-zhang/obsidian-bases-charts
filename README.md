@@ -1,44 +1,60 @@
 # Bases Charts
 
-This plugin for Obsidian adds three new bases views: Scatter Charts, Line Charts, and Bar Charts using Apache ECharts.
+Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin), with active development, bug fixes, and new features.
+
+This plugin for Obsidian adds three new Bases views: **Scatter Charts**, **Line Charts**, and **Bar Charts**, powered by [Apache ECharts](https://echarts.apache.org/).
 
 ## Usage
 
-First you need a [Base](https://help.obsidian.md/bases), then from there you can (with the plugin installed and enabled) create three new bases views: Scatter Charts, Line Charts, and Bar Charts.
-Next you need to select the property or formula used for the X axis, in the view settings.
-On the X axis, [`Number`, `Date`, and `String`](https://help.obsidian.md/bases/functions) are supported.
-Then you can select which properties to display on the Y Axis using the Base's `Properties` menu (top right).
-It is recommended that you disable the default activated file name.
-On the Y axis the plugin only supports values of type [`Number`](https://help.obsidian.md/bases/functions).
+1. Create a [Base](https://help.obsidian.md/bases) in your vault.
+2. With the plugin installed and enabled, create a new Bases view: Scatter, Line, or Bar chart.
+3. Select the property or formula for the **X axis** in the view settings.
+4. Select which properties to display on the **Y axis** using the Base's `Properties` menu (top right).
+
+**Supported types:**
+- X axis: `Number`, `Date`, and `String`
+- Y axis: `Number` only
+
+It is recommended to disable the default file name property.
+
+### Aggregation
+
+When multiple data points share the same X value, the plugin automatically aggregates them. Available aggregation modes:
+
+- **Sum** (default) — total of all values
+- **Average** — mean of all values
+- **Count** — number of data points
+- **Min / Max** — minimum or maximum value
+
+Click on an aggregated data point to see all contributing files and their individual values.
 
 ### Grouping and Multiple Charts
 
-The plugin supports grouping data points by color and spliting them into multiple charts.
+The view settings include a `Multi chart mode` dropdown:
 
-The view settings (in the Base's view menu, top left) include a `Multi chart mode` dropdown.
-The avaiable options are `Separate by group` and `Separate by property`.
-
-Separating by group will use a `Group by` sort (Base's `Sort` menu, top right) to arrange the notes into multiple charts.
-Here, every group gets it's own chart. Within one chart, data points are colored by their Y axis property.
-
-Separating by property will display a separate chart for each selected Y axis property.
-Within a chart, data points are colored using a `Group by` sort (Base's `Sort` menu, top right).
-
-### Scatter Charts
-
-![scatter_chart_example](images/scatter_chart_example.png)
-
-### Line Charts
-
-![line_chart_example](images/line_chart_example.png)
+- **Separate by property** — one chart per Y axis property. Data points are colored by group.
+- **Separate by group** — one chart per group (using Base's `Sort > Group by`). Data points are colored by Y axis property.
 
 ### Bar Charts
 
-![bar_chart_example](images/bar_chart_example.png)
+- Grouped bars displayed side by side per category
+- Optional data labels (toggle in view settings)
+- Optional percentage display
+- Y axis min/max override supported
+
+### Line Charts
+
+- Automatic sorting of X axis values
+- Hover crosshair with value display
+
+### Scatter Charts
+
+- Optional label property shown on hover
+- Click to open the source file
 
 ## Installation
 
-Currently only via BRAT.
+Currently only via [BRAT](https://github.com/TfTHacker/obsidian42-brat).
 
 ## License
 
@@ -46,10 +62,8 @@ Currently only via BRAT.
 
 ## Acknowledgements
 
-This project is a fork of [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin) by [mProjectsCode](https://github.com/mProjectsCode). It is actively maintained with ongoing bug fixes and new features.
+Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin) by [mProjectsCode](https://github.com/mProjectsCode). Rewritten with [Apache ECharts](https://echarts.apache.org/) for improved rendering and features.
 
 ## Contributions
 
-Thank you for wanting to contribute to this project.
-
-Contributions are always welcome. If you have an idea, feel free to open a feature request under the issue tab or even create a pull request.
+Contributions are always welcome. If you have an idea, feel free to open a feature request under the issue tab or create a pull request.
