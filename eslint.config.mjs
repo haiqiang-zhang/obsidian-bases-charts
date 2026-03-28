@@ -5,15 +5,12 @@ import tseslint from 'typescript-eslint';
 import only_warn from 'eslint-plugin-only-warn';
 import no_relative_import_paths from 'eslint-plugin-no-relative-import-paths';
 import * as plugin_import from 'eslint-plugin-import';
-import eslintPluginSvelte from 'eslint-plugin-svelte';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 
 export default tseslint.config(
 	{
-		ignores: ['npm/', 'node_modules/', 'exampleVault/', 'automation/', 'dist/', '**/*.svelte', '**/*.d.ts'],
+		ignores: ['npm/', 'node_modules/', 'exampleVault/', 'automation/', 'dist/', '**/*.d.ts'],
 	},
-	...eslintPluginSvelte.configs['flat/recommended'],
-	...eslintPluginSvelte.configs['flat/prettier'],
 	{
 		files: ['packages/obsidian/**/*.ts'],
 		extends: [

@@ -1,6 +1,5 @@
 import type { Value } from 'obsidian';
 import { DateValue, NumberValue, StringValue } from 'obsidian';
-import type { AbstractDataWrapper, ProcessedData } from 'packages/obsidian/src/ChartData';
 
 export function toCompactString(datum: object | number | string | symbol | boolean | Date | null | undefined): string {
 	if (datum == null) {
@@ -34,22 +33,6 @@ export const OBSIDIAN_COLOR_PALETTE = [
 	'var(--color-purple)',
 	'var(--color-pink)',
 ];
-
-export const OBSIDIAN_DEFAULT_SINGLE_COLOR = (_: unknown): string => 'var(--bases-charts-accent)';
-
-export interface ChartProps<ChartId, GroupId> {
-	data: AbstractDataWrapper<ChartId, GroupId>;
-	chartIndex: number;
-	xName: string;
-	isGrouped: boolean;
-	groupFn: (d: ProcessedData) => string;
-}
-
-export type FullChartProps<ChartId, GroupId> = ChartProps<ChartId, GroupId> & {
-	width: number;
-	height: number;
-	setHoveredData: (data: ProcessedData[]) => void;
-};
 
 export function getFileDisplayName(filePath: string): string {
 	return (filePath.split('/').pop() ?? filePath).replace(/\.[^.]+$/, '');

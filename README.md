@@ -1,6 +1,6 @@
 # Bases Charts
 
-This plugin for Obsidian adds three new bases views: Scatter Charts, Line Charts, and Bar Charts.
+This plugin for Obsidian adds three new bases views: Scatter Charts, Line Charts, and Bar Charts using Apache ECharts.
 
 ## Usage
 

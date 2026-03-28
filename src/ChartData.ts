@@ -1,11 +1,8 @@
 import type { BasesPropertyId } from 'obsidian';
-import type { ChartView, YDomainOverrides } from 'packages/obsidian/src/ChartView';
-import { OBSIDIAN_DEFAULT_SINGLE_COLOR, OBSIDIAN_COLOR_PALETTE } from 'packages/obsidian/src/utils/utils';
+import type { ChartView, YDomainOverrides } from 'src/ChartView';
+import { OBSIDIAN_COLOR_PALETTE } from 'src/utils/utils';
 
-/* eslint-disable-next-line @typescript-eslint/consistent-type-definitions --
- * We disable this rule to prevent the auto fix from turning this into an interface,
- * which messes with the types for svelte plot, bc in TS interface != type
- */
+/* eslint-disable-next-line @typescript-eslint/consistent-type-definitions */
 export type ProcessedData = {
 	x: number | Date | string;
 	y: number;
@@ -45,14 +42,6 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 
 	abstract getChartName(chartIndex: number): string;
 	abstract getGroupName(groupIndex: number): string;
-
-	getChartGroupIdentifier(): (d: ProcessedData) => string {
-		if (this.hasMultipleGroups()) {
-			return d => this.getColorFromGroupIndex(d.groupIndex);
-		}
-
-		return OBSIDIAN_DEFAULT_SINGLE_COLOR;
-	}
 
 	getColorFromGroupIndex(groupIndex: number): string {
 		return OBSIDIAN_COLOR_PALETTE[groupIndex % OBSIDIAN_COLOR_PALETTE.length];

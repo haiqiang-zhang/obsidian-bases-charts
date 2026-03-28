@@ -1,13 +1,10 @@
 import type { BasesEntry, QueryController } from 'obsidian';
 import type { BasesPropertyId, ViewOption } from 'obsidian';
 import { BasesView, Events } from 'obsidian';
-import type { DataWrapper, ProcessedData } from 'packages/obsidian/src/ChartData';
-import { emptyDataWrapper, GroupSeparatedData, PropertySeparatedData } from 'packages/obsidian/src/ChartData';
-import BarPlot from 'packages/obsidian/src/charts/BarPlot.svelte';
-import LinePlot from 'packages/obsidian/src/charts/LinePlot.svelte';
-import ScatterPlot from 'packages/obsidian/src/charts/ScatterPlot.svelte';
-import { parseValueAsNumber, parseValueAsX } from 'packages/obsidian/src/utils/utils';
-import { mount, unmount } from 'svelte';
+import type { DataWrapper, ProcessedData } from 'src/ChartData';
+import { emptyDataWrapper, GroupSeparatedData, PropertySeparatedData } from 'src/ChartData';
+import { ChartLayout } from 'src/charts/ChartLayout';
+import { parseValueAsNumber, parseValueAsX } from 'src/utils/utils';
 
 export const SCATTER_CHART_VIEW_TYPE = 'chart-scatter';
 export const LINE_CHART_VIEW_TYPE = 'chart-line';
@@ -67,7 +64,7 @@ export class ChartView extends BasesView {
 	readonly type: ChartViewType;
 	readonly scrollEl: HTMLElement;
 	readonly events: Events;
-	svelteComponent: ReturnType<typeof ScatterPlot> | null = null;
+	private layout: ChartLayout | null = null;
 
 	constructor(type: ChartViewType, controller: QueryController, scrollEl: HTMLElement) {
 		super(controller);
@@ -78,35 +75,12 @@ export class ChartView extends BasesView {
 
 	onload(): void {
 		this.scrollEl.addClass('bases-chart-view');
-
-		if (this.type === SCATTER_CHART_VIEW_TYPE) {
-			this.svelteComponent = mount(ScatterPlot, {
-				target: this.scrollEl,
-				props: {
-					view: this,
-				},
-			});
-		} else if (this.type === LINE_CHART_VIEW_TYPE) {
-			this.svelteComponent = mount(LinePlot, {
-				target: this.scrollEl,
-				props: {
-					view: this,
-				},
-			});
-		} else if (this.type === BAR_CHART_VIEW_TYPE) {
-			this.svelteComponent = mount(BarPlot, {
-				target: this.scrollEl,
-				props: {
-					view: this,
-				},
-			});
-		}
+		this.layout = new ChartLayout(this, this.scrollEl);
 	}
 
 	onunload(): void {
-		if (this.svelteComponent) {
-			void unmount(this.svelteComponent);
-		}
+		this.layout?.destroy();
+		this.layout = null;
 		this.scrollEl.removeClass('bases-chart-view');
 	}
 
@@ -296,14 +270,13 @@ export class ChartView extends BasesView {
 				type: 'dropdown',
 				key: CHART_SETTINGS.AGGREGATE,
 				options: {
-					[AggregateMode.NONE]: AggregateMode.NONE,
-					[AggregateMode.AVERAGE]: AggregateMode.AVERAGE,
 					[AggregateMode.SUM]: AggregateMode.SUM,
+					[AggregateMode.AVERAGE]: AggregateMode.AVERAGE,
 					[AggregateMode.COUNT]: AggregateMode.COUNT,
 					[AggregateMode.MIN]: AggregateMode.MIN,
 					[AggregateMode.MAX]: AggregateMode.MAX,
 				},
-				default: AggregateMode.NONE,
+				default: AggregateMode.SUM,
 			},
 		];
 	}
@@ -344,10 +317,6 @@ export class ChartView extends BasesView {
 }
 
 function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined): ProcessedData[] {
-	if (!mode || mode === AggregateMode.NONE) {
-		return data;
-	}
-
 	// Group by x + chartIndex + groupIndex
 	const buckets = new Map<string, ProcessedData[]>();
 	for (const d of data) {
@@ -360,12 +329,21 @@ function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined): 
 		bucket.push(d);
 	}
 
+	// If mode is None, check if any bucket has multiple entries
+	// If so, force SUM as default; otherwise return as-is
+	let effectiveMode = mode ?? AggregateMode.NONE;
+	if (effectiveMode === AggregateMode.NONE) {
+		const hasDuplicates = Array.from(buckets.values()).some(b => b.length > 1);
+		if (!hasDuplicates) return data;
+		effectiveMode = AggregateMode.SUM;
+	}
+
 	const result: ProcessedData[] = [];
 	for (const bucket of buckets.values()) {
 		const first = bucket[0];
 		let y: number;
 
-		switch (mode) {
+		switch (effectiveMode) {
 			case AggregateMode.SUM:
 				y = bucket.reduce((sum, d) => sum + d.y, 0);
 				break;

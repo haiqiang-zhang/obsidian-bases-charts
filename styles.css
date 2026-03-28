@@ -1,0 +1,53 @@
+body {
+	--bases-charts-text: var(--text-normal);
+	--bases-charts-grid: var(--background-modifier-border);
+	--bases-charts-grid-hover: var(--background-modifier-border);
+	--bases-charts-accent: var(--color-accent);
+	--bases-charts-min-width: 350px;
+	--bases-charts-min-height: 350px;
+}
+
+.bases-chart-view {
+	padding: var(--size-4-4);
+	gap: var(--size-4-4);
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	overflow: hidden;
+}
+
+.bases-charts-plot-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(var(--bases-charts-min-width), 1fr));
+	gap: var(--size-4-4);
+	width: 100%;
+	flex: 1;
+	min-height: 0;
+}
+
+.bases-charts-plot-grid-item {
+	position: relative;
+	width: 100%;
+	min-height: var(--bases-charts-min-height);
+	overflow: hidden;
+}
+
+.bases-charts-plot-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-3);
+}
+
+.bases-charts-plot-legend-item {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	font-size: var(--font-small);
+	color: var(--bases-charts-text);
+}
+
+.bases-charts-plot-legend-color {
+	width: var(--size-4-4);
+	height: var(--size-4-4);
+	background-color: var(--color);
+}

@@ -12,6 +12,9 @@ views:
     x: note.Category
     percentage: true
     labels: true
+    aggregate: None
+    min-y-override: "2"
+    max-y-override: "9"
   - type: table
     name: Table
     order:
@@ -24,3 +27,4 @@ views:
       - culmen_depth_mm
       - culmen_length_mm
       - director
+      - Group

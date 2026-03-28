@@ -1,6 +1,6 @@
 import { Plugin } from 'obsidian';
-import { BAR_CHART_VIEW_TYPE, ChartView, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from 'packages/obsidian/src/ChartView';
-import 'packages/obsidian/src/styles.css';
+import { BAR_CHART_VIEW_TYPE, ChartView, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from 'src/ChartView';
+import '../styles.css';
 
 export default class BasesChartsPlugin extends Plugin {
 	onload(): void {
