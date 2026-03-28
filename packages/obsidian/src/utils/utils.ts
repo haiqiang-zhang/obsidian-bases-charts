@@ -51,6 +51,10 @@ export type FullChartProps<ChartId, GroupId> = ChartProps<ChartId, GroupId> & {
 	setHoveredData: (data: ProcessedData[]) => void;
 };
 
+export function getFileDisplayName(filePath: string): string {
+	return (filePath.split('/').pop() ?? filePath).replace(/\.[^.]+$/, '');
+}
+
 export function parseValueAsNumber(value: Value | null): number | null {
 	if (!value) {
 		return null;

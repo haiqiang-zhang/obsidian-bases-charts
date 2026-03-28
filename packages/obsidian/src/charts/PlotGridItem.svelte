@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { ChartProps, FullChartProps } from '../utils/utils';
-	import { type ChartView, CHART_SETTINGS, AggregateMode } from '../ChartView';
+	import { type ChartProps, type FullChartProps, getFileDisplayName } from '../utils/utils';
+	import type { ChartView } from '../ChartView';
 	import type { ProcessedData } from '../ChartData';
 	import { Menu } from 'obsidian';
 
@@ -36,18 +36,17 @@
 			view.openFile(files[0], newTab);
 		} else if (files.length > 1) {
 			const menu = new Menu();
-			const aggregateMode = (view.config.get(CHART_SETTINGS.AGGREGATE) as AggregateMode | undefined) ?? AggregateMode.NONE;
+			const aggregateLabel = view.getYAxisLabel(columnName).replace('↑ ', '');
 			menu.addItem(item => {
-				item.setTitle(`${columnName} (${aggregateMode}): ${y}`)
+				item.setTitle(`${aggregateLabel}: ${y}`)
 					.setIsLabel(true);
 			});
 			menu.addSeparator();
 			for (let i = 0; i < files.length; i++) {
 				const filePath = files[i];
-				const name = (filePath.split('/').pop() ?? filePath).replace(/\.[^.]+$/, '');
 				const value = fileValues[i];
 				menu.addItem(item => {
-					item.setTitle(`${name}  ·  ${columnName}: ${value}`)
+					item.setTitle(`${getFileDisplayName(filePath)}  ·  ${columnName}: ${value}`)
 						.setIcon('file-text')
 						.onClick(() => {
 							view.openFile(filePath, newTab);

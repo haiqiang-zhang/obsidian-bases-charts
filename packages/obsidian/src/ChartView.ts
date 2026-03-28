@@ -200,6 +200,20 @@ export class ChartView extends BasesView {
 		return [];
 	}
 
+	getAggregateMode(): AggregateMode {
+		return (this.config.get(CHART_SETTINGS.AGGREGATE) as AggregateMode | undefined) ?? AggregateMode.NONE;
+	}
+
+	getYAxisLabel(chartName: string): string {
+		const mode = this.getAggregateMode();
+		return mode !== AggregateMode.NONE ? `↑ ${chartName} (${mode})` : `↑ ${chartName}`;
+	}
+
+	hasDomainOverride(): boolean {
+		const overrides = this.getYDomainOverrides();
+		return overrides.min !== null || overrides.max !== null || overrides.synced;
+	}
+
 	getYDomainOverrides(): YDomainOverrides {
 		const min = this.config.get(CHART_SETTINGS.MIN_Y_OVERRIDE);
 		const max = this.config.get(CHART_SETTINGS.MAX_Y_OVERRIDE);
