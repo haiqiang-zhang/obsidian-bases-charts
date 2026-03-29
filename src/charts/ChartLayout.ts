@@ -1,7 +1,7 @@
 import type { EChartsOption } from 'echarts';
 import { debounce } from 'obsidian';
 import type { DataWrapper } from '../ChartData';
-import type { ChartView, ChartViewType } from '../ChartView';
+import type { ChartView } from '../ChartView';
 import { AggregateMode, BAR_CHART_VIEW_TYPE, CHART_SETTINGS, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from '../ChartView';
 import { ChartRenderer } from './ChartRenderer';
 import type { ResolvedColors } from './echarts-setup';
@@ -94,10 +94,10 @@ export class ChartLayout {
 		this.legendEl.empty();
 		const groupIds = data.getGroupIdentifiers();
 		if (groupIds.length <= 1) {
-			this.legendEl.style.display = 'none';
+			this.legendEl.addClass('bases-charts-hidden');
 			return;
 		}
-		this.legendEl.style.display = '';
+		this.legendEl.removeClass('bases-charts-hidden');
 
 		for (let i = 0; i < groupIds.length; i++) {
 			const itemEl = this.legendEl.createDiv({ cls: 'bases-charts-plot-legend-item' });

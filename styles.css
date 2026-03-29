@@ -38,6 +38,10 @@ body {
 	gap: var(--size-4-3);
 }
 
+.bases-charts-hidden {
+	display: none;
+}
+
 .bases-charts-plot-legend-item {
 	display: flex;
 	align-items: center;

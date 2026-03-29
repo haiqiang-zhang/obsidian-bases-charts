@@ -32,3 +32,5 @@ views:
     multi-chart-mode: Separate by group
     sync-y-axes: true
     min-y-override: "0"
+    null-handling: Skip
+    aggregate: Sum

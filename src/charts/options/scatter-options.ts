@@ -77,7 +77,7 @@ export function buildScatterOption(
 					enterable: true,
 					hideDelay: 300,
 					confine: true,
-					position: ChartRenderer.tooltipPosition,
+					position: (...args: Parameters<typeof ChartRenderer.tooltipPosition>) => ChartRenderer.tooltipPosition(...args),
 					formatter: (params: unknown) => {
 						const p = params as { data: { _raw: ProcessedData } };
 						const raw = p.data._raw;

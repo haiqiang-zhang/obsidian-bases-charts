@@ -98,7 +98,7 @@ export function buildBarOption(
 					hideDelay: 300,
 					axisPointer: { type: 'shadow' },
 					confine: true,
-					position: ChartRenderer.tooltipPosition,
+					position: (...args: Parameters<typeof ChartRenderer.tooltipPosition>) => ChartRenderer.tooltipPosition(...args),
 					formatter: (params: unknown) => {
 						const result = ChartRenderer.formatAxisTooltip(
 							params as { marker?: string; seriesName?: string; data: { _raw?: ProcessedData; value?: number } }[],

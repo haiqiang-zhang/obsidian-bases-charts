@@ -88,7 +88,7 @@ export function buildLineOption(
 					hideDelay: 300,
 					axisPointer: { type: 'cross' },
 					confine: true,
-					position: ChartRenderer.tooltipPosition,
+					position: (...args: Parameters<typeof ChartRenderer.tooltipPosition>) => ChartRenderer.tooltipPosition(...args),
 					formatter: (params: unknown) => {
 						const result = ChartRenderer.formatAxisTooltip(
 							params as { marker?: string; seriesName?: string; data: { _raw?: ProcessedData; value?: number } }[],

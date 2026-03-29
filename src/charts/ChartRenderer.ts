@@ -44,7 +44,7 @@ export class ChartRenderer {
 		// Handle clicks on tooltip file links
 		containerEl.addEventListener('click', (e: MouseEvent) => {
 			const target = e.target as HTMLElement;
-			const fileEl = target.closest('[data-file-path]') as HTMLElement | null;
+			const fileEl = target.closest<HTMLElement>('[data-file-path]');
 			if (!fileEl) return;
 			const filePath = fileEl.dataset.filePath;
 			if (filePath) {

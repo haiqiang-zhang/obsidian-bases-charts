@@ -2,7 +2,6 @@ import type { BasesPropertyId } from 'obsidian';
 import type { ChartView, YDomainOverrides } from './ChartView';
 import { OBSIDIAN_COLOR_PALETTE, toCompactString } from './utils/utils';
 
-/* eslint-disable-next-line @typescript-eslint/consistent-type-definitions */
 export type ProcessedData = {
 	x: number | Date | string;
 	y: number;

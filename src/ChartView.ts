@@ -90,7 +90,7 @@ export class ChartView extends BasesView {
 		if (!container) return;
 		const label = container.querySelector('.bases-toolbar-properties-menu .text-button-label');
 		if (label) {
-			label.textContent = 'Y Axis';
+			label.textContent = 'Y axis';
 		}
 	}
 
@@ -124,7 +124,7 @@ export class ChartView extends BasesView {
 			 * this is a safety check to catch when the saved data does not match the type definitions
 			 * (mostly because the unknown type if the config.get method)
 			 */
-			console.warn(`Invalid multi chart mode: ${mode}`);
+			console.warn(`Invalid multi chart mode: ${String(mode)}`);
 			return emptyDataWrapper(this);
 		}
 
@@ -403,10 +403,11 @@ function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined, c
 		const hasNonNumeric = data.some(d => !d.isNumeric);
 		if (hasNonNumeric) {
 			effectiveMode = AggregateMode.COUNT;
+		} else {
+			const hasDuplicates = Array.from(buckets.values()).some(b => b.length > 1);
+			if (!hasDuplicates) return data;
+			effectiveMode = AggregateMode.SUM;
 		}
-		const hasDuplicates = Array.from(buckets.values()).some(b => b.length > 1);
-		if (!hasDuplicates) return data;
-		effectiveMode = AggregateMode.SUM;
 	}
 
 	const result: ProcessedData[] = [];
