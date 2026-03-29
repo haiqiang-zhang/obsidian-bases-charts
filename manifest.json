@@ -3,7 +3,7 @@
 	"name": "Bases Charts",
 	"version": "0.0.9",
 	"minAppVersion": "1.12.0",
-	"description": "Bases views for scatter, line, and bar charts.",
+	"description": "Interactive chart views for Bases.",
 	"author": "Haiqiang Zhang",
 	"authorUrl": "https://github.com/haiqiang-zhang",
 	"isDesktopOnly": false

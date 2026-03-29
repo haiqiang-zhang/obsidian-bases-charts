@@ -2,7 +2,7 @@
 
 ![Banner](images/banner.png)
 
-This plugin for Obsidian adds various chart views to Bases, powered by [Apache ECharts](https://echarts.apache.org/).
+This plugin for Obsidian adds interactive chart views to Bases, powered by [Apache ECharts](https://echarts.apache.org/).
 
 Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin), with active development, bug fixes, and new features.
 
@@ -15,14 +15,14 @@ Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidia
 ### Chart Types
 
 - **Scatter** — individual data points, optional labels, click to open source file
-- **Line** — connected data points, configurable missing value handling (`Skip` or `Treat as 0`)
+- **Line** — connected data points, configurable gap handling (`Leave gap` or `Fill with 0`)
 - **Bar** — grouped bars with optional data labels and percentage display
 - **Pie** — donut chart with optional labels, percentages, and null filtering
 
 ### Features
 
 - Aggregation modes: Sum, Average, Count, Min, Max (and None for Scatter)
-- Multi chart mode: separate by property or by group
+- Multi chart mode: separate by Y axis or by group
 - Sync Y axes across multiple charts
 - Y axis min/max override
 - Interactive tooltips with clickable file links
