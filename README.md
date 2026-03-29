@@ -31,7 +31,19 @@ Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidia
 
 ## Installation
 
-Currently only via [BRAT](https://github.com/TfTHacker/obsidian42-brat).
+### BRAT (recommended)
+
+1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
+2. In BRAT settings, click **Add Beta Plugin**.
+3. Enter `https://github.com/haiqiang-zhang/obsidian-bases-charts` and click **Add Plugin**.
+4. Enable **Bases Charts** in Settings > Community plugins.
+
+### Manual
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases/latest).
+2. Create a folder `bases-charts` in your vault's `.obsidian/plugins/` directory.
+3. Copy the downloaded files into that folder.
+4. Enable **Bases Charts** in Settings > Community plugins.
 
 ## License
 
