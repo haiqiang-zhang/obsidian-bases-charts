@@ -19,7 +19,7 @@ Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidia
 - **Bar** — grouped bars with optional data labels and percentage display
 - **Pie** — donut chart with optional labels, percentages, and null filtering
 
-### Common Features
+### Features
 
 - Aggregation modes: Sum, Average, Count, Min, Max (and None for Scatter)
 - Multi chart mode: separate by property or by group
