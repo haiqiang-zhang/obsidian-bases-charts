@@ -1,8 +1,8 @@
 # Bases Charts
 
-Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin), with active development, bug fixes, and new features.
-
 This plugin for Obsidian adds three new Bases views: **Scatter Charts**, **Line Charts**, and **Bar Charts**, powered by [Apache ECharts](https://echarts.apache.org/).
+
+Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin), with active development, bug fixes, and new features.
 
 ## Usage
 
