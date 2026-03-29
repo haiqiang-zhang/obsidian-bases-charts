@@ -7,7 +7,7 @@ import { LINE_SETTINGS } from './charts/line-options';
 import { BAR_SETTINGS } from './charts/bar-options';
 import { PIE_SETTINGS } from './charts/pie-options';
 import { ChartRenderer } from './charts/ChartRenderer';
-import type { ResolvedColors } from './charts/echarts-setup';
+import { resolveColors, type ResolvedColors } from './charts/echarts-setup';
 import { buildBarOption } from './charts/bar-options';
 import { buildLineOption } from './charts/line-options';
 import { buildPieOption } from './charts/pie-options';
@@ -40,6 +40,8 @@ export class ChartLayout {
 		const xField = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const xName = xField ? `${this.view.config.getDisplayName(xField)} →` : '';
 
+		const colors = resolveColors(this.scrollEl);
+
 		for (let i = 0; i < chartIds.length; i++) {
 			const renderer = this.renderers[i];
 			const isGrouped = data.hasMultipleGroups();
@@ -62,7 +64,7 @@ export class ChartLayout {
 			const yLabel = hasNonNumeric
 				? `↑ ${data.getChartName(i)} (Count)`
 				: this.view.getYAxisLabel(data.getChartName(i));
-			const option = this.buildOption(data, i, xName, yLabel, isGrouped, renderer.colors);
+			const option = this.buildOption(data, i, xName, yLabel, isGrouped, colors);
 			renderer.setOption(option);
 		}
 	}

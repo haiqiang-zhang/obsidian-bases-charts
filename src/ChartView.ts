@@ -1,4 +1,4 @@
-import type { BasesEntry, QueryController } from 'obsidian';
+import type { BasesEntry, EventRef, QueryController } from 'obsidian';
 import type { BasesPropertyId, ViewOption } from 'obsidian';
 import { BasesView, Events } from 'obsidian';
 import type { DataWrapper, ProcessedData } from './ChartData';
@@ -82,10 +82,16 @@ export class ChartView extends BasesView {
 		this.events = new Events();
 	}
 
+	private cssChangeRef: EventRef | null = null;
+
 	onload(): void {
 		this.scrollEl.addClass('bases-chart-view');
 		this.layout = new ChartLayout(this, this.scrollEl);
 		this.renameToolbarButton();
+
+		this.cssChangeRef = this.app.workspace.on('css-change', () => {
+			this.events.trigger('data-updated');
+		});
 	}
 
 	private renameToolbarButton(): void {
@@ -98,6 +104,10 @@ export class ChartView extends BasesView {
 	}
 
 	onunload(): void {
+		if (this.cssChangeRef) {
+			this.app.workspace.offref(this.cssChangeRef);
+			this.cssChangeRef = null;
+		}
 		this.layout?.destroy();
 		this.layout = null;
 		this.scrollEl.removeClass('bases-chart-view');

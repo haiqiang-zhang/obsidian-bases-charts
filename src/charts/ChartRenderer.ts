@@ -1,33 +1,26 @@
 import type { EChartsOption } from 'echarts';
-import type { EventRef } from 'obsidian';
 import type { ProcessedData } from '../ChartData';
 import type { ChartView } from '../ChartView';
-import { echarts, resolveColors, type ResolvedColors } from './echarts-setup';
+import { echarts } from './echarts-setup';
 import { getFileDisplayName, toCompactString } from '../utils';
 
 export class ChartRenderer {
 	private chart: ReturnType<typeof echarts.init> | null = null;
 	private resizeObserver: ResizeObserver | null = null;
-	private cssChangeRef: EventRef | null = null;
 	private messageEl: HTMLElement | null = null;
-	colors: ResolvedColors;
+
+	private firstRender = true;
 
 	constructor(
 		private containerEl: HTMLElement,
 		private view: ChartView,
 	) {
-		this.colors = resolveColors(containerEl);
 		this.chart = echarts.init(containerEl, undefined, { renderer: 'canvas' });
 
 		this.resizeObserver = new ResizeObserver(() => {
 			this.chart?.resize();
 		});
 		this.resizeObserver.observe(containerEl);
-
-		this.cssChangeRef = view.app.workspace.on('css-change', () => {
-			this.colors = resolveColors(containerEl);
-			view.events.trigger('data-updated');
-		});
 
 		// Click on data point: open file directly if single file
 		this.chart.on('click', (params) => {
@@ -54,6 +47,17 @@ export class ChartRenderer {
 
 	setOption(option: EChartsOption): void {
 		this.clearMessage();
+		if (this.firstRender) {
+			this.firstRender = false;
+			// Defer first render to next macrotask so the container is painted first.
+			// Obsidian's contain:strict on workspace-leaf suppresses ECharts animation
+			// if setOption runs before the browser completes layout/paint.
+			setTimeout(() => {
+				this.chart?.resize();
+				this.chart?.setOption(option, { notMerge: true });
+			}, 0);
+			return;
+		}
 		this.chart?.setOption(option, { notMerge: true });
 	}
 
@@ -78,10 +82,6 @@ export class ChartRenderer {
 	dispose(): void {
 		this.resizeObserver?.disconnect();
 		this.resizeObserver = null;
-		if (this.cssChangeRef) {
-			this.view.app.workspace.offref(this.cssChangeRef);
-			this.cssChangeRef = null;
-		}
 		this.chart?.dispose();
 		this.chart = null;
 	}
