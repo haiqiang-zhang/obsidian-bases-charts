@@ -13,6 +13,7 @@ views:
     min-y-override: ""
     max-y-override: ""
     label-property: note.original_title
+    aggregate: None
   - type: chart-bar
     name: Release year
     filters:
@@ -22,3 +23,16 @@ views:
       - formula.One
     x: formula.Release Year
     show-labels: false
+  - type: table
+    name: View
+    order:
+      - file.name
+      - species
+      - island
+      - genre
+      - duration
+      - culmen_depth_mm
+      - culmen_length_mm
+      - High
+      - Low
+      - Open

@@ -1,8 +1,9 @@
 import type { EChartsOption } from 'echarts';
-import type { DataWrapper, ProcessedData } from 'src/ChartData';
-import type { ResolvedColors } from 'src/charts/echarts-setup';
-import { getResolvedColor } from 'src/charts/echarts-setup';
-import { toCompactString } from 'src/utils/utils';
+import type { DataWrapper, ProcessedData } from '../../ChartData';
+import { ChartRenderer } from '../ChartRenderer';
+import type { ResolvedColors } from '../echarts-setup';
+import { getResolvedColor } from '../echarts-setup';
+import { toCompactString } from '../../utils/utils';
 
 export function buildBarOption(
 	data: DataWrapper,
@@ -14,20 +15,14 @@ export function buildBarOption(
 	showLabels: boolean,
 	showPercentages: boolean,
 	hasDomainOverride: boolean,
-	hasUserSort: boolean,
 ): EChartsOption {
 	const flatData = data.getFlat(chartIndex);
 	const domain = hasDomainOverride ? data.getYDomainForChart(chartIndex) : undefined;
+	const columnName = data.getChartName(chartIndex);
 
-	let xCategories = [...new Set(flatData.map(d => String(d.x)))];
-	if (!hasUserSort) {
-		xCategories.sort((a, b) => {
-			const numA = Number(a);
-			const numB = Number(b);
-			if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-			return a.localeCompare(b);
-		});
-	}
+	// Use pre-sorted x order from Bases (ungrouped, respects user sort settings)
+	const flatXSet = new Set(flatData.map(d => String(d.x)));
+	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of flatData) {
@@ -91,10 +86,28 @@ export function buildBarOption(
 				formatter: showPercentages ? ('{value}%' as string) : ((v: number) => toCompactString(v)),
 			},
 		},
-		tooltip: {
-			trigger: 'axis',
-			axisPointer: { type: 'shadow' },
-		},
+		tooltip: isGrouped
+			? {
+					trigger: 'axis',
+					axisPointer: { type: 'shadow' },
+					confine: true,
+				}
+			: {
+					trigger: 'axis',
+					enterable: true,
+					hideDelay: 300,
+					axisPointer: { type: 'shadow' },
+					confine: true,
+					position: ChartRenderer.tooltipPosition,
+					formatter: (params: unknown) => {
+						const result = ChartRenderer.formatAxisTooltip(
+							params as { marker?: string; seriesName?: string; data: { _raw?: ProcessedData; value?: number } }[],
+							columnName,
+							yLabel.replace('↑ ', ''),
+						);
+						return result.html;
+					},
+				},
 		series,
 	};
 }

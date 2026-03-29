@@ -1,8 +1,8 @@
 import type { EChartsOption } from 'echarts';
-import type { DataWrapper, ProcessedData } from 'src/ChartData';
-import type { ResolvedColors } from 'src/charts/echarts-setup';
-import { getResolvedColor } from 'src/charts/echarts-setup';
-import { toCompactString } from 'src/utils/utils';
+import type { DataWrapper, ProcessedData } from '../../ChartData';
+import { ChartRenderer } from '../ChartRenderer';
+import type { ResolvedColors } from '../echarts-setup';
+import { getResolvedColor } from '../echarts-setup';
 
 export function buildLineOption(
 	data: DataWrapper,
@@ -11,9 +11,11 @@ export function buildLineOption(
 	yLabel: string,
 	isGrouped: boolean,
 	colors: ResolvedColors,
+	treatNullAsZero: boolean,
 ): EChartsOption {
-	const dataPoints = data.getFlat(chartIndex, true);
-	const domain = data.getYDomainForChart(chartIndex);
+	const dataPoints = data.getFlat(chartIndex);
+	const columnName = data.getChartName(chartIndex);
+	const overrides = data.view.getYDomainOverrides();
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
@@ -25,21 +27,30 @@ export function buildLineOption(
 	const hasDate = dataPoints.some(d => d.x instanceof Date);
 	const hasString = dataPoints.some(d => typeof d.x === 'string');
 
+	const flatXSet = new Set(dataPoints.map(d => String(d.x)));
+	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
+
 	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => ({
 		type: 'line' as const,
 		name: data.getGroupName(groupIdx),
-		data: points.map(p => ({
-			value: [p.x instanceof Date ? p.x.getTime() : p.x, p.y],
-			_raw: p,
-		})),
+		data: hasString
+			? xCategories.map(cat => {
+					const match = points.find(p => String(p.x) === cat);
+					return match ? { value: match.y, _raw: match } : { value: treatNullAsZero ? 0 : null, _raw: null };
+				})
+			: points.map(p => ({
+					value: [p.x instanceof Date ? p.x.getTime() : p.x, p.y],
+					_raw: p,
+				})),
 		itemStyle: {
 			color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
 		},
 		lineStyle: {
 			color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
 		},
+		connectNulls: !treatNullAsZero,
 		showSymbol: true,
-		symbolSize: 4,
+		symbolSize: 6,
 		emphasis: {
 			focus: 'series' as const,
 		},
@@ -49,6 +60,7 @@ export function buildLineOption(
 		grid: { left: 10, right: 10, top: 30, bottom: 20, containLabel: true },
 		xAxis: {
 			type: hasDate ? 'time' : hasString ? 'category' : 'value',
+			data: hasString ? xCategories : undefined,
 			name: xName,
 			nameLocation: 'middle',
 			nameGap: 25,
@@ -59,20 +71,31 @@ export function buildLineOption(
 			nameLocation: 'end',
 			nameGap: 15,
 			nameTextStyle: { align: 'left' },
-			min: domain[0],
-			max: domain[1],
+			min: overrides.min ?? undefined,
+			max: overrides.max ?? undefined,
 		},
-		tooltip: {
-			trigger: 'axis',
-			axisPointer: { type: 'cross', lineStyle: { color: colors.grid } },
-			formatter: (params: unknown) => {
-				const arr = params as { marker: string; seriesName: string; value: [unknown, number] }[];
-				if (!Array.isArray(arr)) return '';
-				return arr
-					.map(p => `${p.marker} ${p.seriesName}: ${toCompactString(p.value[1])}`)
-					.join('<br/>');
-			},
-		},
+		tooltip: isGrouped
+			? {
+					trigger: 'axis',
+					axisPointer: { type: 'cross' },
+					confine: true,
+				}
+			: {
+					trigger: 'axis',
+					enterable: true,
+					hideDelay: 300,
+					axisPointer: { type: 'cross' },
+					confine: true,
+					position: ChartRenderer.tooltipPosition,
+					formatter: (params: unknown) => {
+						const result = ChartRenderer.formatAxisTooltip(
+							params as { marker?: string; seriesName?: string; data: { _raw?: ProcessedData; value?: number } }[],
+							columnName,
+							yLabel.replace('↑ ', ''),
+						);
+						return result.html;
+					},
+				},
 		series,
 	};
 }

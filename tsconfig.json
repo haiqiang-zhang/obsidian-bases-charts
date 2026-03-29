@@ -18,8 +18,7 @@
 		"moduleDetection": "force",
 		"sourceMap": true,
 		"lib": ["DOM", "ESNext"],
-		"allowSyntheticDefaultImports": true,
-		"types": ["bun"]
+		"allowSyntheticDefaultImports": true
 	},
-	"include": ["src/**/*.ts", "tests/**/*.ts"]
+	"include": ["src/**/*.ts"]
 }

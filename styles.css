@@ -51,3 +51,70 @@ body {
 	height: var(--size-4-4);
 	background-color: var(--color);
 }
+
+.bases-charts-message-overlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--size-4-3);
+	z-index: 10;
+}
+
+.bases-charts-message-text {
+	color: var(--text-muted);
+	font-size: var(--font-ui-medium);
+	text-align: center;
+	margin: 0;
+}
+
+.bases-chart-tooltip {
+	min-width: 120px;
+}
+
+.bases-chart-tooltip-header {
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.bases-chart-tooltip-divider {
+	height: 1px;
+	background: rgba(128, 128, 128, 0.2);
+	margin: 6px 0;
+}
+
+.bases-chart-tooltip-value {
+	color: #999;
+	font-size: 12px;
+}
+
+.bases-chart-tooltip-file {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 3px 4px;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.bases-chart-tooltip-file:hover {
+	background: rgba(128, 128, 128, 0.15);
+}
+
+.bases-chart-tooltip-file-name {
+	font-weight: 500;
+}
+
+.bases-chart-tooltip-file-value {
+	color: #999;
+	font-size: 12px;
+}
+
+.bases-chart-tooltip-group-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 2px 0;
+}

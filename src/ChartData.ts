@@ -1,6 +1,6 @@
 import type { BasesPropertyId } from 'obsidian';
-import type { ChartView, YDomainOverrides } from 'src/ChartView';
-import { OBSIDIAN_COLOR_PALETTE } from 'src/utils/utils';
+import type { ChartView, YDomainOverrides } from './ChartView';
+import { OBSIDIAN_COLOR_PALETTE } from './utils/utils';
 
 /* eslint-disable-next-line @typescript-eslint/consistent-type-definitions */
 export type ProcessedData = {
@@ -18,6 +18,7 @@ export type ProcessedData = {
 	 * In property separated mode, this is the property id.
 	 */
 	chartIndex: number;
+	isNumeric: boolean;
 	files: string[];
 	fileValues: number[];
 	label?: string;
@@ -27,12 +28,14 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 	readonly view: ChartView;
 	readonly data: ProcessedData[];
 	readonly groupBySet: string[];
+	readonly sortedXOrder: string[];
 	readonly yDomain: YDomainOverrides;
 
-	constructor(view: ChartView, data: ProcessedData[], groupBySet: string[]) {
+	constructor(view: ChartView, data: ProcessedData[], groupBySet: string[], sortedXOrder: (number | Date | string)[]) {
 		this.view = view;
 		this.data = data;
 		this.groupBySet = groupBySet;
+		this.sortedXOrder = sortedXOrder.map(v => String(v));
 
 		this.yDomain = this.getYDomain();
 	}
@@ -55,14 +58,16 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 		return this.getChartIdentifiers().length > 1;
 	}
 
-	getFlat(chartIndex: number, sorted: boolean = false): ProcessedData[] {
+	getFlat(chartIndex: number): ProcessedData[] {
 		const data = this.data.filter(d => d.chartIndex === chartIndex);
+		const orderMap = new Map<string, number>();
+		this.sortedXOrder.forEach((x, i) => orderMap.set(x, i));
 
-		if (sorted) {
-			return sortDataByGroup(data);
-		}
-
-		return data;
+		return data.sort((a, b) => {
+			const ia = orderMap.get(String(a.x)) ?? Infinity;
+			const ib = orderMap.get(String(b.x)) ?? Infinity;
+			return ia - ib;
+		});
 	}
 
 	getStacked(chartIndex: number): ProcessedData[] {
@@ -210,22 +215,6 @@ export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, 
 export type DataWrapper = GroupSeparatedData | PropertySeparatedData;
 
 export function emptyDataWrapper(view: ChartView): DataWrapper {
-	return new GroupSeparatedData(view, [], []);
+	return new GroupSeparatedData(view, [], [], []);
 }
 
-export function sortDataByGroup(data: ProcessedData[]): ProcessedData[] {
-	return data.sort((a, b) => {
-		if (a.groupIndex !== b.groupIndex) {
-			return (a.groupIndex ?? 0) - (b.groupIndex ?? 0);
-		}
-
-		// Within the same group, sort by x
-		if (typeof a.x === 'number' && typeof b.x === 'number') {
-			return a.x - b.x;
-		}
-		if (a.x instanceof Date && b.x instanceof Date) {
-			return a.x.getTime() - b.x.getTime();
-		}
-		return String(a.x).localeCompare(String(b.x));
-	});
-}

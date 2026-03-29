@@ -1,8 +1,9 @@
 import type { EChartsOption } from 'echarts';
-import type { DataWrapper, ProcessedData } from 'src/ChartData';
-import type { ResolvedColors } from 'src/charts/echarts-setup';
-import { getResolvedColor } from 'src/charts/echarts-setup';
-import { toCompactString } from 'src/utils/utils';
+import type { DataWrapper, ProcessedData } from '../../ChartData';
+import { getFileDisplayName } from '../../utils/utils';
+import { ChartRenderer } from '../ChartRenderer';
+import type { ResolvedColors } from '../echarts-setup';
+import { getResolvedColor } from '../echarts-setup';
 
 export function buildScatterOption(
 	data: DataWrapper,
@@ -11,9 +12,11 @@ export function buildScatterOption(
 	yLabel: string,
 	isGrouped: boolean,
 	colors: ResolvedColors,
+	isNoneAggregate: boolean,
 ): EChartsOption {
 	const dataPoints = data.getFlat(chartIndex);
-	const domain = data.getYDomainForChart(chartIndex);
+	const columnName = data.getChartName(chartIndex);
+	const overrides = data.view.getYDomainOverrides();
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
@@ -25,11 +28,15 @@ export function buildScatterOption(
 	const hasDate = dataPoints.some(d => d.x instanceof Date);
 	const hasString = dataPoints.some(d => typeof d.x === 'string');
 
+	const flatXSet = new Set(dataPoints.map(d => String(d.x)));
+	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
+
 	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => ({
 		type: 'scatter' as const,
-		name: data.getGroupName(groupIdx),
+		name: isGrouped ? data.getGroupName(groupIdx) : undefined,
 		data: points.map(p => ({
 			value: [p.x instanceof Date ? p.x.getTime() : p.x, p.y],
+			name: p.files.length > 0 ? getFileDisplayName(p.files[0]) : undefined,
 			_raw: p,
 		})),
 		itemStyle: {
@@ -44,6 +51,7 @@ export function buildScatterOption(
 		grid: { left: 10, right: 10, top: 30, bottom: 20, containLabel: true },
 		xAxis: {
 			type: hasDate ? 'time' : hasString ? 'category' : 'value',
+			data: hasString ? xCategories : undefined,
 			name: xName,
 			nameLocation: 'middle',
 			nameGap: 25,
@@ -54,20 +62,27 @@ export function buildScatterOption(
 			nameLocation: 'end',
 			nameGap: 15,
 			nameTextStyle: { align: 'left' },
-			min: domain[0],
-			max: domain[1],
+			min: overrides.min ?? undefined,
+			max: overrides.max ?? undefined,
 		},
-		tooltip: {
-			trigger: 'item',
-			formatter: (params: unknown) => {
-				const p = params as { data: { _raw: ProcessedData } };
-				const raw = p.data._raw;
-				const lines: string[] = [];
-				if (raw.label) lines.push(String(raw.label));
-				lines.push(toCompactString(raw.y));
-				return lines.join('<br/>');
-			},
-		},
+		tooltip: isNoneAggregate
+			? {
+					trigger: 'item' as const,
+					confine: true,
+					axisPointer: { type: 'cross' as const },
+				}
+			: {
+					trigger: 'item' as const,
+					enterable: true,
+					hideDelay: 300,
+					confine: true,
+					position: ChartRenderer.tooltipPosition,
+					formatter: (params: unknown) => {
+						const p = params as { data: { _raw: ProcessedData } };
+						const raw = p.data._raw;
+						return ChartRenderer.formatTooltip(raw, columnName, yLabel.replace('↑ ', ''));
+					},
+				},
 		series,
 	};
 }

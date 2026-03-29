@@ -1,13 +1,13 @@
 import type { EChartsOption } from 'echarts';
-import type { DataWrapper } from 'src/ChartData';
-import type { ChartView, ChartViewType } from 'src/ChartView';
-import { BAR_CHART_VIEW_TYPE, CHART_SETTINGS, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from 'src/ChartView';
-import { ChartRenderer } from 'src/charts/ChartRenderer';
-import type { ResolvedColors } from 'src/charts/echarts-setup';
-import { buildBarOption } from 'src/charts/options/bar-options';
-import { buildLineOption } from 'src/charts/options/line-options';
-import { buildScatterOption } from 'src/charts/options/scatter-options';
-import { OBSIDIAN_COLOR_PALETTE } from 'src/utils/utils';
+import type { DataWrapper } from '../ChartData';
+import type { ChartView, ChartViewType } from '../ChartView';
+import { AggregateMode, BAR_CHART_VIEW_TYPE, CHART_SETTINGS, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from '../ChartView';
+import { ChartRenderer } from './ChartRenderer';
+import type { ResolvedColors } from './echarts-setup';
+import { buildBarOption } from './options/bar-options';
+import { buildLineOption } from './options/line-options';
+import { buildScatterOption } from './options/scatter-options';
+import { OBSIDIAN_COLOR_PALETTE } from '../utils/utils';
 
 export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
@@ -37,7 +37,25 @@ export class ChartLayout {
 		for (let i = 0; i < chartIds.length; i++) {
 			const renderer = this.renderers[i];
 			const isGrouped = data.hasMultipleGroups();
-			const yLabel = this.view.getYAxisLabel(data.getChartName(i));
+			const chartData = data.getFlat(i);
+
+			if (chartData.length === 0) {
+				renderer.showMessage(
+					'Non-numeric properties require Count aggregate.',
+					{
+						label: 'Use Count',
+						onClick: () => {
+							this.view.config.set(CHART_SETTINGS.AGGREGATE, AggregateMode.COUNT);
+						},
+					},
+				);
+				continue;
+			}
+
+			const hasNonNumeric = chartData.some(d => !d.isNumeric);
+			const yLabel = hasNonNumeric
+				? `↑ ${data.getChartName(i)} (Count)`
+				: this.view.getYAxisLabel(data.getChartName(i));
 			const option = this.buildOption(data, i, xName, yLabel, isGrouped, renderer.colors);
 			renderer.setOption(option);
 		}
@@ -54,15 +72,17 @@ export class ChartLayout {
 		const type = this.view.type;
 
 		if (type === SCATTER_CHART_VIEW_TYPE) {
-			return buildScatterOption(data, chartIndex, xName, yLabel, isGrouped, colors);
+			const isNoneAggregate = this.view.getAggregateMode() === AggregateMode.NONE;
+			return buildScatterOption(data, chartIndex, xName, yLabel, isGrouped, colors, isNoneAggregate);
 		} else if (type === LINE_CHART_VIEW_TYPE) {
-			return buildLineOption(data, chartIndex, xName, yLabel, isGrouped, colors);
+			const nullHandling = (this.view.config.get(CHART_SETTINGS.NULL_HANDLING) as string) ?? 'Skip';
+			const treatNullAsZero = nullHandling === 'Treat as 0';
+			return buildLineOption(data, chartIndex, xName, yLabel, isGrouped, colors, treatNullAsZero);
 		} else if (type === BAR_CHART_VIEW_TYPE) {
 			const showLabels = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_LABELS) ?? true);
 			const showPercentages = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_PERCENTAGES) ?? false);
 			const hasDomainOverride = this.view.hasDomainOverride();
-			const hasUserSort = this.view.config.getSort().length > 0;
-			return buildBarOption(data, chartIndex, xName, yLabel, isGrouped, colors, showLabels, showPercentages, hasDomainOverride, hasUserSort);
+			return buildBarOption(data, chartIndex, xName, yLabel, isGrouped, colors, showLabels, showPercentages, hasDomainOverride);
 		}
 
 		return {};
@@ -71,7 +91,11 @@ export class ChartLayout {
 	private renderLegend(data: DataWrapper): void {
 		this.legendEl.empty();
 		const groupIds = data.getGroupIdentifiers();
-		if (groupIds.length <= 1) return;
+		if (groupIds.length <= 1) {
+			this.legendEl.style.display = 'none';
+			return;
+		}
+		this.legendEl.style.display = '';
 
 		for (let i = 0; i < groupIds.length; i++) {
 			const itemEl = this.legendEl.createDiv({ cls: 'bases-charts-plot-legend-item' });

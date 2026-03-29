@@ -1,5 +1,5 @@
 import type { Value } from 'obsidian';
-import { DateValue, NumberValue, StringValue } from 'obsidian';
+import { DateValue, ListValue, NumberValue, StringValue } from 'obsidian';
 
 export function toCompactString(datum: object | number | string | symbol | boolean | Date | null | undefined): string {
 	if (datum == null) {
@@ -53,11 +53,9 @@ export function parseValueAsNumber(value: Value | null): number | null {
 	return null;
 }
 
-export function parseValueAsX(value: Value | null): number | Date | string | null {
-	if (!value) {
-		return null;
-	}
+export type XValue = number | Date | string;
 
+function parseSingleValueAsX(value: Value): XValue | null {
 	if (value instanceof NumberValue) {
 		return value.data;
 	}
@@ -67,5 +65,30 @@ export function parseValueAsX(value: Value | null): number | Date | string | nul
 	if (value instanceof DateValue) {
 		return new Date(value.toString());
 	}
+	const str = value.toString();
+	if (str) {
+		return str;
+	}
 	return null;
+}
+
+export function parseValueAsX(value: Value | null): XValue[] | null {
+	if (!value) {
+		return null;
+	}
+
+	if (value instanceof ListValue) {
+		const result: XValue[] = [];
+		for (let i = 0; i < value.length(); i++) {
+			const elem = value.get(i);
+			const parsed = parseSingleValueAsX(elem);
+			if (parsed !== null) {
+				result.push(parsed);
+			}
+		}
+		return result.length > 0 ? result : null;
+	}
+
+	const single = parseSingleValueAsX(value);
+	return single !== null ? [single] : null;
 }

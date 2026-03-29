@@ -1,10 +1,10 @@
 import type { BasesEntry, QueryController } from 'obsidian';
 import type { BasesPropertyId, ViewOption } from 'obsidian';
 import { BasesView, Events } from 'obsidian';
-import type { DataWrapper, ProcessedData } from 'src/ChartData';
-import { emptyDataWrapper, GroupSeparatedData, PropertySeparatedData } from 'src/ChartData';
-import { ChartLayout } from 'src/charts/ChartLayout';
-import { parseValueAsNumber, parseValueAsX } from 'src/utils/utils';
+import type { DataWrapper, ProcessedData } from './ChartData';
+import { emptyDataWrapper, GroupSeparatedData, PropertySeparatedData } from './ChartData';
+import { ChartLayout } from './charts/ChartLayout';
+import { parseValueAsNumber, parseValueAsX } from './utils/utils';
 
 export const SCATTER_CHART_VIEW_TYPE = 'chart-scatter';
 export const LINE_CHART_VIEW_TYPE = 'chart-line';
@@ -22,7 +22,13 @@ export const CHART_SETTINGS = {
 	MAX_Y_OVERRIDE: 'max-y-override',
 	LABEL_PROP: 'label-property',
 	AGGREGATE: 'aggregate',
+	NULL_HANDLING: 'null-handling',
 } as const;
+
+export enum NullHandling {
+	SKIP = 'Skip',
+	ZERO = 'Treat as 0',
+}
 
 export enum MultiChartMode {
 	GROUP = 'Separate by group',
@@ -76,12 +82,32 @@ export class ChartView extends BasesView {
 	onload(): void {
 		this.scrollEl.addClass('bases-chart-view');
 		this.layout = new ChartLayout(this, this.scrollEl);
+		this.renameToolbarButton();
+	}
+
+	private renameToolbarButton(): void {
+		const container = this.scrollEl.parentElement;
+		if (!container) return;
+		const label = container.querySelector('.bases-toolbar-properties-menu .text-button-label');
+		if (label) {
+			label.textContent = 'Y Axis';
+		}
 	}
 
 	onunload(): void {
 		this.layout?.destroy();
 		this.layout = null;
 		this.scrollEl.removeClass('bases-chart-view');
+		this.restoreToolbarButton();
+	}
+
+	private restoreToolbarButton(): void {
+		const container = this.scrollEl.parentElement;
+		if (!container) return;
+		const label = container.querySelector('.bases-toolbar-properties-menu .text-button-label');
+		if (label) {
+			label.textContent = 'Properties';
+		}
 	}
 
 	onDataUpdated(): void {
@@ -106,6 +132,20 @@ export class ChartView extends BasesView {
 			return emptyDataWrapper(this);
 		}
 
+		// Extract x order from ungrouped data (pre-sorted by Bases, ignoring group)
+		const sortedXValues: (number | Date | string)[] = [];
+		for (const entry of this.data.data) {
+			const xVals = parseValueAsX(entry.getValue(xField));
+			if (xVals) {
+				for (const v of xVals) {
+					const key = String(v);
+					if (!sortedXValues.some(existing => String(existing) === key)) {
+						sortedXValues.push(v);
+					}
+				}
+			}
+		}
+
 		const data: ProcessedData[] = [];
 		const groupBySet = this.data.groupedData.map(g => g.key?.toString()).filter(k => k != null);
 
@@ -124,43 +164,48 @@ export class ChartView extends BasesView {
 			}
 		}
 
-		const aggregatedData = this.type === LINE_CHART_VIEW_TYPE || this.type === BAR_CHART_VIEW_TYPE
-			? aggregateData(data, this.config.get(CHART_SETTINGS.AGGREGATE) as AggregateMode | undefined)
-			: data;
+		const aggregatedData = aggregateData(data, this.config.get(CHART_SETTINGS.AGGREGATE) as AggregateMode | undefined, this.type);
 
 		if (mode === MultiChartMode.GROUP) {
-			return new GroupSeparatedData(this, aggregatedData, groupBySet);
+			return new GroupSeparatedData(this, aggregatedData, groupBySet, sortedXValues);
 		} else {
-			return new PropertySeparatedData(this, aggregatedData, groupBySet);
+			return new PropertySeparatedData(this, aggregatedData, groupBySet, sortedXValues);
 		}
 	}
 
 	processEntry(entry: BasesEntry, xField: BasesPropertyId, propertyOrder: BasesPropertyId[], groupIndex: number, mode: MultiChartMode): ProcessedData[] {
 		try {
 			const x = entry.getValue(xField);
-			const xValue = parseValueAsX(x);
+			const xValues = parseValueAsX(x);
 			const labelProp = this.config.getAsPropertyId(CHART_SETTINGS.LABEL_PROP);
 
-			if (xValue === null) {
+			if (xValues === null) {
 				return [];
 			}
+
+			const isCountMode = this.getAggregateMode() === AggregateMode.COUNT;
 
 			const result: ProcessedData[] = [];
 			let i = 0;
 			for (const prop of propertyOrder) {
-				const yValue = parseValueAsNumber(entry.getValue(prop));
+				const rawValue = entry.getValue(prop);
+				const yValue = parseValueAsNumber(rawValue);
 				const label = labelProp ? entry.getValue(labelProp)?.toString() : undefined;
+				const include = yValue !== null || (isCountMode && rawValue !== null);
 
-				if (xValue !== null && yValue !== null) {
-					result.push({
-						x: xValue,
-						y: yValue,
-						groupIndex: mode === MultiChartMode.GROUP ? i : groupIndex,
-						chartIndex: mode === MultiChartMode.GROUP ? groupIndex : i,
-						files: [entry.file.path],
-						fileValues: [yValue],
-						label: label,
-					});
+				if (include) {
+					for (const xValue of xValues) {
+						result.push({
+							x: xValue,
+							y: yValue ?? 1,
+							isNumeric: yValue !== null,
+							groupIndex: mode === MultiChartMode.GROUP ? i : groupIndex,
+							chartIndex: mode === MultiChartMode.GROUP ? groupIndex : i,
+							files: [entry.file.path],
+							fileValues: [yValue ?? 1],
+							label: label,
+						});
+					}
 				}
 
 				i++;
@@ -265,25 +310,13 @@ export class ChartView extends BasesView {
 				placeholder: 'Leave empty to disable',
 				default: '',
 			},
-			{
-				displayName: 'Aggregate',
-				type: 'dropdown',
-				key: CHART_SETTINGS.AGGREGATE,
-				options: {
-					[AggregateMode.SUM]: AggregateMode.SUM,
-					[AggregateMode.AVERAGE]: AggregateMode.AVERAGE,
-					[AggregateMode.COUNT]: AggregateMode.COUNT,
-					[AggregateMode.MIN]: AggregateMode.MIN,
-					[AggregateMode.MAX]: AggregateMode.MAX,
-				},
-				default: AggregateMode.SUM,
-			},
 		];
 	}
 
 	static scatterViewOptions(): ViewOption[] {
 		return [
 			...ChartView.commonViewOptions(),
+			ChartView.aggregateOption(true),
 			{
 				displayName: 'Label property',
 				type: 'property',
@@ -293,13 +326,44 @@ export class ChartView extends BasesView {
 		];
 	}
 
+	private static aggregateOption(includeNone: boolean): ViewOption {
+		const options: Record<string, string> = {};
+		if (includeNone) options[AggregateMode.NONE] = AggregateMode.NONE;
+		options[AggregateMode.SUM] = AggregateMode.SUM;
+		options[AggregateMode.AVERAGE] = AggregateMode.AVERAGE;
+		options[AggregateMode.COUNT] = AggregateMode.COUNT;
+		options[AggregateMode.MIN] = AggregateMode.MIN;
+		options[AggregateMode.MAX] = AggregateMode.MAX;
+		return {
+			displayName: 'Aggregate',
+			type: 'dropdown',
+			key: CHART_SETTINGS.AGGREGATE,
+			options,
+			default: includeNone ? AggregateMode.NONE : AggregateMode.SUM,
+		};
+	}
+
 	static lineViewOptions(): ViewOption[] {
-		return [...ChartView.commonViewOptions()];
+		return [
+			...ChartView.commonViewOptions(),
+			ChartView.aggregateOption(false),
+			{
+				displayName: 'Missing values',
+				type: 'dropdown',
+				key: CHART_SETTINGS.NULL_HANDLING,
+				options: {
+					[NullHandling.SKIP]: NullHandling.SKIP,
+					[NullHandling.ZERO]: NullHandling.ZERO,
+				},
+				default: NullHandling.SKIP,
+			},
+		];
 	}
 
 	static barViewOptions(): ViewOption[] {
 		return [
 			...ChartView.commonViewOptions(),
+			ChartView.aggregateOption(false),
 			{
 				displayName: 'Show labels',
 				type: 'toggle',
@@ -316,7 +380,7 @@ export class ChartView extends BasesView {
 	}
 }
 
-function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined): ProcessedData[] {
+function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined, chartType: ChartViewType): ProcessedData[] {
 	// Group by x + chartIndex + groupIndex
 	const buckets = new Map<string, ProcessedData[]>();
 	for (const d of data) {
@@ -329,10 +393,15 @@ function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined): 
 		bucket.push(d);
 	}
 
-	// If mode is None, check if any bucket has multiple entries
-	// If so, force SUM as default; otherwise return as-is
 	let effectiveMode = mode ?? AggregateMode.NONE;
+
 	if (effectiveMode === AggregateMode.NONE) {
+		if (chartType === SCATTER_CHART_VIEW_TYPE) return data;
+		// For line/bar with non-numeric data, force COUNT
+		const hasNonNumeric = data.some(d => !d.isNumeric);
+		if (hasNonNumeric) {
+			effectiveMode = AggregateMode.COUNT;
+		}
 		const hasDuplicates = Array.from(buckets.values()).some(b => b.length > 1);
 		if (!hasDuplicates) return data;
 		effectiveMode = AggregateMode.SUM;
@@ -366,6 +435,7 @@ function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined): 
 		result.push({
 			x: first.x,
 			y: y,
+			isNumeric: first.isNumeric,
 			groupIndex: first.groupIndex,
 			chartIndex: first.chartIndex,
 			files: bucket.flatMap(d => d.files),
