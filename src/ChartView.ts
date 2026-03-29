@@ -1,6 +1,14 @@
-import type { BasesEntry, EventRef, QueryController } from 'obsidian';
+import type { BasesEntry, EventRef, GroupOption, QueryController } from 'obsidian';
 import type { BasesPropertyId, ViewOption } from 'obsidian';
-import { BasesView, Events } from 'obsidian';
+import { BasesView, Events, displayTooltip, setIcon } from 'obsidian';
+
+type ViewOptionItem = Exclude<ViewOption, GroupOption>;
+
+export interface CommonViewOptionGroups {
+	data: ViewOptionItem[];
+	multiChart: ViewOptionItem[];
+	yAxis: ViewOptionItem[];
+}
 import type { DataWrapper, ProcessedData } from './ChartData';
 import { emptyDataWrapper, GroupSeparatedData, PropertySeparatedData } from './ChartData';
 import { ChartLayout } from './ChartLayout';
@@ -29,13 +37,13 @@ export const COMMON_SETTINGS = {
 
 
 export enum NullHandling {
-	SKIP = 'Skip',
-	ZERO = 'Treat as 0',
+	SKIP = 'Leave gap',
+	ZERO = 'Fill with 0',
 }
 
 export enum MultiChartMode {
 	GROUP = 'Separate by group',
-	PROPERTY = 'Separate by property',
+	PROPERTY = 'Separate by Y axis',
 }
 
 export enum AggregateMode {
@@ -83,11 +91,13 @@ export class ChartView extends BasesView {
 	}
 
 	private cssChangeRef: EventRef | null = null;
+	private configObserver: MutationObserver | null = null;
 
 	onload(): void {
 		this.scrollEl.addClass('bases-chart-view');
 		this.layout = new ChartLayout(this, this.scrollEl);
 		this.renameToolbarButton();
+		this.observeConfigPanel();
 
 		this.cssChangeRef = this.app.workspace.on('css-change', () => {
 			this.events.trigger('data-updated');
@@ -103,10 +113,67 @@ export class ChartView extends BasesView {
 		}
 	}
 
+	private observeConfigPanel(): void {
+		const tooltips = ChartView.getSettingTooltips(this.type);
+		if (Object.keys(tooltips).length === 0) return;
+
+		this.configObserver = new MutationObserver(() => {
+			// The config menu is rendered as a .menu element on document.body
+			const menus = Array.from(document.querySelectorAll<HTMLElement>('.menu .view-config-menu'));
+			for (const menu of menus) {
+				this.injectHelpIcons(menu, tooltips);
+			}
+		});
+		this.configObserver.observe(document.body, { childList: true, subtree: true });
+	}
+
+	private injectHelpIcons(container: HTMLElement, tooltips: Record<string, string>): void {
+		const labels = Array.from(container.querySelectorAll<HTMLElement>('.input-row-label'));
+		for (const label of labels) {
+			if (label.querySelector('.bases-chart-help-icon')) continue;
+
+			const displayName = label.textContent?.trim();
+			if (!displayName) continue;
+
+			const tooltipText = Object.entries(tooltips).find(([name]) => name === displayName)?.[1];
+			if (!tooltipText) continue;
+
+			const icon = label.createEl('span', { cls: 'bases-chart-help-icon' });
+			icon.style.cursor = 'pointer';
+			icon.style.marginLeft = '4px';
+			icon.style.display = 'inline-flex';
+			icon.style.verticalAlign = 'middle';
+			icon.style.opacity = '0.5';
+			setIcon(icon, 'lucide-help-circle');
+			const svg = icon.querySelector('svg');
+			if (svg) {
+				svg.setAttribute('width', '14');
+				svg.setAttribute('height', '14');
+			}
+			icon.addEventListener('click', (e: MouseEvent) => {
+				e.stopPropagation();
+				displayTooltip(icon, tooltipText, { placement: 'top' });
+			});
+		}
+	}
+
+	static getSettingTooltips(type: ChartViewType): Record<string, string> {
+		if (type === LINE_CHART_VIEW_TYPE) {
+			return {
+				'Gap handling': 'Only applies when the X axis is categorical (e.g. text properties). When data is grouped, some groups may not have values at every X position. "Leave gap" skips the missing points, while "Fill with 0" treats them as zero.',
+			};
+		}
+		return {};
+	}
+
 	onunload(): void {
 		if (this.cssChangeRef) {
 			this.app.workspace.offref(this.cssChangeRef);
 			this.cssChangeRef = null;
+		}
+		if (this.configObserver) {
+			this.configObserver.disconnect();
+			this.configObserver = null;
 		}
 		this.layout?.destroy();
 		this.layout = null;
@@ -290,63 +357,84 @@ export class ChartView extends BasesView {
 		}
 	}
 
-	static commonViewOptions(): ViewOption[] {
-		return [
-			{
-				displayName: 'Multi chart mode',
-				type: 'dropdown',
-				key: COMMON_SETTINGS.MULTI_CHART,
-				options: {
-					[MultiChartMode.GROUP]: MultiChartMode.GROUP,
-					[MultiChartMode.PROPERTY]: MultiChartMode.PROPERTY,
+	static commonViewOptionGroups(includeNoneAggregate: boolean): CommonViewOptionGroups {
+		const aggregateOptions: Record<string, string> = {};
+		if (includeNoneAggregate) aggregateOptions[AggregateMode.NONE] = AggregateMode.NONE;
+		aggregateOptions[AggregateMode.SUM] = AggregateMode.SUM;
+		aggregateOptions[AggregateMode.AVERAGE] = AggregateMode.AVERAGE;
+		aggregateOptions[AggregateMode.COUNT] = AggregateMode.COUNT;
+		aggregateOptions[AggregateMode.MIN] = AggregateMode.MIN;
+		aggregateOptions[AggregateMode.MAX] = AggregateMode.MAX;
+
+		return {
+			data: [
+				{
+					displayName: 'X axis',
+					type: 'property',
+					key: COMMON_SETTINGS.X,
+					filter: prop => !prop.startsWith('file.'),
+					placeholder: 'Property',
 				},
-				default: MultiChartMode.PROPERTY,
-			},
-			{
-				displayName: 'X axis',
-				type: 'property',
-				key: COMMON_SETTINGS.X,
-				filter: prop => !prop.startsWith('file.'),
-				placeholder: 'Property',
-			},
-			{
-				displayName: 'Sync Y axes',
-				type: 'toggle',
-				key: COMMON_SETTINGS.SYNC_Y_AXES,
-				default: false,
-			},
-			{
-				displayName: 'Min Y override',
-				type: 'text',
-				key: COMMON_SETTINGS.MIN_Y_OVERRIDE,
-				placeholder: 'Leave empty to disable',
-				default: '',
-			},
-			{
-				displayName: 'Max Y override',
-				type: 'text',
-				key: COMMON_SETTINGS.MAX_Y_OVERRIDE,
-				placeholder: 'Leave empty to disable',
-				default: '',
-			},
-		];
+				{
+					displayName: 'Aggregate',
+					type: 'dropdown',
+					key: COMMON_SETTINGS.AGGREGATE,
+					options: aggregateOptions,
+					default: includeNoneAggregate ? AggregateMode.NONE : AggregateMode.SUM,
+				},
+			],
+			multiChart: [
+				{
+					displayName: 'Multi chart mode',
+					type: 'dropdown',
+					key: COMMON_SETTINGS.MULTI_CHART,
+					options: {
+						[MultiChartMode.GROUP]: MultiChartMode.GROUP,
+						[MultiChartMode.PROPERTY]: MultiChartMode.PROPERTY,
+					},
+					default: MultiChartMode.PROPERTY,
+				},
+				{
+					displayName: 'Sync Y axes',
+					type: 'toggle',
+					key: COMMON_SETTINGS.SYNC_Y_AXES,
+					default: false,
+				},
+			],
+			yAxis: [
+				{
+					displayName: 'Min Y override',
+					type: 'text',
+					key: COMMON_SETTINGS.MIN_Y_OVERRIDE,
+					placeholder: 'Leave empty to disable',
+					default: '',
+				},
+				{
+					displayName: 'Max Y override',
+					type: 'text',
+					key: COMMON_SETTINGS.MAX_Y_OVERRIDE,
+					placeholder: 'Leave empty to disable',
+					default: '',
+				},
+			],
+		};
 	}
 
-	static aggregateOption(includeNone: boolean): ViewOption {
-		const options: Record<string, string> = {};
-		if (includeNone) options[AggregateMode.NONE] = AggregateMode.NONE;
-		options[AggregateMode.SUM] = AggregateMode.SUM;
-		options[AggregateMode.AVERAGE] = AggregateMode.AVERAGE;
-		options[AggregateMode.COUNT] = AggregateMode.COUNT;
-		options[AggregateMode.MIN] = AggregateMode.MIN;
-		options[AggregateMode.MAX] = AggregateMode.MAX;
-		return {
-			displayName: 'Aggregate',
-			type: 'dropdown',
-			key: COMMON_SETTINGS.AGGREGATE,
-			options,
-			default: includeNone ? AggregateMode.NONE : AggregateMode.SUM,
-		};
+	static buildViewOptions(groups: CommonViewOptionGroups): ViewOption[] {
+		const result: ViewOption[] = [];
+		// Data group items are top-level (ungrouped)
+		result.push(...groups.data);
+		result.push({
+			type: 'group',
+			displayName: 'Multi chart',
+			items: groups.multiChart,
+		});
+		result.push({
+			type: 'group',
+			displayName: 'Y axis',
+			items: groups.yAxis,
+		});
+		return result;
 	}
 }
 

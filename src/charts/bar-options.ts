@@ -14,9 +14,8 @@ export const BAR_SETTINGS = {
 } as const;
 
 export function barViewOptions(): ViewOption[] {
-	return [
-		...ChartView.commonViewOptions(),
-		ChartView.aggregateOption(false),
+	const groups = ChartView.commonViewOptionGroups(false);
+	groups.data.push(
 		{
 			displayName: 'Show labels',
 			type: 'toggle',
@@ -29,7 +28,8 @@ export function barViewOptions(): ViewOption[] {
 			key: BAR_SETTINGS.SHOW_PERCENTAGES,
 			default: false,
 		},
-	];
+	);
+	return ChartView.buildViewOptions(groups);
 }
 
 export function buildBarOption(

@@ -13,16 +13,14 @@ export const SCATTER_SETTINGS = {
 } as const;
 
 export function scatterViewOptions(): ViewOption[] {
-	return [
-		...ChartView.commonViewOptions(),
-		ChartView.aggregateOption(true),
-		{
-			displayName: 'Label property',
-			type: 'property',
-			key: SCATTER_SETTINGS.LABEL_PROP,
-			placeholder: 'Property',
-		},
-	];
+	const groups = ChartView.commonViewOptionGroups(true);
+	groups.data.push({
+		displayName: 'Label property',
+		type: 'property',
+		key: SCATTER_SETTINGS.LABEL_PROP,
+		placeholder: 'Property',
+	});
+	return ChartView.buildViewOptions(groups);
 }
 
 export function buildScatterOption(

@@ -13,9 +13,8 @@ export const PIE_SETTINGS = {
 } as const;
 
 export function pieViewOptions(): ViewOption[] {
-	return [
-		...ChartView.commonViewOptions(),
-		ChartView.aggregateOption(false),
+	const groups = ChartView.commonViewOptionGroups(false);
+	groups.data.push(
 		{
 			displayName: 'Show labels',
 			type: 'toggle',
@@ -34,7 +33,8 @@ export function pieViewOptions(): ViewOption[] {
 			key: PIE_SETTINGS.IGNORE_NULL,
 			default: true,
 		},
-	];
+	);
+	return ChartView.buildViewOptions(groups);
 }
 
 export function buildPieOption(

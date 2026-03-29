@@ -12,20 +12,18 @@ export const LINE_SETTINGS = {
 } as const;
 
 export function lineViewOptions(): ViewOption[] {
-	return [
-		...ChartView.commonViewOptions(),
-		ChartView.aggregateOption(false),
-		{
-			displayName: 'Missing values',
-			type: 'dropdown',
-			key: LINE_SETTINGS.NULL_HANDLING,
-			options: {
-				[NullHandling.SKIP]: NullHandling.SKIP,
-				[NullHandling.ZERO]: NullHandling.ZERO,
-			},
-			default: NullHandling.SKIP,
+	const groups = ChartView.commonViewOptionGroups(false);
+	groups.data.push({
+		displayName: 'Gap handling',
+		type: 'dropdown',
+		key: LINE_SETTINGS.NULL_HANDLING,
+		options: {
+			[NullHandling.SKIP]: NullHandling.SKIP,
+			[NullHandling.ZERO]: NullHandling.ZERO,
 		},
-	];
+		default: NullHandling.SKIP,
+	});
+	return ChartView.buildViewOptions(groups);
 }
 
 export function buildLineOption(
