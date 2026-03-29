@@ -28,6 +28,7 @@ Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidia
 - Interactive tooltips with clickable file links
 - X axis sorting via Bases Sort configuration
 - Auto-resize, light/dark theme support
+- Mobile-optimized layout
 
 ## Installation
 
