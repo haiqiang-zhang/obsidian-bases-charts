@@ -1,5 +1,7 @@
 # Bases Charts
 
+![Banner](images/banner.png)
+
 This plugin for Obsidian adds various chart views to Bases, powered by [Apache ECharts](https://echarts.apache.org/).
 
 Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin), with active development, bug fixes, and new features.
