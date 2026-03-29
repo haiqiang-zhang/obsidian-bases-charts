@@ -11,6 +11,7 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = process.argv[2] === "production";
 
+const outdir = prod ? "dist" : ".";
 const pluginDir = "exampleVault/.obsidian/plugins/bases-charts";
 const filesToCopy = ["main.js", "manifest.json", "styles.css"];
 
@@ -59,7 +60,7 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
+	outfile: `${outdir}/main.js`,
 	minify: prod,
 	plugins: prod ? [] : [copyToVaultPlugin],
 });
