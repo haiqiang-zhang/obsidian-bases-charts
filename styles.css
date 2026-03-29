@@ -16,6 +16,10 @@ body {
 	overflow: hidden;
 }
 
+.is-phone .bases-chart-view {
+	padding-bottom: calc(var(--size-4-4) + var(--navbar-height) + var(--navbar-bottom-offset));
+}
+
 .bases-charts-plot-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(var(--bases-charts-min-width), 1fr));
