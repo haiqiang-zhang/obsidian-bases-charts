@@ -1,6 +1,7 @@
 import type { BasesPropertyId } from 'obsidian';
 import type { ChartView, YDomainOverrides } from './ChartView';
-import { OBSIDIAN_COLOR_PALETTE, toCompactString } from './utils/utils';
+import type { XAxisType } from './utils';
+import { OBSIDIAN_COLOR_PALETTE, toCompactString } from './utils';
 
 export type ProcessedData = {
 	x: number | Date | string;
@@ -28,14 +29,16 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 	readonly data: ProcessedData[];
 	readonly groupBySet: string[];
 	readonly sortedXOrder: string[];
+	readonly xAxisType: XAxisType;
 	readonly yDomain: YDomainOverrides;
 	private readonly orderMap: Map<string, number>;
 	private readonly flatCache = new Map<number, ProcessedData[]>();
 
-	constructor(view: ChartView, data: ProcessedData[], groupBySet: string[], sortedXOrder: (number | Date | string)[]) {
+	constructor(view: ChartView, data: ProcessedData[], groupBySet: string[], sortedXOrder: (number | Date | string)[], xAxisType: XAxisType) {
 		this.view = view;
 		this.data = data;
 		this.groupBySet = groupBySet;
+		this.xAxisType = xAxisType;
 		this.sortedXOrder = sortedXOrder.map(v => toCompactString(v));
 
 		this.orderMap = new Map<string, number>();
@@ -222,6 +225,6 @@ export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, 
 export type DataWrapper = GroupSeparatedData | PropertySeparatedData;
 
 export function emptyDataWrapper(view: ChartView): DataWrapper {
-	return new GroupSeparatedData(view, [], [], []);
+	return new GroupSeparatedData(view, [], [], [], 'category');
 }
 

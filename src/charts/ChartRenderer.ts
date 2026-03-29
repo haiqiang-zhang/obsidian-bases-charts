@@ -1,13 +1,14 @@
 import type { EChartsOption } from 'echarts';
+import type { EventRef } from 'obsidian';
 import type { ProcessedData } from '../ChartData';
 import type { ChartView } from '../ChartView';
 import { echarts, resolveColors, type ResolvedColors } from './echarts-setup';
-import { getFileDisplayName, toCompactString } from '../utils/utils';
+import { getFileDisplayName, toCompactString } from '../utils';
 
 export class ChartRenderer {
 	private chart: ReturnType<typeof echarts.init> | null = null;
 	private resizeObserver: ResizeObserver | null = null;
-	private themeObserver: MutationObserver | null = null;
+	private cssChangeRef: EventRef | null = null;
 	private messageEl: HTMLElement | null = null;
 	colors: ResolvedColors;
 
@@ -23,12 +24,9 @@ export class ChartRenderer {
 		});
 		this.resizeObserver.observe(containerEl);
 
-		this.themeObserver = new MutationObserver(() => {
+		this.cssChangeRef = view.app.workspace.on('css-change', () => {
 			this.colors = resolveColors(containerEl);
-		});
-		this.themeObserver.observe(document.body, {
-			attributes: true,
-			attributeFilter: ['class'],
+			view.events.trigger('data-updated');
 		});
 
 		// Click on data point: open file directly if single file
@@ -80,8 +78,10 @@ export class ChartRenderer {
 	dispose(): void {
 		this.resizeObserver?.disconnect();
 		this.resizeObserver = null;
-		this.themeObserver?.disconnect();
-		this.themeObserver = null;
+		if (this.cssChangeRef) {
+			this.view.app.workspace.offref(this.cssChangeRef);
+			this.cssChangeRef = null;
+		}
 		this.chart?.dispose();
 		this.chart = null;
 	}

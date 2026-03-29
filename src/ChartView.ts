@@ -3,8 +3,13 @@ import type { BasesPropertyId, ViewOption } from 'obsidian';
 import { BasesView, Events } from 'obsidian';
 import type { DataWrapper, ProcessedData } from './ChartData';
 import { emptyDataWrapper, GroupSeparatedData, PropertySeparatedData } from './ChartData';
-import { ChartLayout } from './charts/ChartLayout';
-import { parseValueAsNumber, parseValueAsX, toCompactString } from './utils/utils';
+import { ChartLayout } from './ChartLayout';
+import { SCATTER_SETTINGS } from './charts/scatter-options';
+import { scatterViewOptions } from './charts/scatter-options';
+import { lineViewOptions } from './charts/line-options';
+import { barViewOptions } from './charts/bar-options';
+import { pieViewOptions } from './charts/pie-options';
+import { detectXAxisType, parseValueAsNumber, parseValueAsX, toCompactString } from './utils';
 
 export const SCATTER_CHART_VIEW_TYPE = 'chart-scatter';
 export const LINE_CHART_VIEW_TYPE = 'chart-line';
@@ -13,19 +18,15 @@ export const PIE_CHART_VIEW_TYPE = 'chart-pie';
 
 export type ChartViewType = typeof SCATTER_CHART_VIEW_TYPE | typeof LINE_CHART_VIEW_TYPE | typeof BAR_CHART_VIEW_TYPE | typeof PIE_CHART_VIEW_TYPE;
 
-export const CHART_SETTINGS = {
+export const COMMON_SETTINGS = {
 	X: 'x',
-	SHOW_PERCENTAGES: 'show-percentages',
-	SHOW_LABELS: 'show-labels',
 	MULTI_CHART: 'multi-chart-mode',
 	SYNC_Y_AXES: 'sync-y-axes',
 	MIN_Y_OVERRIDE: 'min-y-override',
 	MAX_Y_OVERRIDE: 'max-y-override',
-	LABEL_PROP: 'label-property',
 	AGGREGATE: 'aggregate',
-	NULL_HANDLING: 'null-handling',
-	IGNORE_NULL: 'ignore-null',
 } as const;
+
 
 export enum NullHandling {
 	SKIP = 'Skip',
@@ -117,8 +118,8 @@ export class ChartView extends BasesView {
 	}
 
 	processData(): DataWrapper {
-		const xField = this.config.getAsPropertyId(CHART_SETTINGS.X);
-		const mode = this.config.get(CHART_SETTINGS.MULTI_CHART) ?? MultiChartMode.PROPERTY;
+		const xField = this.config.getAsPropertyId(COMMON_SETTINGS.X);
+		const mode = this.config.get(COMMON_SETTINGS.MULTI_CHART) ?? MultiChartMode.PROPERTY;
 		const propertyOrder = this.config.getOrder();
 
 		if (mode !== MultiChartMode.GROUP && mode !== MultiChartMode.PROPERTY) {
@@ -134,11 +135,13 @@ export class ChartView extends BasesView {
 			return emptyDataWrapper(this);
 		}
 
+		const xAxisType = detectXAxisType(this.app, xField);
+
 		// Extract x order from ungrouped data (pre-sorted by Bases, ignoring group)
 		const sortedXValues: (number | Date | string)[] = [];
 		const seenXKeys = new Set<string>();
 		for (const entry of this.data.data) {
-			const xVals = parseValueAsX(entry.getValue(xField));
+			const xVals = parseValueAsX(entry.getValue(xField), xAxisType);
 			if (xVals) {
 				for (const v of xVals) {
 					const key = toCompactString(v);
@@ -163,25 +166,25 @@ export class ChartView extends BasesView {
 			}
 
 			for (const entry of group.entries) {
-				const processedEntry = this.processEntry(entry, xField, propertyOrder, groupIndex, mode);
+				const processedEntry = this.processEntry(entry, xField, propertyOrder, groupIndex, mode, xAxisType);
 				data.push(...processedEntry);
 			}
 		}
 
-		const aggregatedData = aggregateData(data, this.config.get(CHART_SETTINGS.AGGREGATE) as AggregateMode | undefined, this.type);
+		const aggregatedData = aggregateData(data, this.config.get(COMMON_SETTINGS.AGGREGATE) as AggregateMode | undefined, this.type);
 
 		if (mode === MultiChartMode.GROUP) {
-			return new GroupSeparatedData(this, aggregatedData, groupBySet, sortedXValues);
+			return new GroupSeparatedData(this, aggregatedData, groupBySet, sortedXValues, xAxisType);
 		} else {
-			return new PropertySeparatedData(this, aggregatedData, groupBySet, sortedXValues);
+			return new PropertySeparatedData(this, aggregatedData, groupBySet, sortedXValues, xAxisType);
 		}
 	}
 
-	processEntry(entry: BasesEntry, xField: BasesPropertyId, propertyOrder: BasesPropertyId[], groupIndex: number, mode: MultiChartMode): ProcessedData[] {
+	processEntry(entry: BasesEntry, xField: BasesPropertyId, propertyOrder: BasesPropertyId[], groupIndex: number, mode: MultiChartMode, xAxisType: import('./utils').XAxisType): ProcessedData[] {
 		try {
 			const x = entry.getValue(xField);
-			const xValues = parseValueAsX(x);
-			const labelProp = this.config.getAsPropertyId(CHART_SETTINGS.LABEL_PROP);
+			const xValues = parseValueAsX(x, xAxisType);
+			const labelProp = this.config.getAsPropertyId(SCATTER_SETTINGS.LABEL_PROP);
 
 			if (xValues === null) {
 				return [];
@@ -224,7 +227,7 @@ export class ChartView extends BasesView {
 	}
 
 	getAggregateMode(): AggregateMode {
-		return (this.config.get(CHART_SETTINGS.AGGREGATE) as AggregateMode | undefined) ?? AggregateMode.NONE;
+		return (this.config.get(COMMON_SETTINGS.AGGREGATE) as AggregateMode | undefined) ?? AggregateMode.NONE;
 	}
 
 	getYAxisLabel(chartName: string): string {
@@ -238,9 +241,9 @@ export class ChartView extends BasesView {
 	}
 
 	getYDomainOverrides(): YDomainOverrides {
-		const min = this.config.get(CHART_SETTINGS.MIN_Y_OVERRIDE);
-		const max = this.config.get(CHART_SETTINGS.MAX_Y_OVERRIDE);
-		const synced = Boolean(this.config.get(CHART_SETTINGS.SYNC_Y_AXES));
+		const min = this.config.get(COMMON_SETTINGS.MIN_Y_OVERRIDE);
+		const max = this.config.get(COMMON_SETTINGS.MAX_Y_OVERRIDE);
+		const synced = Boolean(this.config.get(COMMON_SETTINGS.SYNC_Y_AXES));
 
 		return {
 			min: parseConfigAsNumber(min),
@@ -265,13 +268,13 @@ export class ChartView extends BasesView {
 
 	static getViewOptions(type: ChartViewType): ViewOption[] {
 		if (type === SCATTER_CHART_VIEW_TYPE) {
-			return ChartView.scatterViewOptions();
+			return scatterViewOptions();
 		} else if (type === LINE_CHART_VIEW_TYPE) {
-			return ChartView.lineViewOptions();
+			return lineViewOptions();
 		} else if (type === BAR_CHART_VIEW_TYPE) {
-			return ChartView.barViewOptions();
+			return barViewOptions();
 		} else if (type === PIE_CHART_VIEW_TYPE) {
-			return ChartView.pieViewOptions();
+			return pieViewOptions();
 		} else {
 			return [];
 		}
@@ -282,7 +285,7 @@ export class ChartView extends BasesView {
 			{
 				displayName: 'Multi chart mode',
 				type: 'dropdown',
-				key: CHART_SETTINGS.MULTI_CHART,
+				key: COMMON_SETTINGS.MULTI_CHART,
 				options: {
 					[MultiChartMode.GROUP]: MultiChartMode.GROUP,
 					[MultiChartMode.PROPERTY]: MultiChartMode.PROPERTY,
@@ -292,47 +295,34 @@ export class ChartView extends BasesView {
 			{
 				displayName: 'X axis',
 				type: 'property',
-				key: CHART_SETTINGS.X,
+				key: COMMON_SETTINGS.X,
 				filter: prop => !prop.startsWith('file.'),
 				placeholder: 'Property',
 			},
 			{
 				displayName: 'Sync Y axes',
 				type: 'toggle',
-				key: CHART_SETTINGS.SYNC_Y_AXES,
+				key: COMMON_SETTINGS.SYNC_Y_AXES,
 				default: false,
 			},
 			{
 				displayName: 'Min Y override',
 				type: 'text',
-				key: CHART_SETTINGS.MIN_Y_OVERRIDE,
+				key: COMMON_SETTINGS.MIN_Y_OVERRIDE,
 				placeholder: 'Leave empty to disable',
 				default: '',
 			},
 			{
 				displayName: 'Max Y override',
 				type: 'text',
-				key: CHART_SETTINGS.MAX_Y_OVERRIDE,
+				key: COMMON_SETTINGS.MAX_Y_OVERRIDE,
 				placeholder: 'Leave empty to disable',
 				default: '',
 			},
 		];
 	}
 
-	static scatterViewOptions(): ViewOption[] {
-		return [
-			...ChartView.commonViewOptions(),
-			ChartView.aggregateOption(true),
-			{
-				displayName: 'Label property',
-				type: 'property',
-				key: CHART_SETTINGS.LABEL_PROP,
-				placeholder: 'Property',
-			},
-		];
-	}
-
-	private static aggregateOption(includeNone: boolean): ViewOption {
+	static aggregateOption(includeNone: boolean): ViewOption {
 		const options: Record<string, string> = {};
 		if (includeNone) options[AggregateMode.NONE] = AggregateMode.NONE;
 		options[AggregateMode.SUM] = AggregateMode.SUM;
@@ -343,71 +333,10 @@ export class ChartView extends BasesView {
 		return {
 			displayName: 'Aggregate',
 			type: 'dropdown',
-			key: CHART_SETTINGS.AGGREGATE,
+			key: COMMON_SETTINGS.AGGREGATE,
 			options,
 			default: includeNone ? AggregateMode.NONE : AggregateMode.SUM,
 		};
-	}
-
-	static lineViewOptions(): ViewOption[] {
-		return [
-			...ChartView.commonViewOptions(),
-			ChartView.aggregateOption(false),
-			{
-				displayName: 'Missing values',
-				type: 'dropdown',
-				key: CHART_SETTINGS.NULL_HANDLING,
-				options: {
-					[NullHandling.SKIP]: NullHandling.SKIP,
-					[NullHandling.ZERO]: NullHandling.ZERO,
-				},
-				default: NullHandling.SKIP,
-			},
-		];
-	}
-
-	static barViewOptions(): ViewOption[] {
-		return [
-			...ChartView.commonViewOptions(),
-			ChartView.aggregateOption(false),
-			{
-				displayName: 'Show labels',
-				type: 'toggle',
-				key: CHART_SETTINGS.SHOW_LABELS,
-				default: true,
-			},
-			{
-				displayName: 'Show as percentages',
-				type: 'toggle',
-				key: CHART_SETTINGS.SHOW_PERCENTAGES,
-				default: false,
-			},
-		];
-	}
-
-	static pieViewOptions(): ViewOption[] {
-		return [
-			...ChartView.commonViewOptions(),
-			ChartView.aggregateOption(false),
-			{
-				displayName: 'Show labels',
-				type: 'toggle',
-				key: CHART_SETTINGS.SHOW_LABELS,
-				default: true,
-			},
-			{
-				displayName: 'Show as percentages',
-				type: 'toggle',
-				key: CHART_SETTINGS.SHOW_PERCENTAGES,
-				default: false,
-			},
-			{
-				displayName: 'Ignore null',
-				type: 'toggle',
-				key: CHART_SETTINGS.IGNORE_NULL,
-				default: true,
-			},
-		];
 	}
 }
 

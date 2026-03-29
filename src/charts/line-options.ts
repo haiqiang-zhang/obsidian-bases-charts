@@ -1,9 +1,32 @@
 import type { EChartsOption } from 'echarts';
-import type { DataWrapper, ProcessedData } from '../../ChartData';
-import { ChartRenderer } from '../ChartRenderer';
-import type { ResolvedColors } from '../echarts-setup';
-import { getResolvedColor, GRID_OPTION } from '../echarts-setup';
-import { toCompactString } from '../../utils/utils';
+import type { ViewOption } from 'obsidian';
+import type { DataWrapper, ProcessedData } from '../ChartData';
+import { ChartView, NullHandling } from '../ChartView';
+import { ChartRenderer } from './ChartRenderer';
+import type { ResolvedColors } from './echarts-setup';
+import { getResolvedColor, GRID_OPTION } from './echarts-setup';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis-config';
+
+export const LINE_SETTINGS = {
+	NULL_HANDLING: 'null-handling',
+} as const;
+
+export function lineViewOptions(): ViewOption[] {
+	return [
+		...ChartView.commonViewOptions(),
+		ChartView.aggregateOption(false),
+		{
+			displayName: 'Missing values',
+			type: 'dropdown',
+			key: LINE_SETTINGS.NULL_HANDLING,
+			options: {
+				[NullHandling.SKIP]: NullHandling.SKIP,
+				[NullHandling.ZERO]: NullHandling.ZERO,
+			},
+			default: NullHandling.SKIP,
+		},
+	];
+}
 
 export function buildLineOption(
 	data: DataWrapper,
@@ -19,6 +42,7 @@ export function buildLineOption(
 	const hasDomain = data.view.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
+	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
 		const arr = seriesMap.get(dp.groupIndex) ?? [];
@@ -26,22 +50,16 @@ export function buildLineOption(
 		seriesMap.set(dp.groupIndex, arr);
 	}
 
-	const hasDate = dataPoints.some(d => d.x instanceof Date);
-	const hasString = dataPoints.some(d => typeof d.x === 'string');
-
-	const flatXSet = new Set(dataPoints.map(d => toCompactString(d.x)));
-	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
-
 	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => ({
 		type: 'line' as const,
 		name: data.getGroupName(groupIdx),
-		data: hasString
+		data: xAxisType === 'category'
 			? xCategories.map(cat => {
-					const match = points.find(p => toCompactString(p.x) === cat);
+					const match = points.find(p => String(mapXValue(p, xAxisType)) === cat);
 					return match ? { value: match.y, _raw: match } : { value: treatNullAsZero ? 0 : null, _raw: null };
 				})
 			: points.map(p => ({
-					value: [p.x instanceof Date ? p.x.getTime() : p.x, p.y],
+					value: [mapXValue(p, xAxisType), p.y],
 					_raw: p,
 				})),
 		itemStyle: {
@@ -60,22 +78,8 @@ export function buildLineOption(
 
 	return {
 		grid: GRID_OPTION,
-		xAxis: {
-			type: hasDate ? 'time' : hasString ? 'category' : 'value',
-			data: hasString ? xCategories : undefined,
-			name: xName,
-			nameLocation: 'middle',
-			nameGap: 25,
-		},
-		yAxis: {
-			type: 'value',
-			name: yLabel,
-			nameLocation: 'end',
-			nameGap: 15,
-			nameTextStyle: { align: 'left' },
-			min: domain ? domain[0] : undefined,
-			max: domain ? domain[1] : undefined,
-		},
+		xAxis,
+		yAxis: buildYAxisConfig(yLabel, colors, domain),
 		tooltip: isGrouped
 			? {
 					trigger: 'axis',

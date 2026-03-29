@@ -2,8 +2,9 @@ import * as echarts from 'echarts/core';
 import { ScatterChart, LineChart, BarChart, PieChart } from 'echarts/charts';
 import { TooltipComponent, GridComponent, GraphicComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
+import { LabelLayout } from 'echarts/features';
 
-echarts.use([ScatterChart, LineChart, BarChart, PieChart, TooltipComponent, GridComponent, GraphicComponent, LegendComponent, CanvasRenderer]);
+echarts.use([ScatterChart, LineChart, BarChart, PieChart, TooltipComponent, GridComponent, GraphicComponent, LegendComponent, CanvasRenderer, LabelLayout]);
 
 export { echarts };
 
@@ -23,6 +24,7 @@ export interface ResolvedColors {
 	text: string;
 	grid: string;
 	accent: string;
+	background: string;
 }
 
 export function resolveColors(containerEl: HTMLElement): ResolvedColors {
@@ -32,6 +34,7 @@ export function resolveColors(containerEl: HTMLElement): ResolvedColors {
 		text: style.getPropertyValue('--text-normal').trim() || '#333',
 		grid: style.getPropertyValue('--background-modifier-border').trim() || '#ddd',
 		accent: style.getPropertyValue('--color-accent').trim() || '#7c3aed',
+		background: style.getPropertyValue('--background-primary').trim() || '#fff',
 	};
 }
 

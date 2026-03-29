@@ -1,9 +1,29 @@
 import type { EChartsOption } from 'echarts';
-import type { DataWrapper, ProcessedData } from '../../ChartData';
-import { getFileDisplayName, toCompactString } from '../../utils/utils';
-import { ChartRenderer } from '../ChartRenderer';
-import type { ResolvedColors } from '../echarts-setup';
-import { getResolvedColor, GRID_OPTION } from '../echarts-setup';
+import type { ViewOption } from 'obsidian';
+import type { DataWrapper, ProcessedData } from '../ChartData';
+import { ChartView } from '../ChartView';
+import { getFileDisplayName } from '../utils';
+import { ChartRenderer } from './ChartRenderer';
+import type { ResolvedColors } from './echarts-setup';
+import { getResolvedColor, GRID_OPTION } from './echarts-setup';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis-config';
+
+export const SCATTER_SETTINGS = {
+	LABEL_PROP: 'label-property',
+} as const;
+
+export function scatterViewOptions(): ViewOption[] {
+	return [
+		...ChartView.commonViewOptions(),
+		ChartView.aggregateOption(true),
+		{
+			displayName: 'Label property',
+			type: 'property',
+			key: SCATTER_SETTINGS.LABEL_PROP,
+			placeholder: 'Property',
+		},
+	];
+}
 
 export function buildScatterOption(
 	data: DataWrapper,
@@ -19,6 +39,8 @@ export function buildScatterOption(
 	const hasDomain = data.view.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
+	const { xAxis, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
+
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
 		const arr = seriesMap.get(dp.groupIndex) ?? [];
@@ -26,17 +48,11 @@ export function buildScatterOption(
 		seriesMap.set(dp.groupIndex, arr);
 	}
 
-	const hasDate = dataPoints.some(d => d.x instanceof Date);
-	const hasString = dataPoints.some(d => typeof d.x === 'string');
-
-	const flatXSet = new Set(dataPoints.map(d => toCompactString(d.x)));
-	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
-
 	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => ({
 		type: 'scatter' as const,
 		name: isGrouped ? data.getGroupName(groupIdx) : undefined,
 		data: points.map(p => ({
-			value: [p.x instanceof Date ? p.x.getTime() : p.x, p.y],
+			value: [mapXValue(p, xAxisType), p.y],
 			name: p.files.length > 0 ? getFileDisplayName(p.files[0]) : undefined,
 			_raw: p,
 		})),
@@ -50,22 +66,8 @@ export function buildScatterOption(
 
 	return {
 		grid: GRID_OPTION,
-		xAxis: {
-			type: hasDate ? 'time' : hasString ? 'category' : 'value',
-			data: hasString ? xCategories : undefined,
-			name: xName,
-			nameLocation: 'middle',
-			nameGap: 25,
-		},
-		yAxis: {
-			type: 'value',
-			name: yLabel,
-			nameLocation: 'end',
-			nameGap: 15,
-			nameTextStyle: { align: 'left' },
-			min: domain ? domain[0] : undefined,
-			max: domain ? domain[1] : undefined,
-		},
+		xAxis,
+		yAxis: buildYAxisConfig(yLabel, colors, domain),
 		tooltip: isNoneAggregate
 			? {
 					trigger: 'item' as const,

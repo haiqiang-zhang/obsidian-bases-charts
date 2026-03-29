@@ -1,7 +1,41 @@
 import type { EChartsOption } from 'echarts';
-import type { DataWrapper } from '../../ChartData';
-import type { ResolvedColors } from '../echarts-setup';
-import { toCompactString } from '../../utils/utils';
+import type { ViewOption } from 'obsidian';
+import type { DataWrapper } from '../ChartData';
+import { ChartView } from '../ChartView';
+import type { ResolvedColors } from './echarts-setup';
+import { toCompactString } from '../utils';
+import { mapXValue } from '../axis-config';
+
+export const PIE_SETTINGS = {
+	SHOW_LABELS: 'show-labels',
+	SHOW_PERCENTAGES: 'show-percentages',
+	IGNORE_NULL: 'ignore-null',
+} as const;
+
+export function pieViewOptions(): ViewOption[] {
+	return [
+		...ChartView.commonViewOptions(),
+		ChartView.aggregateOption(false),
+		{
+			displayName: 'Show labels',
+			type: 'toggle',
+			key: PIE_SETTINGS.SHOW_LABELS,
+			default: true,
+		},
+		{
+			displayName: 'Show as percentages',
+			type: 'toggle',
+			key: PIE_SETTINGS.SHOW_PERCENTAGES,
+			default: false,
+		},
+		{
+			displayName: 'Ignore null',
+			type: 'toggle',
+			key: PIE_SETTINGS.IGNORE_NULL,
+			default: true,
+		},
+	];
+}
 
 export function buildPieOption(
 	data: DataWrapper,
@@ -12,14 +46,15 @@ export function buildPieOption(
 	ignoreNull: boolean,
 ): EChartsOption {
 	const rawData = data.getFlat(chartIndex);
+	const xAxisType = data.xAxisType;
 	const flatData = ignoreNull ? rawData.filter(d => {
-		const name = toCompactString(d.x);
+		const name = String(mapXValue(d, xAxisType));
 		return name !== '' && name !== 'null' && name !== 'undefined';
 	}) : rawData;
 
 	const pieData = flatData.map((d, i) => ({
 		value: d.y,
-		name: toCompactString(d.x),
+		name: String(mapXValue(d, xAxisType)),
 		_raw: d,
 		itemStyle: {
 			color: colors.palette[i % colors.palette.length],
@@ -45,12 +80,13 @@ export function buildPieOption(
 				avoidLabelOverlap: false,
 				itemStyle: {
 					borderRadius: 10,
-					borderColor: 'var(--background-primary)',
+					borderColor: colors.background,
 					borderWidth: 2,
 				},
 				label: showLabels
 					? {
 							show: true,
+							color: colors.text,
 							formatter: showPercentages
 								? '{b}: {d}%'
 								: '{b}',
@@ -64,10 +100,15 @@ export function buildPieOption(
 						show: true,
 						fontSize: 16,
 						fontWeight: 'bold',
+						color: colors.text,
 					},
 				},
 				labelLine: {
 					show: showLabels,
+					lineStyle: { color: colors.grid },
+				},
+				labelLayout: {
+					hideOverlap: true,
 				},
 				data: pieData,
 				cursor: 'pointer',

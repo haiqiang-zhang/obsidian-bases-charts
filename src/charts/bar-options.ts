@@ -1,9 +1,36 @@
 import type { EChartsOption } from 'echarts';
-import type { DataWrapper, ProcessedData } from '../../ChartData';
-import { ChartRenderer } from '../ChartRenderer';
-import type { ResolvedColors } from '../echarts-setup';
-import { getResolvedColor, GRID_OPTION } from '../echarts-setup';
-import { toCompactString } from '../../utils/utils';
+import type { ViewOption } from 'obsidian';
+import type { DataWrapper, ProcessedData } from '../ChartData';
+import { ChartView } from '../ChartView';
+import { ChartRenderer } from './ChartRenderer';
+import type { ResolvedColors } from './echarts-setup';
+import { getResolvedColor, GRID_OPTION } from './echarts-setup';
+import { toCompactString } from '../utils';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis-config';
+
+export const BAR_SETTINGS = {
+	SHOW_LABELS: 'show-labels',
+	SHOW_PERCENTAGES: 'show-percentages',
+} as const;
+
+export function barViewOptions(): ViewOption[] {
+	return [
+		...ChartView.commonViewOptions(),
+		ChartView.aggregateOption(false),
+		{
+			displayName: 'Show labels',
+			type: 'toggle',
+			key: BAR_SETTINGS.SHOW_LABELS,
+			default: true,
+		},
+		{
+			displayName: 'Show as percentages',
+			type: 'toggle',
+			key: BAR_SETTINGS.SHOW_PERCENTAGES,
+			default: false,
+		},
+	];
+}
 
 export function buildBarOption(
 	data: DataWrapper,
@@ -20,9 +47,10 @@ export function buildBarOption(
 	const domain = hasDomainOverride ? data.getYDomainForChart(chartIndex) : undefined;
 	const columnName = data.getChartName(chartIndex);
 
-	// Use pre-sorted x order from Bases (ungrouped, respects user sort settings)
-	const flatXSet = new Set(flatData.map(d => toCompactString(d.x)));
-	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
+	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
+	// Bar always uses category axis regardless of detected type
+	xAxis.type = 'category';
+	xAxis.data = xCategories;
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of flatData) {
@@ -33,7 +61,7 @@ export function buildBarOption(
 
 	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => {
 		const categoryData = xCategories.map(cat => {
-			const match = points.find(p => toCompactString(p.x) === cat);
+			const match = points.find(p => String(mapXValue(p, xAxisType)) === cat);
 			return match ? { value: match.y, _raw: match } : { value: 0, _raw: null };
 		});
 
@@ -67,22 +95,11 @@ export function buildBarOption(
 
 	return {
 		grid: GRID_OPTION,
-		xAxis: {
-			type: 'category',
-			data: xCategories,
-			name: xName,
-			nameLocation: 'middle',
-			nameGap: 25,
-		},
+		xAxis,
 		yAxis: {
-			type: 'value',
-			name: yLabel,
-			nameLocation: 'end',
-			nameGap: 15,
-			nameTextStyle: { align: 'left' },
-			min: domain ? domain[0] : undefined,
-			max: domain ? domain[1] : undefined,
+			...buildYAxisConfig(yLabel, colors, domain),
 			axisLabel: {
+				color: colors.text,
 				formatter: showPercentages ? ('{value}%' as string) : ((v: number) => toCompactString(v)),
 			},
 		},

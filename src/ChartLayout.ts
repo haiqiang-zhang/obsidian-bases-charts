@@ -1,15 +1,18 @@
 import type { EChartsOption } from 'echarts';
 import { debounce } from 'obsidian';
-import type { DataWrapper } from '../ChartData';
-import type { ChartView } from '../ChartView';
-import { AggregateMode, BAR_CHART_VIEW_TYPE, CHART_SETTINGS, LINE_CHART_VIEW_TYPE, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from '../ChartView';
-import { ChartRenderer } from './ChartRenderer';
-import type { ResolvedColors } from './echarts-setup';
-import { buildBarOption } from './options/bar-options';
-import { buildLineOption } from './options/line-options';
-import { buildPieOption } from './options/pie-options';
-import { buildScatterOption } from './options/scatter-options';
-import { OBSIDIAN_COLOR_PALETTE } from '../utils/utils';
+import type { DataWrapper } from './ChartData';
+import type { ChartView } from './ChartView';
+import { AggregateMode, BAR_CHART_VIEW_TYPE, COMMON_SETTINGS, LINE_CHART_VIEW_TYPE, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './ChartView';
+import { LINE_SETTINGS } from './charts/line-options';
+import { BAR_SETTINGS } from './charts/bar-options';
+import { PIE_SETTINGS } from './charts/pie-options';
+import { ChartRenderer } from './charts/ChartRenderer';
+import type { ResolvedColors } from './charts/echarts-setup';
+import { buildBarOption } from './charts/bar-options';
+import { buildLineOption } from './charts/line-options';
+import { buildPieOption } from './charts/pie-options';
+import { buildScatterOption } from './charts/scatter-options';
+import { OBSIDIAN_COLOR_PALETTE } from './utils';
 
 export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
@@ -34,7 +37,7 @@ export class ChartLayout {
 		this.renderLegend(data);
 		this.reconcileRenderers(chartIds.length);
 
-		const xField = this.view.config.getAsPropertyId(CHART_SETTINGS.X);
+		const xField = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const xName = xField ? `${this.view.config.getDisplayName(xField)} →` : '';
 
 		for (let i = 0; i < chartIds.length; i++) {
@@ -48,7 +51,7 @@ export class ChartLayout {
 					{
 						label: 'Use Count',
 						onClick: () => {
-							this.view.config.set(CHART_SETTINGS.AGGREGATE, AggregateMode.COUNT);
+							this.view.config.set(COMMON_SETTINGS.AGGREGATE, AggregateMode.COUNT);
 						},
 					},
 				);
@@ -78,18 +81,18 @@ export class ChartLayout {
 			const isNoneAggregate = this.view.getAggregateMode() === AggregateMode.NONE;
 			return buildScatterOption(data, chartIndex, xName, yLabel, isGrouped, colors, isNoneAggregate);
 		} else if (type === LINE_CHART_VIEW_TYPE) {
-			const nullHandling = (this.view.config.get(CHART_SETTINGS.NULL_HANDLING) as string) ?? 'Skip';
+			const nullHandling = (this.view.config.get(LINE_SETTINGS.NULL_HANDLING) as string) ?? 'Skip';
 			const treatNullAsZero = nullHandling === 'Treat as 0';
 			return buildLineOption(data, chartIndex, xName, yLabel, isGrouped, colors, treatNullAsZero);
 		} else if (type === BAR_CHART_VIEW_TYPE) {
-			const showLabels = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_LABELS) ?? true);
-			const showPercentages = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_PERCENTAGES) ?? false);
+			const showLabels = Boolean(this.view.config.get(BAR_SETTINGS.SHOW_LABELS) ?? true);
+			const showPercentages = Boolean(this.view.config.get(BAR_SETTINGS.SHOW_PERCENTAGES) ?? false);
 			const hasDomainOverride = this.view.hasDomainOverride();
 			return buildBarOption(data, chartIndex, xName, yLabel, isGrouped, colors, showLabels, showPercentages, hasDomainOverride);
 		} else if (type === PIE_CHART_VIEW_TYPE) {
-			const showLabels = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_LABELS) ?? true);
-			const showPercentages = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_PERCENTAGES) ?? false);
-			const ignoreNull = Boolean(this.view.config.get(CHART_SETTINGS.IGNORE_NULL) ?? true);
+			const showLabels = Boolean(this.view.config.get(PIE_SETTINGS.SHOW_LABELS) ?? true);
+			const showPercentages = Boolean(this.view.config.get(PIE_SETTINGS.SHOW_PERCENTAGES) ?? false);
+			const ignoreNull = Boolean(this.view.config.get(PIE_SETTINGS.IGNORE_NULL) ?? true);
 			return buildPieOption(data, chartIndex, colors, showLabels, showPercentages, ignoreNull);
 		}
 
