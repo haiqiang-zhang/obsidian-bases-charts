@@ -1,4 +1,5 @@
 import type { EChartsOption } from 'echarts';
+import { debounce } from 'obsidian';
 import type { DataWrapper } from '../ChartData';
 import type { ChartView, ChartViewType } from '../ChartView';
 import { AggregateMode, BAR_CHART_VIEW_TYPE, CHART_SETTINGS, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from '../ChartView';
@@ -13,6 +14,7 @@ export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
 	private legendEl: HTMLElement;
 	private gridEl: HTMLElement;
+	private debouncedUpdate = debounce(() => this.update(), 50, true);
 
 	constructor(
 		private view: ChartView,
@@ -21,7 +23,7 @@ export class ChartLayout {
 		this.legendEl = scrollEl.createDiv({ cls: 'bases-charts-plot-legend' });
 		this.gridEl = scrollEl.createDiv({ cls: 'bases-charts-plot-grid' });
 
-		view.events.on('data-updated', () => this.update());
+		view.events.on('data-updated', () => this.debouncedUpdate());
 	}
 
 	update(): void {

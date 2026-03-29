@@ -134,12 +134,14 @@ export class ChartView extends BasesView {
 
 		// Extract x order from ungrouped data (pre-sorted by Bases, ignoring group)
 		const sortedXValues: (number | Date | string)[] = [];
+		const seenXKeys = new Set<string>();
 		for (const entry of this.data.data) {
 			const xVals = parseValueAsX(entry.getValue(xField));
 			if (xVals) {
 				for (const v of xVals) {
 					const key = toCompactString(v);
-					if (!sortedXValues.some(existing => toCompactString(existing) === key)) {
+					if (!seenXKeys.has(key)) {
+						seenXKeys.add(key);
 						sortedXValues.push(v);
 					}
 				}

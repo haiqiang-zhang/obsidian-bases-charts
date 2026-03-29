@@ -15,4 +15,4 @@ views:
     x: note.culmen_length_mm
     multi-chart-mode: Separate by property
     sync-y-axes: false
-    min-y-override: "10"
+    min-y-override: ""

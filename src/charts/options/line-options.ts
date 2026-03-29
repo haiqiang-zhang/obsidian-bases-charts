@@ -16,7 +16,8 @@ export function buildLineOption(
 ): EChartsOption {
 	const dataPoints = data.getFlat(chartIndex);
 	const columnName = data.getChartName(chartIndex);
-	const overrides = data.view.getYDomainOverrides();
+	const hasDomain = data.view.hasDomainOverride();
+	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
@@ -72,8 +73,8 @@ export function buildLineOption(
 			nameLocation: 'end',
 			nameGap: 15,
 			nameTextStyle: { align: 'left' },
-			min: overrides.min ?? undefined,
-			max: overrides.max ?? undefined,
+			min: domain ? domain[0] : undefined,
+			max: domain ? domain[1] : undefined,
 		},
 		tooltip: isGrouped
 			? {

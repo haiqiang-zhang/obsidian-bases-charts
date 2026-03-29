@@ -30,12 +30,17 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 	readonly groupBySet: string[];
 	readonly sortedXOrder: string[];
 	readonly yDomain: YDomainOverrides;
+	private readonly orderMap: Map<string, number>;
+	private readonly flatCache = new Map<number, ProcessedData[]>();
 
 	constructor(view: ChartView, data: ProcessedData[], groupBySet: string[], sortedXOrder: (number | Date | string)[]) {
 		this.view = view;
 		this.data = data;
 		this.groupBySet = groupBySet;
 		this.sortedXOrder = sortedXOrder.map(v => toCompactString(v));
+
+		this.orderMap = new Map<string, number>();
+		this.sortedXOrder.forEach((x, i) => this.orderMap.set(x, i));
 
 		this.yDomain = this.getYDomain();
 	}
@@ -59,15 +64,18 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 	}
 
 	getFlat(chartIndex: number): ProcessedData[] {
-		const data = this.data.filter(d => d.chartIndex === chartIndex);
-		const orderMap = new Map<string, number>();
-		this.sortedXOrder.forEach((x, i) => orderMap.set(x, i));
+		const cached = this.flatCache.get(chartIndex);
+		if (cached) return cached;
 
-		return data.sort((a, b) => {
-			const ia = orderMap.get(toCompactString(a.x)) ?? Infinity;
-			const ib = orderMap.get(toCompactString(b.x)) ?? Infinity;
+		const data = this.data.filter(d => d.chartIndex === chartIndex);
+		data.sort((a, b) => {
+			const ia = this.orderMap.get(toCompactString(a.x)) ?? Infinity;
+			const ib = this.orderMap.get(toCompactString(b.x)) ?? Infinity;
 			return ia - ib;
 		});
+
+		this.flatCache.set(chartIndex, data);
+		return data;
 	}
 
 	getStacked(chartIndex: number): ProcessedData[] {
