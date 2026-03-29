@@ -28,3 +28,10 @@ views:
       - culmen_length_mm
       - director
       - Group
+  - type: chart-pie
+    name: View
+    order:
+      - director
+    aggregate: Count
+    x: note.director
+    ignore-null: true

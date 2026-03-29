@@ -1,5 +1,5 @@
 import { Plugin } from 'obsidian';
-import { BAR_CHART_VIEW_TYPE, ChartView, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './ChartView';
+import { BAR_CHART_VIEW_TYPE, ChartView, LINE_CHART_VIEW_TYPE, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './ChartView';
 
 export default class BasesChartsPlugin extends Plugin {
 	onload(): void {
@@ -22,6 +22,13 @@ export default class BasesChartsPlugin extends Plugin {
 			icon: 'lucide-chart-column',
 			factory: (controller, containerEl) => new ChartView(BAR_CHART_VIEW_TYPE, controller, containerEl),
 			options: () => ChartView.getViewOptions(BAR_CHART_VIEW_TYPE),
+		});
+
+		this.registerBasesView(PIE_CHART_VIEW_TYPE, {
+			name: 'Pie Chart',
+			icon: 'lucide-chart-pie',
+			factory: (controller, containerEl) => new ChartView(PIE_CHART_VIEW_TYPE, controller, containerEl),
+			options: () => ChartView.getViewOptions(PIE_CHART_VIEW_TYPE),
 		});
 	}
 

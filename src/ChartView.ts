@@ -9,8 +9,9 @@ import { parseValueAsNumber, parseValueAsX, toCompactString } from './utils/util
 export const SCATTER_CHART_VIEW_TYPE = 'chart-scatter';
 export const LINE_CHART_VIEW_TYPE = 'chart-line';
 export const BAR_CHART_VIEW_TYPE = 'chart-bar';
+export const PIE_CHART_VIEW_TYPE = 'chart-pie';
 
-export type ChartViewType = typeof SCATTER_CHART_VIEW_TYPE | typeof LINE_CHART_VIEW_TYPE | typeof BAR_CHART_VIEW_TYPE;
+export type ChartViewType = typeof SCATTER_CHART_VIEW_TYPE | typeof LINE_CHART_VIEW_TYPE | typeof BAR_CHART_VIEW_TYPE | typeof PIE_CHART_VIEW_TYPE;
 
 export const CHART_SETTINGS = {
 	X: 'x',
@@ -23,6 +24,7 @@ export const CHART_SETTINGS = {
 	LABEL_PROP: 'label-property',
 	AGGREGATE: 'aggregate',
 	NULL_HANDLING: 'null-handling',
+	IGNORE_NULL: 'ignore-null',
 } as const;
 
 export enum NullHandling {
@@ -268,6 +270,8 @@ export class ChartView extends BasesView {
 			return ChartView.lineViewOptions();
 		} else if (type === BAR_CHART_VIEW_TYPE) {
 			return ChartView.barViewOptions();
+		} else if (type === PIE_CHART_VIEW_TYPE) {
+			return ChartView.pieViewOptions();
 		} else {
 			return [];
 		}
@@ -377,6 +381,31 @@ export class ChartView extends BasesView {
 				type: 'toggle',
 				key: CHART_SETTINGS.SHOW_PERCENTAGES,
 				default: false,
+			},
+		];
+	}
+
+	static pieViewOptions(): ViewOption[] {
+		return [
+			...ChartView.commonViewOptions(),
+			ChartView.aggregateOption(false),
+			{
+				displayName: 'Show labels',
+				type: 'toggle',
+				key: CHART_SETTINGS.SHOW_LABELS,
+				default: true,
+			},
+			{
+				displayName: 'Show as percentages',
+				type: 'toggle',
+				key: CHART_SETTINGS.SHOW_PERCENTAGES,
+				default: false,
+			},
+			{
+				displayName: 'Ignore null',
+				type: 'toggle',
+				key: CHART_SETTINGS.IGNORE_NULL,
+				default: true,
 			},
 		];
 	}

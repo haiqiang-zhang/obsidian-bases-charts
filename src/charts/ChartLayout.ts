@@ -2,11 +2,12 @@ import type { EChartsOption } from 'echarts';
 import { debounce } from 'obsidian';
 import type { DataWrapper } from '../ChartData';
 import type { ChartView } from '../ChartView';
-import { AggregateMode, BAR_CHART_VIEW_TYPE, CHART_SETTINGS, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from '../ChartView';
+import { AggregateMode, BAR_CHART_VIEW_TYPE, CHART_SETTINGS, LINE_CHART_VIEW_TYPE, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from '../ChartView';
 import { ChartRenderer } from './ChartRenderer';
 import type { ResolvedColors } from './echarts-setup';
 import { buildBarOption } from './options/bar-options';
 import { buildLineOption } from './options/line-options';
+import { buildPieOption } from './options/pie-options';
 import { buildScatterOption } from './options/scatter-options';
 import { OBSIDIAN_COLOR_PALETTE } from '../utils/utils';
 
@@ -85,6 +86,11 @@ export class ChartLayout {
 			const showPercentages = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_PERCENTAGES) ?? false);
 			const hasDomainOverride = this.view.hasDomainOverride();
 			return buildBarOption(data, chartIndex, xName, yLabel, isGrouped, colors, showLabels, showPercentages, hasDomainOverride);
+		} else if (type === PIE_CHART_VIEW_TYPE) {
+			const showLabels = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_LABELS) ?? true);
+			const showPercentages = Boolean(this.view.config.get(CHART_SETTINGS.SHOW_PERCENTAGES) ?? false);
+			const ignoreNull = Boolean(this.view.config.get(CHART_SETTINGS.IGNORE_NULL) ?? true);
+			return buildPieOption(data, chartIndex, colors, showLabels, showPercentages, ignoreNull);
 		}
 
 		return {};

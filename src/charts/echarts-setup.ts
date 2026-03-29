@@ -1,9 +1,9 @@
 import * as echarts from 'echarts/core';
-import { ScatterChart, LineChart, BarChart } from 'echarts/charts';
-import { TooltipComponent, GridComponent, GraphicComponent } from 'echarts/components';
+import { ScatterChart, LineChart, BarChart, PieChart } from 'echarts/charts';
+import { TooltipComponent, GridComponent, GraphicComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 
-echarts.use([ScatterChart, LineChart, BarChart, TooltipComponent, GridComponent, GraphicComponent, CanvasRenderer]);
+echarts.use([ScatterChart, LineChart, BarChart, PieChart, TooltipComponent, GridComponent, GraphicComponent, LegendComponent, CanvasRenderer]);
 
 export { echarts };
 
