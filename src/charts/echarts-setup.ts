@@ -35,6 +35,8 @@ export function resolveColors(containerEl: HTMLElement): ResolvedColors {
 	};
 }
 
+export const GRID_OPTION = { left: 0, right: 0, top: 30, bottom: 20, containLabel: true } as const;
+
 export function getResolvedColor(palette: string[], accent: string, groupIndex: number, isGrouped: boolean): string {
 	if (!isGrouped) return accent;
 	return palette[groupIndex % palette.length];

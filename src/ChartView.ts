@@ -4,7 +4,7 @@ import { BasesView, Events } from 'obsidian';
 import type { DataWrapper, ProcessedData } from './ChartData';
 import { emptyDataWrapper, GroupSeparatedData, PropertySeparatedData } from './ChartData';
 import { ChartLayout } from './charts/ChartLayout';
-import { parseValueAsNumber, parseValueAsX } from './utils/utils';
+import { parseValueAsNumber, parseValueAsX, toCompactString } from './utils/utils';
 
 export const SCATTER_CHART_VIEW_TYPE = 'chart-scatter';
 export const LINE_CHART_VIEW_TYPE = 'chart-line';
@@ -138,8 +138,8 @@ export class ChartView extends BasesView {
 			const xVals = parseValueAsX(entry.getValue(xField));
 			if (xVals) {
 				for (const v of xVals) {
-					const key = String(v);
-					if (!sortedXValues.some(existing => String(existing) === key)) {
+					const key = toCompactString(v);
+					if (!sortedXValues.some(existing => toCompactString(existing) === key)) {
 						sortedXValues.push(v);
 					}
 				}
@@ -384,7 +384,7 @@ function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined, c
 	// Group by x + chartIndex + groupIndex
 	const buckets = new Map<string, ProcessedData[]>();
 	for (const d of data) {
-		const key = `${String(d.x)}|${d.chartIndex}|${d.groupIndex}`;
+		const key = `${toCompactString(d.x)}|${d.chartIndex}|${d.groupIndex}`;
 		let bucket = buckets.get(key);
 		if (!bucket) {
 			bucket = [];

@@ -1,9 +1,9 @@
 import type { EChartsOption } from 'echarts';
 import type { DataWrapper, ProcessedData } from '../../ChartData';
-import { getFileDisplayName } from '../../utils/utils';
+import { getFileDisplayName, toCompactString } from '../../utils/utils';
 import { ChartRenderer } from '../ChartRenderer';
 import type { ResolvedColors } from '../echarts-setup';
-import { getResolvedColor } from '../echarts-setup';
+import { getResolvedColor, GRID_OPTION } from '../echarts-setup';
 
 export function buildScatterOption(
 	data: DataWrapper,
@@ -28,7 +28,7 @@ export function buildScatterOption(
 	const hasDate = dataPoints.some(d => d.x instanceof Date);
 	const hasString = dataPoints.some(d => typeof d.x === 'string');
 
-	const flatXSet = new Set(dataPoints.map(d => String(d.x)));
+	const flatXSet = new Set(dataPoints.map(d => toCompactString(d.x)));
 	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
 
 	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => ({
@@ -48,7 +48,7 @@ export function buildScatterOption(
 	}));
 
 	return {
-		grid: { left: 10, right: 10, top: 30, bottom: 20, containLabel: true },
+		grid: GRID_OPTION,
 		xAxis: {
 			type: hasDate ? 'time' : hasString ? 'category' : 'value',
 			data: hasString ? xCategories : undefined,

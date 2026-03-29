@@ -1,6 +1,6 @@
 import type { BasesPropertyId } from 'obsidian';
 import type { ChartView, YDomainOverrides } from './ChartView';
-import { OBSIDIAN_COLOR_PALETTE } from './utils/utils';
+import { OBSIDIAN_COLOR_PALETTE, toCompactString } from './utils/utils';
 
 /* eslint-disable-next-line @typescript-eslint/consistent-type-definitions */
 export type ProcessedData = {
@@ -35,7 +35,7 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 		this.view = view;
 		this.data = data;
 		this.groupBySet = groupBySet;
-		this.sortedXOrder = sortedXOrder.map(v => String(v));
+		this.sortedXOrder = sortedXOrder.map(v => toCompactString(v));
 
 		this.yDomain = this.getYDomain();
 	}
@@ -64,8 +64,8 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 		this.sortedXOrder.forEach((x, i) => orderMap.set(x, i));
 
 		return data.sort((a, b) => {
-			const ia = orderMap.get(String(a.x)) ?? Infinity;
-			const ib = orderMap.get(String(b.x)) ?? Infinity;
+			const ia = orderMap.get(toCompactString(a.x)) ?? Infinity;
+			const ib = orderMap.get(toCompactString(b.x)) ?? Infinity;
 			return ia - ib;
 		});
 	}

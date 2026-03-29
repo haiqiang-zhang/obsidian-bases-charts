@@ -2,7 +2,8 @@ import type { EChartsOption } from 'echarts';
 import type { DataWrapper, ProcessedData } from '../../ChartData';
 import { ChartRenderer } from '../ChartRenderer';
 import type { ResolvedColors } from '../echarts-setup';
-import { getResolvedColor } from '../echarts-setup';
+import { getResolvedColor, GRID_OPTION } from '../echarts-setup';
+import { toCompactString } from '../../utils/utils';
 
 export function buildLineOption(
 	data: DataWrapper,
@@ -27,7 +28,7 @@ export function buildLineOption(
 	const hasDate = dataPoints.some(d => d.x instanceof Date);
 	const hasString = dataPoints.some(d => typeof d.x === 'string');
 
-	const flatXSet = new Set(dataPoints.map(d => String(d.x)));
+	const flatXSet = new Set(dataPoints.map(d => toCompactString(d.x)));
 	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
 
 	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => ({
@@ -35,7 +36,7 @@ export function buildLineOption(
 		name: data.getGroupName(groupIdx),
 		data: hasString
 			? xCategories.map(cat => {
-					const match = points.find(p => String(p.x) === cat);
+					const match = points.find(p => toCompactString(p.x) === cat);
 					return match ? { value: match.y, _raw: match } : { value: treatNullAsZero ? 0 : null, _raw: null };
 				})
 			: points.map(p => ({
@@ -57,7 +58,7 @@ export function buildLineOption(
 	}));
 
 	return {
-		grid: { left: 10, right: 10, top: 30, bottom: 20, containLabel: true },
+		grid: GRID_OPTION,
 		xAxis: {
 			type: hasDate ? 'time' : hasString ? 'category' : 'value',
 			data: hasString ? xCategories : undefined,

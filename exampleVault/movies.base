@@ -21,6 +21,9 @@ views:
         - file.folder == "movies"
     order:
       - formula.One
+    sort:
+      - property: formula.Release Year
+        direction: ASC
     x: formula.Release Year
     show-labels: false
   - type: table
@@ -36,3 +39,4 @@ views:
       - High
       - Low
       - Open
+      - formula.Release Year
