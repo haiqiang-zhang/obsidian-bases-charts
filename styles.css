@@ -135,3 +135,10 @@ body {
 	opacity: 0.5;
 }
 
+.bases-chart-y-axes-hint {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	width: 0;
+	min-width: 100%;
+}
+

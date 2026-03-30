@@ -24,6 +24,26 @@ export function removeInjectedDOM(): void {
 	lastClickedPropId = null;
 }
 
+export function injectYAxesHint(configMenu: HTMLElement): void {
+	if (configMenu.querySelector('.bases-chart-y-axes-hint')) return;
+
+	// Find our Y axes group by checking for group header + our unique setting
+	const containers = Array.from(configMenu.querySelectorAll<HTMLElement>('.input-group-container'));
+	const container = containers.find(c => {
+		const header = c.querySelector('.input-group-header-text')?.textContent?.trim();
+		const labels = Array.from(c.querySelectorAll('.input-row-label')).map(l => l.textContent?.trim());
+		return header === 'Y axes' && labels.includes('Sync across charts');
+	});
+	if (!container) return;
+
+	const content = container.querySelector('.input-group-content');
+	if (!content) return;
+
+	const hint = content.createDiv({ cls: 'bases-chart-y-axes-hint' });
+	// eslint-disable-next-line obsidianmd/ui/sentence-case -- intentional casing for "Y axes"
+	hint.textContent = 'Select Y axes and set per-property aggregate via the "Y axes" toolbar button in chart view';
+}
+
 export function getSettingTooltips(type: ChartViewType): Record<string, string> {
 	if (type === LINE_CHART_VIEW_TYPE) {
 		return {

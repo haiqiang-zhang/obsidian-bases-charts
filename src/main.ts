@@ -1,6 +1,6 @@
 import { Plugin } from 'obsidian';
 import { BAR_CHART_VIEW_TYPE, ChartView, LINE_CHART_VIEW_TYPE, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './chartView';
-import { getSettingTooltips, injectAggregateDropdown, injectHelpIcons, removeInjectedDOM, trackPropertyChevrons } from './uiInjector';
+import { getSettingTooltips, injectAggregateDropdown, injectHelpIcons, injectYAxesHint, removeInjectedDOM, trackPropertyChevrons } from './uiInjector';
 
 export default class BasesChartsPlugin extends Plugin {
 	private menuObserver: MutationObserver | null = null;
@@ -96,10 +96,18 @@ export default class BasesChartsPlugin extends Plugin {
 			}
 		}
 
+		// Always inject hint into chart view's config menu (identified by "Y axes" group)
+		const openMenus = Array.from(document.querySelectorAll<HTMLElement>('.menu'));
+		for (const menu of openMenus) {
+			const configMenu = menu.querySelector<HTMLElement>('.view-config-menu');
+			if (configMenu) {
+				injectYAxesHint(configMenu);
+			}
+		}
+
 		if (!activeView) {
 			removeInjectedDOM();
-			const openMenus = document.querySelectorAll('.menu');
-			for (const menu of Array.from(openMenus)) {
+			for (const menu of openMenus) {
 				const title = menu.querySelector('.modal-title');
 				if (title?.textContent === 'Y axes') {
 					title.textContent = 'Properties';
@@ -107,11 +115,9 @@ export default class BasesChartsPlugin extends Plugin {
 					return;
 				}
 			}
-			// Keep observer running until we've restored the Properties menu title
 			return;
 		}
 
-		const openMenus = Array.from(document.querySelectorAll<HTMLElement>('.menu'));
 		for (const menu of openMenus) {
 			// Properties menu — rename title for mobile and track chevrons
 			const modalTitle = menu.querySelector('.modal-title');
