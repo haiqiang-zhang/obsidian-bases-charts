@@ -1,7 +1,7 @@
 {
 	"id": "bases-charts",
 	"name": "Bases Charts",
-	"version": "0.0.10",
+	"version": "0.1.0",
 	"minAppVersion": "1.12.0",
 	"description": "Interactive chart views for Bases.",
 	"author": "Haiqiang Zhang",
