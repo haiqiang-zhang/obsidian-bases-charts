@@ -4,8 +4,6 @@
 
 This plugin for Obsidian adds interactive chart views to Bases, powered by [Apache ECharts](https://echarts.apache.org/).
 
-Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin), with active development, bug fixes, and new features.
-
 ## Usage
 
 1. Create a [Base](https://help.obsidian.md/bases) in your vault.
@@ -21,10 +19,10 @@ Based on [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidia
 
 ### Features
 
-- Aggregation modes: Sum, Average, Count, Min, Max (and None for Scatter)
-- Multi chart mode: separate by Y axis or by group
-- Sync Y axes across multiple charts
-- Y axis min/max override
+- Multiple Y axes: each Y property produces a separate chart
+- Per-property aggregation: set Sum, Average, Count, Min, Max (or None for Scatter) independently for each Y axis via the property edit menu
+- Sync Y axes and min/max override across charts
+- Group by support: groups become colored series within each chart
 - Interactive tooltips with clickable file links
 - X axis sorting via Bases Sort configuration
 - Auto-resize, light/dark theme support
