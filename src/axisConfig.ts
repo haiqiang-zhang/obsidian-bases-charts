@@ -1,5 +1,5 @@
-import type { DataWrapper, ProcessedData } from './ChartData';
-import type { ResolvedColors } from './charts/echarts-setup';
+import type { DataWrapper, ProcessedData } from './chartData';
+import type { ResolvedColors } from './charts/echartsSetup';
 import type { XAxisType } from './utils';
 import { toCompactString } from './utils';
 
@@ -36,6 +36,12 @@ export function buildXAxisConfig(
 
 	if (xAxisType === 'category') {
 		xAxis.data = xCategories;
+		xAxis.axisLabel = {
+			...xAxis.axisLabel as Record<string, unknown>,
+			interval: 0,
+			overflow: 'truncate',
+			width: 80
+		};
 	}
 
 	return { xAxis, xCategories, xAxisType };

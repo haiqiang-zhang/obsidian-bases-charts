@@ -1,12 +1,12 @@
 import type { EChartsOption } from 'echarts';
 import type { ViewOption } from 'obsidian';
-import type { DataWrapper, ProcessedData } from '../ChartData';
-import { ChartView } from '../ChartView';
-import { ChartRenderer } from './ChartRenderer';
-import type { ResolvedColors } from './echarts-setup';
-import { getResolvedColor, GRID_OPTION } from './echarts-setup';
+import type { DataWrapper, ProcessedData } from '../chartData';
+import { ChartView } from '../chartView';
+import { ChartRenderer } from './chartRenderer';
+import type { ResolvedColors } from './echartsSetup';
+import { getResolvedColor, GRID_OPTION } from './echartsSetup';
 import { toCompactString } from '../utils';
-import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis-config';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axisConfig';
 
 export const BAR_SETTINGS = {
 	SHOW_LABELS: 'show-labels',
@@ -14,7 +14,7 @@ export const BAR_SETTINGS = {
 } as const;
 
 export function barViewOptions(): ViewOption[] {
-	const groups = ChartView.commonViewOptionGroups(false);
+	const groups = ChartView.commonViewOptionGroups();
 	groups.data.push(
 		{
 			displayName: 'Show labels',

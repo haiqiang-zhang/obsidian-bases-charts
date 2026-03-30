@@ -1,22 +1,14 @@
 import type { BasesPropertyId } from 'obsidian';
-import type { ChartView, YDomainOverrides } from './ChartView';
+import type { ChartView, YDomainOverrides } from './chartView';
 import type { XAxisType } from './utils';
 import { OBSIDIAN_COLOR_PALETTE, toCompactString } from './utils';
 
 export type ProcessedData = {
 	x: number | Date | string;
 	y: number;
-	/**
-	 * This is always the value by which we color the data point.
-	 * In group separated mode, this is the display name of the property.
-	 * In property separated mode, this is the group by value.
-	 */
+	/** Index into the group-by set; used for coloring. */
 	groupIndex: number;
-	/**
-	 * This is always the chart to sort the data point into.
-	 * In group separated mode, this is the group by value.
-	 * In property separated mode, this is the property id.
-	 */
+	/** Index into the Y-axis property list; each value produces a separate chart. */
 	chartIndex: number;
 	isNumeric: boolean;
 	files: string[];
@@ -180,29 +172,6 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 	}
 }
 
-export class GroupSeparatedData extends AbstractDataWrapper<string, BasesPropertyId> {
-	getChartIdentifiers(): string[] {
-		// if the data is not grouped, the groupBySet will be empty
-		if (this.groupBySet.length === 0) {
-			return ['No group'];
-		}
-		return this.groupBySet;
-	}
-
-	getGroupIdentifiers(): BasesPropertyId[] {
-		return this.view.data.properties;
-	}
-
-	getChartName(chartIndex: number): string {
-		return this.getChartIdentifiers()[chartIndex] ?? `Chart ${chartIndex + 1}`;
-	}
-
-	getGroupName(groupIndex: number): string {
-		const groupId = this.getGroupIdentifiers()[groupIndex];
-		return this.view.config.getDisplayName(groupId) ?? `Group ${groupIndex + 1}`;
-	}
-}
-
 export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, string> {
 	getChartIdentifiers(): BasesPropertyId[] {
 		return this.view.data.properties;
@@ -222,9 +191,9 @@ export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, 
 	}
 }
 
-export type DataWrapper = GroupSeparatedData | PropertySeparatedData;
+export type DataWrapper = PropertySeparatedData;
 
 export function emptyDataWrapper(view: ChartView): DataWrapper {
-	return new GroupSeparatedData(view, [], [], [], 'category');
+	return new PropertySeparatedData(view, [], [], [], 'category');
 }
 

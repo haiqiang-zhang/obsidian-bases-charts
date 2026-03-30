@@ -1,10 +1,10 @@
 import type { EChartsOption } from 'echarts';
 import type { ViewOption } from 'obsidian';
-import type { DataWrapper } from '../ChartData';
-import { ChartView } from '../ChartView';
-import type { ResolvedColors } from './echarts-setup';
+import type { DataWrapper } from '../chartData';
+import { ChartView } from '../chartView';
+import type { ResolvedColors } from './echartsSetup';
 import { toCompactString } from '../utils';
-import { mapXValue } from '../axis-config';
+import { mapXValue } from '../axisConfig';
 
 export const PIE_SETTINGS = {
 	SHOW_LABELS: 'show-labels',
@@ -13,7 +13,7 @@ export const PIE_SETTINGS = {
 } as const;
 
 export function pieViewOptions(): ViewOption[] {
-	const groups = ChartView.commonViewOptionGroups(false);
+	const groups = ChartView.commonViewOptionGroups();
 	groups.data.push(
 		{
 			displayName: 'Show labels',

@@ -126,3 +126,12 @@ body {
 	gap: 12px;
 	padding: 2px 0;
 }
+
+.bases-chart-help-icon {
+	cursor: pointer;
+	margin-left: 4px;
+	display: inline-flex;
+	vertical-align: middle;
+	opacity: 0.5;
+}
+

@@ -1,17 +1,17 @@
 import type { EChartsOption } from 'echarts';
 import { debounce } from 'obsidian';
-import type { DataWrapper } from './ChartData';
-import type { ChartView } from './ChartView';
-import { AggregateMode, BAR_CHART_VIEW_TYPE, COMMON_SETTINGS, LINE_CHART_VIEW_TYPE, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './ChartView';
-import { LINE_SETTINGS } from './charts/line-options';
-import { BAR_SETTINGS } from './charts/bar-options';
-import { PIE_SETTINGS } from './charts/pie-options';
-import { ChartRenderer } from './charts/ChartRenderer';
-import { resolveColors, type ResolvedColors } from './charts/echarts-setup';
-import { buildBarOption } from './charts/bar-options';
-import { buildLineOption } from './charts/line-options';
-import { buildPieOption } from './charts/pie-options';
-import { buildScatterOption } from './charts/scatter-options';
+import type { DataWrapper } from './chartData';
+import type { ChartView } from './chartView';
+import { AggregateMode, aggregateKey, BAR_CHART_VIEW_TYPE, COMMON_SETTINGS, LINE_CHART_VIEW_TYPE, NullHandling, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './chartView';
+import { LINE_SETTINGS } from './charts/lineOptions';
+import { BAR_SETTINGS } from './charts/barOptions';
+import { PIE_SETTINGS } from './charts/pieOptions';
+import { ChartRenderer } from './charts/chartRenderer';
+import { resolveColors, type ResolvedColors } from './charts/echartsSetup';
+import { buildBarOption } from './charts/barOptions';
+import { buildLineOption } from './charts/lineOptions';
+import { buildPieOption } from './charts/pieOptions';
+import { buildScatterOption } from './charts/scatterOptions';
 import { OBSIDIAN_COLOR_PALETTE } from './utils';
 
 export class ChartLayout {
@@ -22,10 +22,10 @@ export class ChartLayout {
 
 	constructor(
 		private view: ChartView,
-		private scrollEl: HTMLElement,
+		private containerEl: HTMLElement,
 	) {
-		this.legendEl = scrollEl.createDiv({ cls: 'bases-charts-plot-legend' });
-		this.gridEl = scrollEl.createDiv({ cls: 'bases-charts-plot-grid' });
+		this.legendEl = containerEl.createDiv({ cls: 'bases-charts-plot-legend' });
+		this.gridEl = containerEl.createDiv({ cls: 'bases-charts-plot-grid' });
 
 		view.events.on('data-updated', () => this.debouncedUpdate());
 	}
@@ -40,22 +40,25 @@ export class ChartLayout {
 		const xField = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const xName = xField ? `${this.view.config.getDisplayName(xField)} →` : '';
 
-		const colors = resolveColors(this.scrollEl);
+		const colors = resolveColors(this.containerEl);
+
+		const propertyOrder = this.view.config.getOrder();
 
 		for (let i = 0; i < chartIds.length; i++) {
 			const renderer = this.renderers[i];
 			const isGrouped = data.hasMultipleGroups();
 			const chartData = data.getFlat(i);
+			const propId = propertyOrder[i];
 
 			if (chartData.length === 0) {
 				renderer.showMessage(
 					'Non-numeric properties require Count aggregate.',
-					{
+					propId ? {
 						label: 'Use Count',
 						onClick: () => {
-							this.view.config.set(COMMON_SETTINGS.AGGREGATE, AggregateMode.COUNT);
+							this.view.config.set(aggregateKey(propId), AggregateMode.COUNT);
 						},
-					},
+					} : undefined,
 				);
 				continue;
 			}
@@ -63,7 +66,7 @@ export class ChartLayout {
 			const hasNonNumeric = chartData.some(d => !d.isNumeric);
 			const yLabel = hasNonNumeric
 				? `↑ ${data.getChartName(i)} (Count)`
-				: this.view.getYAxisLabel(data.getChartName(i));
+				: this.view.getYAxisLabel(data.getChartName(i), propId);
 			const option = this.buildOption(data, i, xName, yLabel, isGrouped, colors);
 			renderer.setOption(option);
 		}
@@ -80,11 +83,12 @@ export class ChartLayout {
 		const type = this.view.type;
 
 		if (type === SCATTER_CHART_VIEW_TYPE) {
-			const isNoneAggregate = this.view.getAggregateMode() === AggregateMode.NONE;
+			const propId = this.view.config.getOrder()[chartIndex];
+			const isNoneAggregate = propId ? this.view.getAggregateModeForProperty(propId) === AggregateMode.NONE : true;
 			return buildScatterOption(data, chartIndex, xName, yLabel, isGrouped, colors, isNoneAggregate);
 		} else if (type === LINE_CHART_VIEW_TYPE) {
-			const nullHandling = (this.view.config.get(LINE_SETTINGS.NULL_HANDLING) as string) ?? 'Skip';
-			const treatNullAsZero = nullHandling === 'Treat as 0';
+			const nullHandling = (this.view.config.get(LINE_SETTINGS.NULL_HANDLING) as NullHandling | undefined) ?? NullHandling.SKIP;
+			const treatNullAsZero = nullHandling === NullHandling.ZERO;
 			return buildLineOption(data, chartIndex, xName, yLabel, isGrouped, colors, treatNullAsZero);
 		} else if (type === BAR_CHART_VIEW_TYPE) {
 			const showLabels = Boolean(this.view.config.get(BAR_SETTINGS.SHOW_LABELS) ?? true);

@@ -1,7 +1,7 @@
 import type { EChartsOption } from 'echarts';
-import type { ProcessedData } from '../ChartData';
-import type { ChartView } from '../ChartView';
-import { echarts } from './echarts-setup';
+import type { ProcessedData } from '../chartData';
+import type { ChartView } from '../chartView';
+import { echarts } from './echartsSetup';
 import { getFileDisplayName, toCompactString } from '../utils';
 
 export class ChartRenderer {

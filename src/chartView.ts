@@ -1,22 +1,22 @@
 import type { BasesEntry, EventRef, GroupOption, QueryController } from 'obsidian';
 import type { BasesPropertyId, ViewOption } from 'obsidian';
-import { BasesView, Events, displayTooltip, setIcon } from 'obsidian';
+import { BasesView, Events } from 'obsidian';
 
 type ViewOptionItem = Exclude<ViewOption, GroupOption>;
 
 export interface CommonViewOptionGroups {
 	data: ViewOptionItem[];
-	multiChart: ViewOptionItem[];
 	yAxis: ViewOptionItem[];
 }
-import type { DataWrapper, ProcessedData } from './ChartData';
-import { emptyDataWrapper, GroupSeparatedData, PropertySeparatedData } from './ChartData';
-import { ChartLayout } from './ChartLayout';
-import { SCATTER_SETTINGS } from './charts/scatter-options';
-import { scatterViewOptions } from './charts/scatter-options';
-import { lineViewOptions } from './charts/line-options';
-import { barViewOptions } from './charts/bar-options';
-import { pieViewOptions } from './charts/pie-options';
+import type { DataWrapper, ProcessedData } from './chartData';
+import { emptyDataWrapper, PropertySeparatedData } from './chartData';
+import { ChartLayout } from './chartLayout';
+import { renameToolbarButton, restoreToolbarButton } from './uiInjector';
+import { SCATTER_SETTINGS } from './charts/scatterOptions';
+import { scatterViewOptions } from './charts/scatterOptions';
+import { lineViewOptions } from './charts/lineOptions';
+import { barViewOptions } from './charts/barOptions';
+import { pieViewOptions } from './charts/pieOptions';
 import { detectXAxisType, parseValueAsNumber, parseValueAsX, toCompactString } from './utils';
 
 export const SCATTER_CHART_VIEW_TYPE = 'chart-scatter';
@@ -28,22 +28,19 @@ export type ChartViewType = typeof SCATTER_CHART_VIEW_TYPE | typeof LINE_CHART_V
 
 export const COMMON_SETTINGS = {
 	X: 'x',
-	MULTI_CHART: 'multi-chart-mode',
 	SYNC_Y_AXES: 'sync-y-axes',
 	MIN_Y_OVERRIDE: 'min-y-override',
 	MAX_Y_OVERRIDE: 'max-y-override',
-	AGGREGATE: 'aggregate',
 } as const;
+
+export function aggregateKey(propId: BasesPropertyId): string {
+	return `aggregate:${propId}`;
+}
 
 
 export enum NullHandling {
 	SKIP = 'Leave gap',
 	ZERO = 'Fill with 0',
-}
-
-export enum MultiChartMode {
-	GROUP = 'Separate by group',
-	PROPERTY = 'Separate by Y axis',
 }
 
 export enum AggregateMode {
@@ -79,91 +76,27 @@ function parseConfigAsNumber(value: unknown): number | null {
 
 export class ChartView extends BasesView {
 	readonly type: ChartViewType;
-	readonly scrollEl: HTMLElement;
+	readonly containerEl: HTMLElement;
 	readonly events: Events;
 	private layout: ChartLayout | null = null;
 
-	constructor(type: ChartViewType, controller: QueryController, scrollEl: HTMLElement) {
+	constructor(type: ChartViewType, controller: QueryController, containerEl: HTMLElement) {
 		super(controller);
 		this.type = type;
-		this.scrollEl = scrollEl;
+		this.containerEl = containerEl;
 		this.events = new Events();
 	}
 
 	private cssChangeRef: EventRef | null = null;
-	private configObserver: MutationObserver | null = null;
 
 	onload(): void {
-		this.scrollEl.addClass('bases-chart-view');
-		this.layout = new ChartLayout(this, this.scrollEl);
-		this.renameToolbarButton();
-		this.observeConfigPanel();
+		this.containerEl.addClass('bases-chart-view');
+		this.layout = new ChartLayout(this, this.containerEl);
+		renameToolbarButton(this.containerEl);
 
 		this.cssChangeRef = this.app.workspace.on('css-change', () => {
 			this.events.trigger('data-updated');
 		});
-	}
-
-	private renameToolbarButton(): void {
-		const container = this.scrollEl.parentElement;
-		if (!container) return;
-		const label = container.querySelector('.bases-toolbar-properties-menu .text-button-label');
-		if (label) {
-			label.textContent = 'Y axis';
-		}
-	}
-
-	private observeConfigPanel(): void {
-		const tooltips = ChartView.getSettingTooltips(this.type);
-		if (Object.keys(tooltips).length === 0) return;
-
-		this.configObserver = new MutationObserver(() => {
-			// The config menu is rendered as a .menu element on document.body
-			const menus = Array.from(document.querySelectorAll<HTMLElement>('.menu .view-config-menu'));
-			for (const menu of menus) {
-				this.injectHelpIcons(menu, tooltips);
-			}
-		});
-		this.configObserver.observe(document.body, { childList: true, subtree: true });
-	}
-
-	private injectHelpIcons(container: HTMLElement, tooltips: Record<string, string>): void {
-		const labels = Array.from(container.querySelectorAll<HTMLElement>('.input-row-label'));
-		for (const label of labels) {
-			if (label.querySelector('.bases-chart-help-icon')) continue;
-
-			const displayName = label.textContent?.trim();
-			if (!displayName) continue;
-
-			const tooltipText = Object.entries(tooltips).find(([name]) => name === displayName)?.[1];
-			if (!tooltipText) continue;
-
-			const icon = label.createEl('span', { cls: 'bases-chart-help-icon' });
-			icon.style.cursor = 'pointer';
-			icon.style.marginLeft = '4px';
-			icon.style.display = 'inline-flex';
-			icon.style.verticalAlign = 'middle';
-			icon.style.opacity = '0.5';
-			setIcon(icon, 'lucide-help-circle');
-			const svg = icon.querySelector('svg');
-			if (svg) {
-				svg.setAttribute('width', '14');
-				svg.setAttribute('height', '14');
-			}
-			icon.addEventListener('click', (e: MouseEvent) => {
-				e.stopPropagation();
-				displayTooltip(icon, tooltipText, { placement: 'top' });
-			});
-		}
-	}
-
-	static getSettingTooltips(type: ChartViewType): Record<string, string> {
-		if (type === LINE_CHART_VIEW_TYPE) {
-			return {
-				'Gap handling': 'Only applies when the X axis is categorical (e.g. text properties). When data is grouped, some groups may not have values at every X position. "Leave gap" skips the missing points, while "Fill with 0" treats them as zero.',
-			};
-		}
-		return {};
 	}
 
 	onunload(): void {
@@ -171,23 +104,10 @@ export class ChartView extends BasesView {
 			this.app.workspace.offref(this.cssChangeRef);
 			this.cssChangeRef = null;
 		}
-		if (this.configObserver) {
-			this.configObserver.disconnect();
-			this.configObserver = null;
-		}
 		this.layout?.destroy();
 		this.layout = null;
-		this.scrollEl.removeClass('bases-chart-view');
-		this.restoreToolbarButton();
-	}
-
-	private restoreToolbarButton(): void {
-		const container = this.scrollEl.parentElement;
-		if (!container) return;
-		const label = container.querySelector('.bases-toolbar-properties-menu .text-button-label');
-		if (label) {
-			label.textContent = 'Properties';
-		}
+		this.containerEl.removeClass('bases-chart-view');
+		restoreToolbarButton(this.containerEl);
 	}
 
 	onDataUpdated(): void {
@@ -196,17 +116,7 @@ export class ChartView extends BasesView {
 
 	processData(): DataWrapper {
 		const xField = this.config.getAsPropertyId(COMMON_SETTINGS.X);
-		const mode = this.config.get(COMMON_SETTINGS.MULTI_CHART) ?? MultiChartMode.PROPERTY;
 		const propertyOrder = this.config.getOrder();
-
-		if (mode !== MultiChartMode.GROUP && mode !== MultiChartMode.PROPERTY) {
-			/* eslint-disable-next-line @typescript-eslint/no-base-to-string --
-			 * this is a safety check to catch when the saved data does not match the type definitions
-			 * (mostly because the unknown type if the config.get method)
-			 */
-			console.warn(`Invalid multi chart mode: ${String(mode)}`);
-			return emptyDataWrapper(this);
-		}
 
 		if (!xField) {
 			return emptyDataWrapper(this);
@@ -243,21 +153,23 @@ export class ChartView extends BasesView {
 			}
 
 			for (const entry of group.entries) {
-				const processedEntry = this.processEntry(entry, xField, propertyOrder, groupIndex, mode, xAxisType);
+				const processedEntry = this.processEntry(entry, xField, propertyOrder, groupIndex, xAxisType);
 				data.push(...processedEntry);
 			}
 		}
 
-		const aggregatedData = aggregateData(data, this.config.get(COMMON_SETTINGS.AGGREGATE) as AggregateMode | undefined, this.type);
-
-		if (mode === MultiChartMode.GROUP) {
-			return new GroupSeparatedData(this, aggregatedData, groupBySet, sortedXValues, xAxisType);
-		} else {
-			return new PropertySeparatedData(this, aggregatedData, groupBySet, sortedXValues, xAxisType);
+		// Build per-chart aggregate mode map
+		const aggregateModes = new Map<number, AggregateMode>();
+		for (let i = 0; i < propertyOrder.length; i++) {
+			aggregateModes.set(i, this.getAggregateModeForProperty(propertyOrder[i]));
 		}
+
+		const aggregatedData = aggregateData(data, aggregateModes, this.type);
+
+		return new PropertySeparatedData(this, aggregatedData, groupBySet, sortedXValues, xAxisType);
 	}
 
-	processEntry(entry: BasesEntry, xField: BasesPropertyId, propertyOrder: BasesPropertyId[], groupIndex: number, mode: MultiChartMode, xAxisType: import('./utils').XAxisType): ProcessedData[] {
+	processEntry(entry: BasesEntry, xField: BasesPropertyId, propertyOrder: BasesPropertyId[], groupIndex: number, xAxisType: import('./utils').XAxisType): ProcessedData[] {
 		try {
 			const x = entry.getValue(xField);
 			const xValues = parseValueAsX(x, xAxisType);
@@ -267,14 +179,13 @@ export class ChartView extends BasesView {
 				return [];
 			}
 
-			const isCountMode = this.getAggregateMode() === AggregateMode.COUNT;
-
 			const result: ProcessedData[] = [];
 			let i = 0;
 			for (const prop of propertyOrder) {
 				const rawValue = entry.getValue(prop);
 				const yValue = parseValueAsNumber(rawValue);
 				const label = labelProp ? entry.getValue(labelProp)?.toString() : undefined;
+				const isCountMode = this.getAggregateModeForProperty(prop) === AggregateMode.COUNT;
 				const include = yValue !== null || (isCountMode && rawValue !== null);
 
 				if (include) {
@@ -283,8 +194,8 @@ export class ChartView extends BasesView {
 							x: xValue,
 							y: yValue ?? 1,
 							isNumeric: yValue !== null,
-							groupIndex: mode === MultiChartMode.GROUP ? i : groupIndex,
-							chartIndex: mode === MultiChartMode.GROUP ? groupIndex : i,
+							groupIndex: groupIndex,
+							chartIndex: i,
 							files: [entry.file.path],
 							fileValues: [yValue ?? 1],
 							label: label,
@@ -303,12 +214,18 @@ export class ChartView extends BasesView {
 		return [];
 	}
 
-	getAggregateMode(): AggregateMode {
-		return (this.config.get(COMMON_SETTINGS.AGGREGATE) as AggregateMode | undefined) ?? AggregateMode.NONE;
+	getAggregateModeForProperty(propId: BasesPropertyId): AggregateMode {
+		const mode = this.config.get(aggregateKey(propId)) as AggregateMode | undefined;
+		if (mode && Object.values(AggregateMode).includes(mode)) return mode;
+		return this.getDefaultAggregateMode();
 	}
 
-	getYAxisLabel(chartName: string): string {
-		const mode = this.getAggregateMode();
+	getDefaultAggregateMode(): AggregateMode {
+		return this.type === SCATTER_CHART_VIEW_TYPE ? AggregateMode.NONE : AggregateMode.SUM;
+	}
+
+	getYAxisLabel(chartName: string, propId?: BasesPropertyId): string {
+		const mode = propId ? this.getAggregateModeForProperty(propId) : this.getDefaultAggregateMode();
 		return mode !== AggregateMode.NONE ? `↑ ${chartName} (${mode})` : `↑ ${chartName}`;
 	}
 
@@ -357,15 +274,7 @@ export class ChartView extends BasesView {
 		}
 	}
 
-	static commonViewOptionGroups(includeNoneAggregate: boolean): CommonViewOptionGroups {
-		const aggregateOptions: Record<string, string> = {};
-		if (includeNoneAggregate) aggregateOptions[AggregateMode.NONE] = AggregateMode.NONE;
-		aggregateOptions[AggregateMode.SUM] = AggregateMode.SUM;
-		aggregateOptions[AggregateMode.AVERAGE] = AggregateMode.AVERAGE;
-		aggregateOptions[AggregateMode.COUNT] = AggregateMode.COUNT;
-		aggregateOptions[AggregateMode.MIN] = AggregateMode.MIN;
-		aggregateOptions[AggregateMode.MAX] = AggregateMode.MAX;
-
+	static commonViewOptionGroups(): CommonViewOptionGroups {
 		return {
 			data: [
 				{
@@ -375,33 +284,14 @@ export class ChartView extends BasesView {
 					filter: prop => !prop.startsWith('file.'),
 					placeholder: 'Property',
 				},
-				{
-					displayName: 'Aggregate',
-					type: 'dropdown',
-					key: COMMON_SETTINGS.AGGREGATE,
-					options: aggregateOptions,
-					default: includeNoneAggregate ? AggregateMode.NONE : AggregateMode.SUM,
-				},
 			],
-			multiChart: [
+			yAxis: [
 				{
-					displayName: 'Multi chart mode',
-					type: 'dropdown',
-					key: COMMON_SETTINGS.MULTI_CHART,
-					options: {
-						[MultiChartMode.GROUP]: MultiChartMode.GROUP,
-						[MultiChartMode.PROPERTY]: MultiChartMode.PROPERTY,
-					},
-					default: MultiChartMode.PROPERTY,
-				},
-				{
-					displayName: 'Sync Y axes',
+					displayName: 'Sync across charts',
 					type: 'toggle',
 					key: COMMON_SETTINGS.SYNC_Y_AXES,
 					default: false,
 				},
-			],
-			yAxis: [
 				{
 					displayName: 'Min Y override',
 					type: 'text',
@@ -421,24 +311,17 @@ export class ChartView extends BasesView {
 	}
 
 	static buildViewOptions(groups: CommonViewOptionGroups): ViewOption[] {
-		const result: ViewOption[] = [];
-		// Data group items are top-level (ungrouped)
-		result.push(...groups.data);
+		const result: ViewOption[] = [...groups.data];
 		result.push({
 			type: 'group',
-			displayName: 'Multi chart',
-			items: groups.multiChart,
-		});
-		result.push({
-			type: 'group',
-			displayName: 'Y axis',
+			displayName: 'Y axes',
 			items: groups.yAxis,
 		});
 		return result;
 	}
 }
 
-function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined, chartType: ChartViewType): ProcessedData[] {
+function aggregateData(data: ProcessedData[], modes: Map<number, AggregateMode>, chartType: ChartViewType): ProcessedData[] {
 	// Group by x + chartIndex + groupIndex
 	const buckets = new Map<string, ProcessedData[]>();
 	for (const d of data) {
@@ -451,26 +334,28 @@ function aggregateData(data: ProcessedData[], mode: AggregateMode | undefined, c
 		bucket.push(d);
 	}
 
-	let effectiveMode = mode ?? AggregateMode.NONE;
-
-	if (effectiveMode === AggregateMode.NONE) {
-		if (chartType === SCATTER_CHART_VIEW_TYPE) return data;
-		// For line/bar with non-numeric data, force COUNT
-		const hasNonNumeric = data.some(d => !d.isNumeric);
-		if (hasNonNumeric) {
-			effectiveMode = AggregateMode.COUNT;
-		} else {
-			const hasDuplicates = Array.from(buckets.values()).some(b => b.length > 1);
-			if (!hasDuplicates) return data;
-			effectiveMode = AggregateMode.SUM;
-		}
-	}
-
 	const result: ProcessedData[] = [];
 	for (const bucket of buckets.values()) {
 		const first = bucket[0];
-		let y: number;
+		let effectiveMode = modes.get(first.chartIndex) ?? AggregateMode.NONE;
 
+		if (effectiveMode === AggregateMode.NONE) {
+			if (chartType === SCATTER_CHART_VIEW_TYPE) {
+				result.push(...bucket);
+				continue;
+			}
+			const hasNonNumeric = bucket.some(d => !d.isNumeric);
+			if (hasNonNumeric) {
+				effectiveMode = AggregateMode.COUNT;
+			} else if (bucket.length === 1) {
+				result.push(first);
+				continue;
+			} else {
+				effectiveMode = AggregateMode.SUM;
+			}
+		}
+
+		let y: number;
 		switch (effectiveMode) {
 			case AggregateMode.SUM:
 				y = bucket.reduce((sum, d) => sum + d.y, 0);

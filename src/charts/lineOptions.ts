@@ -1,18 +1,18 @@
 import type { EChartsOption } from 'echarts';
 import type { ViewOption } from 'obsidian';
-import type { DataWrapper, ProcessedData } from '../ChartData';
-import { ChartView, NullHandling } from '../ChartView';
-import { ChartRenderer } from './ChartRenderer';
-import type { ResolvedColors } from './echarts-setup';
-import { getResolvedColor, GRID_OPTION } from './echarts-setup';
-import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis-config';
+import type { DataWrapper, ProcessedData } from '../chartData';
+import { ChartView, NullHandling } from '../chartView';
+import { ChartRenderer } from './chartRenderer';
+import type { ResolvedColors } from './echartsSetup';
+import { getResolvedColor, GRID_OPTION } from './echartsSetup';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axisConfig';
 
 export const LINE_SETTINGS = {
 	NULL_HANDLING: 'null-handling',
 } as const;
 
 export function lineViewOptions(): ViewOption[] {
-	const groups = ChartView.commonViewOptionGroups(false);
+	const groups = ChartView.commonViewOptionGroups();
 	groups.data.push({
 		displayName: 'Gap handling',
 		type: 'dropdown',

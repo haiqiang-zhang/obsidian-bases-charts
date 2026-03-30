@@ -1,19 +1,19 @@
 import type { EChartsOption } from 'echarts';
 import type { ViewOption } from 'obsidian';
-import type { DataWrapper, ProcessedData } from '../ChartData';
-import { ChartView } from '../ChartView';
+import type { DataWrapper, ProcessedData } from '../chartData';
+import { ChartView } from '../chartView';
 import { getFileDisplayName } from '../utils';
-import { ChartRenderer } from './ChartRenderer';
-import type { ResolvedColors } from './echarts-setup';
-import { getResolvedColor, GRID_OPTION } from './echarts-setup';
-import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis-config';
+import { ChartRenderer } from './chartRenderer';
+import type { ResolvedColors } from './echartsSetup';
+import { getResolvedColor, GRID_OPTION } from './echartsSetup';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axisConfig';
 
 export const SCATTER_SETTINGS = {
 	LABEL_PROP: 'label-property',
 } as const;
 
 export function scatterViewOptions(): ViewOption[] {
-	const groups = ChartView.commonViewOptionGroups(true);
+	const groups = ChartView.commonViewOptionGroups();
 	groups.data.push({
 		displayName: 'Label property',
 		type: 'property',
