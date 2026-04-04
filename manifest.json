@@ -1,7 +1,7 @@
 {
 	"id": "bases-chart-views",
 	"name": "Bases Chart Views",
-	"version": "0.2.3",
+	"version": "0.2.4",
 	"minAppVersion": "1.12.0",
 	"description": "Interactive chart views and AI charts for Bases, powered by Apache ECharts.",
 	"author": "Haiqiang Zhang",
