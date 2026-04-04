@@ -1,8 +1,11 @@
 import type { EChartsOption } from 'echarts';
-import type { ProcessedData } from '../chartData';
-import type { ChartView } from '../chartView';
-import { echarts } from './echartsSetup';
-import { getFileDisplayName, toCompactString } from '../utils';
+import type { ProcessedData } from '../dataCharts/data';
+import { echarts } from '../echarts';
+import { getFileDisplayName, toCompactString } from './utils';
+
+export interface ChartViewLike {
+	openFile(filePath: string, newTab: boolean): Promise<void>;
+}
 
 export class ChartRenderer {
 	private chart: ReturnType<typeof echarts.init> | null = null;
@@ -13,7 +16,7 @@ export class ChartRenderer {
 
 	constructor(
 		private containerEl: HTMLElement,
-		private view: ChartView,
+		private view: ChartViewLike,
 	) {
 		this.chart = echarts.init(containerEl, undefined, { renderer: 'canvas' });
 

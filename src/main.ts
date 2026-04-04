@@ -1,63 +1,57 @@
 import { Plugin } from 'obsidian';
-import { BAR_CHART_VIEW_TYPE, ChartView, LINE_CHART_VIEW_TYPE, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './chartView';
-import { getSettingTooltips, injectAggregateDropdown, injectHelpIcons, injectYAxesHint, removeInjectedDOM, trackPropertyChevrons } from './uiInjector';
+import type { BasesView } from 'obsidian';
+import type { QueryController } from 'obsidian';
+import { aiChartRegistration } from './aiCharts/aiChart';
+import { barChartRegistration } from './dataCharts/charts/barChart';
+import { lineChartRegistration } from './dataCharts/charts/lineChart';
+import { pieChartRegistration } from './dataCharts/charts/pieChart';
+import { scatterChartRegistration } from './dataCharts/charts/scatterChart';
+import { DataChartView } from './dataCharts/dataChartView';
+import { getSettingTooltips, injectAggregateDropdown, injectHelpIcons, injectYAxesHint, removeInjectedDOM, trackPropertyChevrons } from './ui/uiInjector';
+
+interface ChartRegistration {
+	viewType: string;
+	name: string;
+	icon: string;
+	createView: new (controller: QueryController, containerEl: HTMLElement) => BasesView;
+	viewOptions: () => import('obsidian').ViewOption[];
+}
+
+const chartRegistrations: ChartRegistration[] = [
+	scatterChartRegistration,
+	lineChartRegistration,
+	barChartRegistration,
+	pieChartRegistration,
+	aiChartRegistration,
+];
 
 export default class BasesChartsPlugin extends Plugin {
 	private menuObserver: MutationObserver | null = null;
-	private activeChartViews = new Set<ChartView>();
+	private activeDataViews = new Set<DataChartView>();
 	private isProcessing = false;
 
 	onload(): void {
-		this.registerBasesView(SCATTER_CHART_VIEW_TYPE, {
-			name: 'Scatter Chart',
-			icon: 'lucide-chart-scatter',
-			factory: (controller, containerEl) => {
-				const view = new ChartView(SCATTER_CHART_VIEW_TYPE, controller, containerEl);
-				this.trackView(view);
-				return view;
-			},
-			options: () => ChartView.getViewOptions(SCATTER_CHART_VIEW_TYPE),
-		});
-
-		this.registerBasesView(LINE_CHART_VIEW_TYPE, {
-			name: 'Line Chart',
-			icon: 'lucide-chart-line',
-			factory: (controller, containerEl) => {
-				const view = new ChartView(LINE_CHART_VIEW_TYPE, controller, containerEl);
-				this.trackView(view);
-				return view;
-			},
-			options: () => ChartView.getViewOptions(LINE_CHART_VIEW_TYPE),
-		});
-
-		this.registerBasesView(BAR_CHART_VIEW_TYPE, {
-			name: 'Bar Chart',
-			icon: 'lucide-chart-column',
-			factory: (controller, containerEl) => {
-				const view = new ChartView(BAR_CHART_VIEW_TYPE, controller, containerEl);
-				this.trackView(view);
-				return view;
-			},
-			options: () => ChartView.getViewOptions(BAR_CHART_VIEW_TYPE),
-		});
-
-		this.registerBasesView(PIE_CHART_VIEW_TYPE, {
-			name: 'Pie Chart',
-			icon: 'lucide-chart-pie',
-			factory: (controller, containerEl) => {
-				const view = new ChartView(PIE_CHART_VIEW_TYPE, controller, containerEl);
-				this.trackView(view);
-				return view;
-			},
-			options: () => ChartView.getViewOptions(PIE_CHART_VIEW_TYPE),
-		});
+		for (const reg of chartRegistrations) {
+			this.registerBasesView(reg.viewType, {
+				name: reg.name,
+				icon: reg.icon,
+				factory: (controller, containerEl) => {
+					const view = new reg.createView(controller, containerEl);
+					if (view instanceof DataChartView) {
+						this.trackView(view);
+					}
+					return view;
+				},
+				options: reg.viewOptions,
+			});
+		}
 	}
 
-	private trackView(view: ChartView): void {
-		this.activeChartViews.add(view);
+	private trackView(view: DataChartView): void {
+		this.activeDataViews.add(view);
 		this.startMenuObserver();
 		view.register(() => {
-			this.activeChartViews.delete(view);
+			this.activeDataViews.delete(view);
 		});
 	}
 
@@ -87,16 +81,14 @@ export default class BasesChartsPlugin extends Plugin {
 	}
 
 	private processMenus(): void {
-		// Find the active chart view (if any)
-		let activeView: ChartView | null = null;
-		for (const view of this.activeChartViews) {
+		let activeView: DataChartView | null = null;
+		for (const view of this.activeDataViews) {
 			if (view.containerEl.hasClass('bases-chart-view')) {
 				activeView = view;
 				break;
 			}
 		}
 
-		// Always inject hint into chart view's config menu (identified by "Y axes" group)
 		const openMenus = Array.from(document.querySelectorAll<HTMLElement>('.menu'));
 		for (const menu of openMenus) {
 			const configMenu = menu.querySelector<HTMLElement>('.view-config-menu');
@@ -119,14 +111,12 @@ export default class BasesChartsPlugin extends Plugin {
 		}
 
 		for (const menu of openMenus) {
-			// Properties menu — rename title for mobile and track chevrons
 			const modalTitle = menu.querySelector('.modal-title');
 			if (modalTitle?.textContent === 'Properties' || modalTitle?.textContent === 'Y axes') {
 				modalTitle.textContent = 'Y axes';
 				trackPropertyChevrons(activeView, menu);
 			}
 
-			// View config menu — help icons
 			const configMenu = menu.querySelector<HTMLElement>('.view-config-menu');
 			if (configMenu) {
 				const tooltips = getSettingTooltips(activeView.type);
@@ -135,7 +125,6 @@ export default class BasesChartsPlugin extends Plugin {
 				}
 			}
 
-			// Property edit form — aggregate dropdown
 			const form = menu.querySelector<HTMLElement>('.bases-toolbar-menu-form');
 			if (form) {
 				injectAggregateDropdown(activeView, form);

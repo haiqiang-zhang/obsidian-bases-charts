@@ -1,27 +1,56 @@
+export const SCATTER_CHART_VIEW_TYPE = 'chart-scatter';
+
 import type { EChartsOption } from 'echarts';
 import type { ViewOption } from 'obsidian';
-import type { DataWrapper, ProcessedData } from '../chartData';
-import { ChartView } from '../chartView';
-import { getFileDisplayName } from '../utils';
-import { ChartRenderer } from './chartRenderer';
-import type { ResolvedColors } from './echartsSetup';
-import { getResolvedColor, GRID_OPTION } from './echartsSetup';
-import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axisConfig';
+import type { DataWrapper, ProcessedData } from '../data';
+import { AggregateMode } from '../aggregate';
+import { DataChartView } from '../dataChartView';
+import { getFileDisplayName } from '../../utils/utils';
+import { ChartRenderer } from '../../utils/renderer';
+import type { ResolvedColors } from '../../ui/colors';
+import { getResolvedColor, GRID_OPTION } from '../../ui/colors';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 
-export const SCATTER_SETTINGS = {
+const SCATTER_SETTINGS = {
 	LABEL_PROP: 'label-property',
 } as const;
 
-export function scatterViewOptions(): ViewOption[] {
-	const groups = ChartView.commonViewOptionGroups();
+function scatterViewOptions(): ViewOption[] {
+	const groups = DataChartView.commonViewOptionGroups();
 	groups.data.push({
 		displayName: 'Label property',
 		type: 'property',
 		key: SCATTER_SETTINGS.LABEL_PROP,
 		placeholder: 'Property',
 	});
-	return ChartView.buildViewOptions(groups);
+	return DataChartView.buildViewOptions(groups);
 }
+
+export class ScatterChartView extends DataChartView {
+	readonly type = SCATTER_CHART_VIEW_TYPE;
+
+	getLabelProperty() {
+		return this.config.getAsPropertyId(SCATTER_SETTINGS.LABEL_PROP);
+	}
+
+	getDefaultAggregateMode(): AggregateMode {
+		return AggregateMode.NONE;
+	}
+
+	buildOption(data: DataWrapper, chartIndex: number, xName: string, yLabel: string, isGrouped: boolean, colors: ResolvedColors): EChartsOption {
+		const propId = this.config.getOrder()[chartIndex];
+		const isNoneAggregate = propId ? this.getAggregateModeForProperty(propId) === AggregateMode.NONE : true;
+		return buildScatterOption(data, chartIndex, xName, yLabel, isGrouped, colors, isNoneAggregate);
+	}
+}
+
+export const scatterChartRegistration = {
+	viewType: SCATTER_CHART_VIEW_TYPE,
+	name: 'Scatter Chart',
+	icon: 'lucide-chart-scatter',
+	createView: ScatterChartView,
+	viewOptions: () => scatterViewOptions(),
+};
 
 export function buildScatterOption(
 	data: DataWrapper,
@@ -34,7 +63,7 @@ export function buildScatterOption(
 ): EChartsOption {
 	const dataPoints = data.getFlat(chartIndex);
 	const columnName = data.getChartName(chartIndex);
-	const hasDomain = data.view.hasDomainOverride();
+	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
 	const { xAxis, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);

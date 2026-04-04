@@ -1,18 +1,25 @@
+export const LINE_CHART_VIEW_TYPE = 'chart-line';
+
 import type { EChartsOption } from 'echarts';
 import type { ViewOption } from 'obsidian';
-import type { DataWrapper, ProcessedData } from '../chartData';
-import { ChartView, NullHandling } from '../chartView';
-import { ChartRenderer } from './chartRenderer';
-import type { ResolvedColors } from './echartsSetup';
-import { getResolvedColor, GRID_OPTION } from './echartsSetup';
-import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axisConfig';
+import type { DataWrapper, ProcessedData } from '../data';
+import { DataChartView } from '../dataChartView';
+import { ChartRenderer } from '../../utils/renderer';
+import type { ResolvedColors } from '../../ui/colors';
+import { getResolvedColor, GRID_OPTION } from '../../ui/colors';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
+
+export enum NullHandling {
+	SKIP = 'Leave gap',
+	ZERO = 'Fill with 0',
+}
 
 export const LINE_SETTINGS = {
 	NULL_HANDLING: 'null-handling',
 } as const;
 
-export function lineViewOptions(): ViewOption[] {
-	const groups = ChartView.commonViewOptionGroups();
+function lineViewOptions(): ViewOption[] {
+	const groups = DataChartView.commonViewOptionGroups();
 	groups.data.push({
 		displayName: 'Gap handling',
 		type: 'dropdown',
@@ -23,8 +30,26 @@ export function lineViewOptions(): ViewOption[] {
 		},
 		default: NullHandling.SKIP,
 	});
-	return ChartView.buildViewOptions(groups);
+	return DataChartView.buildViewOptions(groups);
 }
+
+export class LineChartView extends DataChartView {
+	readonly type = LINE_CHART_VIEW_TYPE;
+
+	buildOption(data: DataWrapper, chartIndex: number, xName: string, yLabel: string, isGrouped: boolean, colors: ResolvedColors): EChartsOption {
+		const nullHandling = (this.config.get(LINE_SETTINGS.NULL_HANDLING) as NullHandling | undefined) ?? NullHandling.SKIP;
+		const treatNullAsZero = nullHandling === NullHandling.ZERO;
+		return buildLineOption(data, chartIndex, xName, yLabel, isGrouped, colors, treatNullAsZero);
+	}
+}
+
+export const lineChartRegistration = {
+	viewType: LINE_CHART_VIEW_TYPE,
+	name: 'Line Chart',
+	icon: 'lucide-chart-line',
+	createView: LineChartView,
+	viewOptions: () => lineViewOptions(),
+};
 
 export function buildLineOption(
 	data: DataWrapper,
@@ -37,7 +62,7 @@ export function buildLineOption(
 ): EChartsOption {
 	const dataPoints = data.getFlat(chartIndex);
 	const columnName = data.getChartName(chartIndex);
-	const hasDomain = data.view.hasDomainOverride();
+	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
 	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);

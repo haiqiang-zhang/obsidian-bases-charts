@@ -1,18 +1,11 @@
-import type { EChartsOption } from 'echarts';
 import { debounce } from 'obsidian';
-import type { DataWrapper } from './chartData';
-import type { ChartView } from './chartView';
-import { AggregateMode, aggregateKey, BAR_CHART_VIEW_TYPE, COMMON_SETTINGS, LINE_CHART_VIEW_TYPE, NullHandling, PIE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './chartView';
-import { LINE_SETTINGS } from './charts/lineOptions';
-import { BAR_SETTINGS } from './charts/barOptions';
-import { PIE_SETTINGS } from './charts/pieOptions';
-import { ChartRenderer } from './charts/chartRenderer';
-import { resolveColors, type ResolvedColors } from './charts/echartsSetup';
-import { buildBarOption } from './charts/barOptions';
-import { buildLineOption } from './charts/lineOptions';
-import { buildPieOption } from './charts/pieOptions';
-import { buildScatterOption } from './charts/scatterOptions';
-import { OBSIDIAN_COLOR_PALETTE } from './utils';
+import type { DataWrapper } from './data';
+import type { DataChartView } from './dataChartView';
+import { AggregateMode, aggregateKey } from './aggregate';
+import { COMMON_SETTINGS } from './types';
+import { ChartRenderer } from '../utils/renderer';
+import { resolveColors } from '../ui/colors';
+import { OBSIDIAN_COLOR_PALETTE } from '../ui/colors';
 
 export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
@@ -21,7 +14,7 @@ export class ChartLayout {
 	private debouncedUpdate = debounce(() => this.update(), 50, true);
 
 	constructor(
-		private view: ChartView,
+		private view: DataChartView,
 		private containerEl: HTMLElement,
 	) {
 		this.legendEl = containerEl.createDiv({ cls: 'bases-charts-plot-legend' });
@@ -67,42 +60,9 @@ export class ChartLayout {
 			const yLabel = hasNonNumeric
 				? `↑ ${data.getChartName(i)} (Count)`
 				: this.view.getYAxisLabel(data.getChartName(i), propId);
-			const option = this.buildOption(data, i, xName, yLabel, isGrouped, colors);
+			const option = this.view.buildOption(data, i, xName, yLabel, isGrouped, colors);
 			renderer.setOption(option);
 		}
-	}
-
-	private buildOption(
-		data: DataWrapper,
-		chartIndex: number,
-		xName: string,
-		yLabel: string,
-		isGrouped: boolean,
-		colors: ResolvedColors,
-	): EChartsOption {
-		const type = this.view.type;
-
-		if (type === SCATTER_CHART_VIEW_TYPE) {
-			const propId = this.view.config.getOrder()[chartIndex];
-			const isNoneAggregate = propId ? this.view.getAggregateModeForProperty(propId) === AggregateMode.NONE : true;
-			return buildScatterOption(data, chartIndex, xName, yLabel, isGrouped, colors, isNoneAggregate);
-		} else if (type === LINE_CHART_VIEW_TYPE) {
-			const nullHandling = (this.view.config.get(LINE_SETTINGS.NULL_HANDLING) as NullHandling | undefined) ?? NullHandling.SKIP;
-			const treatNullAsZero = nullHandling === NullHandling.ZERO;
-			return buildLineOption(data, chartIndex, xName, yLabel, isGrouped, colors, treatNullAsZero);
-		} else if (type === BAR_CHART_VIEW_TYPE) {
-			const showLabels = Boolean(this.view.config.get(BAR_SETTINGS.SHOW_LABELS) ?? true);
-			const showPercentages = Boolean(this.view.config.get(BAR_SETTINGS.SHOW_PERCENTAGES) ?? false);
-			const hasDomainOverride = this.view.hasDomainOverride();
-			return buildBarOption(data, chartIndex, xName, yLabel, isGrouped, colors, showLabels, showPercentages, hasDomainOverride);
-		} else if (type === PIE_CHART_VIEW_TYPE) {
-			const showLabels = Boolean(this.view.config.get(PIE_SETTINGS.SHOW_LABELS) ?? true);
-			const showPercentages = Boolean(this.view.config.get(PIE_SETTINGS.SHOW_PERCENTAGES) ?? false);
-			const ignoreNull = Boolean(this.view.config.get(PIE_SETTINGS.IGNORE_NULL) ?? true);
-			return buildPieOption(data, chartIndex, colors, showLabels, showPercentages, ignoreNull);
-		}
-
-		return {};
 	}
 
 	private renderLegend(data: DataWrapper): void {
@@ -123,18 +83,15 @@ export class ChartLayout {
 	}
 
 	private reconcileRenderers(count: number): void {
-		// Remove excess renderers
 		while (this.renderers.length > count) {
 			const renderer = this.renderers.pop();
 			renderer?.dispose();
 		}
 
-		// Remove excess DOM children
 		while (this.gridEl.children.length > count) {
 			this.gridEl.lastElementChild?.remove();
 		}
 
-		// Add missing renderers
 		while (this.renderers.length < count) {
 			const itemEl = this.gridEl.createDiv({ cls: 'bases-charts-plot-grid-item' });
 			const renderer = new ChartRenderer(itemEl, this.view);

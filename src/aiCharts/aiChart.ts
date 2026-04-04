@@ -1,68 +1,82 @@
 import type { EChartsOption } from 'echarts';
-import type { EventRef, QueryController } from 'obsidian';
-import { BasesView, Events } from 'obsidian';
-import { checkSkillInstalled, installSkill } from './aiChartSkill';
-import { ChartRenderer } from './charts/chartRenderer';
+import type { QueryController } from 'obsidian';
+import { BaseChartView } from '../baseChartView';
+import { checkSkillStatus, installSkill } from './aiChartSkill';
+import { writeAiViewIpc, clearAiViewIpc } from './ipc';
+import { ChartRenderer } from '../utils/renderer';
 
 export const AI_CHART_VIEW_TYPE = 'chart-ai';
 
 const ECHARTS_OPTION_KEY = 'echarts-option';
 
-export class AiChartView extends BasesView {
+export class AiChartView extends BaseChartView {
 	readonly type = AI_CHART_VIEW_TYPE;
-	readonly containerEl: HTMLElement;
-	readonly events: Events;
 	private renderer: ChartRenderer | null = null;
 	private chartEl: HTMLElement | null = null;
-	private cssChangeRef: EventRef | null = null;
+	private initialized = false;
 
 	constructor(controller: QueryController, containerEl: HTMLElement) {
-		super(controller);
-		this.containerEl = containerEl;
-		this.events = new Events();
+		super(controller, containerEl);
 	}
 
-	onload(): void {
-		this.containerEl.addClass('bases-chart-view', 'bases-ai-chart-view');
-		void this.initialize();
-
-		this.cssChangeRef = this.app.workspace.on('css-change', () => {
-			this.renderFromConfig();
-		});
+	protected onChartLoad(): void {
+		this.containerEl.addClass('bases-ai-chart-view');
+		this.chartEl = this.containerEl.createDiv({ cls: 'bases-charts-plot-grid-item' });
+		this.renderer = new ChartRenderer(this.chartEl, this);
 	}
 
-	private async initialize(): Promise<void> {
-		this.createRenderer();
-		const installed = await checkSkillInstalled(this.app);
-		if (!installed) {
-			this.showSetup();
+	protected onChartUnload(): void {
+		void clearAiViewIpc(this.app.vault.adapter);
+		this.renderer?.dispose();
+		this.renderer = null;
+		this.containerEl.removeClass('bases-ai-chart-view');
+	}
+
+	override onDataUpdated(): void {
+		if (!this.initialized) {
+			this.initialized = true;
+			void writeAiViewIpc(this.app.vault.adapter, this.config.name);
+			void this.initialize();
 		} else {
 			this.renderFromConfig();
 		}
 	}
 
-	private showSetup(): void {
-		if (!this.renderer) return;
-		this.renderer.showMessage(
-			'AI Chart requires the Claudian skill to generate chart configurations.',
-			{
-				label: 'Install AI Chart skill',
-				onClick: () => {
-					void installSkill(this.app).then(() => {
-						this.renderFromConfig();
-					});
-				},
-			},
-		);
+	private async initialize(): Promise<void> {
+		const status = await checkSkillStatus(this.app);
+		if (status.skillInstalled && status.systemPromptConfigured) {
+			this.renderFromConfig();
+		} else {
+			this.showSetup(status.skillInstalled, status.systemPromptConfigured);
+		}
 	}
 
-	private createRenderer(): void {
-		this.chartEl = this.containerEl.createDiv({ cls: 'bases-charts-plot-grid-item' });
-		this.renderer = new ChartRenderer(this.chartEl, this);
+	private showSetup(skillInstalled: boolean, systemPromptConfigured: boolean): void {
+		if (!this.renderer) return;
+
+		let message: string;
+		if (!skillInstalled && !systemPromptConfigured) {
+			message = 'AI Chart requires the Claudian skill and system prompt configuration.';
+		} else if (!skillInstalled) {
+			message = 'AI Chart requires the Claudian skill to be installed.';
+		} else {
+			message = 'AI Chart requires the Claudian system prompt to be configured.';
+		}
+
+		this.renderer.showMessage(message, {
+			label: 'Set up AI Chart',
+			onClick: () => {
+				void installSkill(this.app).then(() => {
+					this.renderFromConfig();
+				}).catch((e: Error) => {
+					this.renderer?.showMessage(e.message);
+				});
+			},
+		});
 	}
 
 	private renderFromConfig(): void {
-		if (!this.renderer) return;
+		if (!this.renderer || !this.config) return;
 
 		const option = this.config.get(ECHARTS_OPTION_KEY);
 		if (!option || typeof option !== 'object') {
@@ -78,27 +92,12 @@ export class AiChartView extends BasesView {
 			this.renderer.showMessage('Invalid chart configuration.');
 		}
 	}
-
-	async openFile(filePath: string, newTab: boolean): Promise<void> {
-		const tFile = this.app.vault.getFileByPath(filePath);
-		if (!tFile) return;
-		const leaf = this.app.workspace.getLeaf(newTab ? 'tab' : false);
-		if (leaf) {
-			await leaf.openFile(tFile);
-		}
-	}
-
-	onDataUpdated(): void {
-		this.renderFromConfig();
-	}
-
-	onunload(): void {
-		if (this.cssChangeRef) {
-			this.app.workspace.offref(this.cssChangeRef);
-			this.cssChangeRef = null;
-		}
-		this.renderer?.dispose();
-		this.renderer = null;
-		this.containerEl.removeClass('bases-chart-view', 'bases-ai-chart-view');
-	}
 }
+
+export const aiChartRegistration = {
+	viewType: AI_CHART_VIEW_TYPE,
+	name: 'AI Chart',
+	icon: 'lucide-sparkles',
+	createView: AiChartView,
+	viewOptions: () => [] as never[],
+};

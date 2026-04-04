@@ -1,7 +1,7 @@
 import type { BasesPropertyId } from 'obsidian';
 import { displayTooltip, setIcon } from 'obsidian';
-import type { ChartView, ChartViewType } from './chartView';
-import { AggregateMode, aggregateKey, LINE_CHART_VIEW_TYPE, SCATTER_CHART_VIEW_TYPE } from './chartView';
+import { AggregateMode, aggregateKey } from '../dataCharts/aggregate';
+import type { DataChartView } from '../dataCharts/dataChartView';
 
 let lastClickedPropId: BasesPropertyId | null = null;
 
@@ -12,7 +12,7 @@ function getPropertyPrefix(item: HTMLElement): string {
 	return 'note.';
 }
 
-function resolvePropertyId(view: ChartView, displayName: string, prefix: string): BasesPropertyId | null {
+function resolvePropertyId(view: DataChartView, displayName: string, prefix: string): BasesPropertyId | null {
 	return view.allProperties.find(id => {
 		const idStr = id.toString();
 		return idStr.startsWith(prefix) && view.config.getDisplayName(id) === displayName;
@@ -44,8 +44,8 @@ export function injectYAxesHint(configMenu: HTMLElement): void {
 	hint.textContent = 'Select Y axes and set per-property aggregate via the "Y axes" toolbar button in chart view';
 }
 
-export function getSettingTooltips(type: ChartViewType): Record<string, string> {
-	if (type === LINE_CHART_VIEW_TYPE) {
+export function getSettingTooltips(type: string): Record<string, string> {
+	if (type === 'chart-line') {
 		return {
 			'Gap handling': 'Only applies when the X axis is categorical (e.g. text properties). When data is grouped, some groups may not have values at every X position. "Leave gap" skips the missing points, while "Fill with 0" treats them as zero.',
 		};
@@ -78,7 +78,7 @@ export function injectHelpIcons(container: HTMLElement, tooltips: Record<string,
 	}
 }
 
-export function trackPropertyChevrons(view: ChartView, menu: HTMLElement): void {
+export function trackPropertyChevrons(view: DataChartView, menu: HTMLElement): void {
 	const items = Array.from(menu.querySelectorAll<HTMLElement>('.bases-toolbar-menu-item'));
 	for (const item of items) {
 		const chevron = item.querySelector('.bases-toolbar-menu-item-icon');
@@ -111,7 +111,7 @@ export function restoreToolbarButton(containerEl: HTMLElement): void {
 	}
 }
 
-export function injectAggregateDropdown(view: ChartView, form: HTMLElement): void {
+export function injectAggregateDropdown(view: DataChartView, form: HTMLElement): void {
 	if (form.querySelector('.bases-chart-aggregate-row')) return;
 	if (!lastClickedPropId) return;
 
@@ -126,7 +126,7 @@ export function injectAggregateDropdown(view: ChartView, form: HTMLElement): voi
 	const content = row.createDiv({ cls: 'input-row-content' });
 
 	const select = content.createEl('select', { cls: 'dropdown' });
-	const includeNone = view.type === SCATTER_CHART_VIEW_TYPE;
+	const includeNone = view.type === 'chart-scatter';
 	const options = includeNone
 		? [AggregateMode.NONE, AggregateMode.SUM, AggregateMode.AVERAGE, AggregateMode.COUNT, AggregateMode.MIN, AggregateMode.MAX]
 		: [AggregateMode.SUM, AggregateMode.AVERAGE, AggregateMode.COUNT, AggregateMode.MIN, AggregateMode.MAX];

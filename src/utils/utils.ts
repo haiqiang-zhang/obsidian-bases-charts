@@ -23,16 +23,6 @@ export function toCompactString(datum: object | number | string | symbol | boole
 	return datum;
 }
 
-export const OBSIDIAN_COLOR_PALETTE = [
-	'var(--color-blue)',
-	'var(--color-orange)',
-	'var(--color-red)',
-	'var(--color-cyan)',
-	'var(--color-green)',
-	'var(--color-yellow)',
-	'var(--color-purple)',
-	'var(--color-pink)',
-];
 
 export function getFileDisplayName(filePath: string): string {
 	return (filePath.split('/').pop() ?? filePath).replace(/\.[^.]+$/, '');

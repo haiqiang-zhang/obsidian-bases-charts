@@ -1,7 +1,13 @@
 import type { BasesPropertyId } from 'obsidian';
-import type { ChartView, YDomainOverrides } from './chartView';
-import type { XAxisType } from './utils';
-import { OBSIDIAN_COLOR_PALETTE, toCompactString } from './utils';
+import type { XAxisType } from '../utils/utils';
+import { OBSIDIAN_COLOR_PALETTE } from '../ui/colors';
+import { toCompactString } from '../utils/utils';
+
+export interface YDomainOverrides {
+	min: number | null;
+	max: number | null;
+	synced: boolean;
+}
 
 export type ProcessedData = {
 	x: number | Date | string;
@@ -17,7 +23,6 @@ export type ProcessedData = {
 };
 
 export abstract class AbstractDataWrapper<ChartId, GroupId> {
-	readonly view: ChartView;
 	readonly data: ProcessedData[];
 	readonly groupBySet: string[];
 	readonly sortedXOrder: string[];
@@ -26,17 +31,15 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 	private readonly orderMap: Map<string, number>;
 	private readonly flatCache = new Map<number, ProcessedData[]>();
 
-	constructor(view: ChartView, data: ProcessedData[], groupBySet: string[], sortedXOrder: (number | Date | string)[], xAxisType: XAxisType) {
-		this.view = view;
+	constructor(data: ProcessedData[], groupBySet: string[], sortedXOrder: (number | Date | string)[], xAxisType: XAxisType, yDomain: YDomainOverrides) {
 		this.data = data;
 		this.groupBySet = groupBySet;
 		this.xAxisType = xAxisType;
 		this.sortedXOrder = sortedXOrder.map(v => toCompactString(v));
+		this.yDomain = yDomain;
 
 		this.orderMap = new Map<string, number>();
 		this.sortedXOrder.forEach((x, i) => this.orderMap.set(x, i));
-
-		this.yDomain = this.getYDomain();
 	}
 
 	abstract getChartIdentifiers(): ChartId[];
@@ -95,24 +98,15 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 		return stackedData;
 	}
 
-	getYDomainForChart(chartIndex: number): [number, number] {
-		const overrides = this.yDomain;
-
-		const min = overrides.min ?? this.getChartYMin(chartIndex);
-		const max = overrides.max ?? this.getChartYMax(chartIndex);
-
-		return [min ?? 0, max ?? 0];
+	hasDomainOverride(): boolean {
+		return this.yDomain.min !== null || this.yDomain.max !== null || this.yDomain.synced;
 	}
 
-	getYDomain(): YDomainOverrides {
-		const viewOverrides = this.view.getYDomainOverrides();
+	getYDomainForChart(chartIndex: number): [number, number] {
+		const min = this.yDomain.min ?? this.getChartYMin(chartIndex);
+		const max = this.yDomain.max ?? this.getChartYMax(chartIndex);
 
-		if (viewOverrides.synced) {
-			viewOverrides.min ??= this.getGlobalYMin();
-			viewOverrides.max ??= this.getGlobalYMax();
-		}
-
-		return viewOverrides;
+		return [min ?? 0, max ?? 0];
 	}
 
 	getGlobalYMin(): number | null {
@@ -173,8 +167,25 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 }
 
 export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, string> {
+	private readonly chartIds: BasesPropertyId[];
+	private readonly chartNameMap: Map<BasesPropertyId, string>;
+
+	constructor(
+		data: ProcessedData[],
+		groupBySet: string[],
+		sortedXOrder: (number | Date | string)[],
+		xAxisType: XAxisType,
+		yDomain: YDomainOverrides,
+		chartIds: BasesPropertyId[],
+		chartNameMap: Map<BasesPropertyId, string>,
+	) {
+		super(data, groupBySet, sortedXOrder, xAxisType, yDomain);
+		this.chartIds = chartIds;
+		this.chartNameMap = chartNameMap;
+	}
+
 	getChartIdentifiers(): BasesPropertyId[] {
-		return this.view.data.properties;
+		return this.chartIds;
 	}
 
 	getGroupIdentifiers(): string[] {
@@ -182,8 +193,8 @@ export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, 
 	}
 
 	getChartName(chartIndex: number): string {
-		const chartId = this.getChartIdentifiers()[chartIndex];
-		return this.view.config.getDisplayName(chartId) ?? `Chart ${chartIndex + 1}`;
+		const chartId = this.chartIds[chartIndex];
+		return this.chartNameMap.get(chartId) ?? `Chart ${chartIndex + 1}`;
 	}
 
 	getGroupName(groupIndex: number): string {
@@ -193,7 +204,9 @@ export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, 
 
 export type DataWrapper = PropertySeparatedData;
 
-export function emptyDataWrapper(view: ChartView): DataWrapper {
-	return new PropertySeparatedData(view, [], [], [], 'category');
+const DEFAULT_Y_DOMAIN: YDomainOverrides = { min: null, max: null, synced: false };
+
+export function emptyDataWrapper(): DataWrapper {
+	return new PropertySeparatedData([], [], [], 'category', DEFAULT_Y_DOMAIN, [], new Map());
 }
 

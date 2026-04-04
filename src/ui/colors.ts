@@ -1,13 +1,3 @@
-import * as echarts from 'echarts/core';
-import { ScatterChart, LineChart, BarChart, PieChart } from 'echarts/charts';
-import { TooltipComponent, GridComponent, GraphicComponent, LegendComponent } from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
-import { LabelLayout } from 'echarts/features';
-
-echarts.use([ScatterChart, LineChart, BarChart, PieChart, TooltipComponent, GridComponent, GraphicComponent, LegendComponent, CanvasRenderer, LabelLayout]);
-
-export { echarts };
-
 const COLOR_VAR_NAMES = [
 	'--color-blue',
 	'--color-orange',
@@ -37,6 +27,17 @@ export function resolveColors(containerEl: HTMLElement): ResolvedColors {
 		background: style.getPropertyValue('--background-primary').trim() || '#fff',
 	};
 }
+
+export const OBSIDIAN_COLOR_PALETTE = [
+	'var(--color-blue)',
+	'var(--color-orange)',
+	'var(--color-red)',
+	'var(--color-cyan)',
+	'var(--color-green)',
+	'var(--color-yellow)',
+	'var(--color-purple)',
+	'var(--color-pink)',
+];
 
 export const GRID_OPTION = { left: 0, right: 0, top: 30, bottom: 20, containLabel: true } as const;
 

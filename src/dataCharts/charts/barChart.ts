@@ -1,20 +1,22 @@
+export const BAR_CHART_VIEW_TYPE = 'chart-bar';
+
 import type { EChartsOption } from 'echarts';
 import type { ViewOption } from 'obsidian';
-import type { DataWrapper, ProcessedData } from '../chartData';
-import { ChartView } from '../chartView';
-import { ChartRenderer } from './chartRenderer';
-import type { ResolvedColors } from './echartsSetup';
-import { getResolvedColor, GRID_OPTION } from './echartsSetup';
-import { toCompactString } from '../utils';
-import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axisConfig';
+import type { DataWrapper, ProcessedData } from '../data';
+import { DataChartView } from '../dataChartView';
+import { ChartRenderer } from '../../utils/renderer';
+import type { ResolvedColors } from '../../ui/colors';
+import { getResolvedColor, GRID_OPTION } from '../../ui/colors';
+import { toCompactString } from '../../utils/utils';
+import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 
 export const BAR_SETTINGS = {
 	SHOW_LABELS: 'show-labels',
 	SHOW_PERCENTAGES: 'show-percentages',
 } as const;
 
-export function barViewOptions(): ViewOption[] {
-	const groups = ChartView.commonViewOptionGroups();
+function barViewOptions(): ViewOption[] {
+	const groups = DataChartView.commonViewOptionGroups();
 	groups.data.push(
 		{
 			displayName: 'Show labels',
@@ -29,8 +31,26 @@ export function barViewOptions(): ViewOption[] {
 			default: false,
 		},
 	);
-	return ChartView.buildViewOptions(groups);
+	return DataChartView.buildViewOptions(groups);
 }
+
+export class BarChartView extends DataChartView {
+	readonly type = BAR_CHART_VIEW_TYPE;
+
+	buildOption(data: DataWrapper, chartIndex: number, xName: string, yLabel: string, isGrouped: boolean, colors: ResolvedColors): EChartsOption {
+		const showLabels = Boolean(this.config.get(BAR_SETTINGS.SHOW_LABELS) ?? true);
+		const showPercentages = Boolean(this.config.get(BAR_SETTINGS.SHOW_PERCENTAGES) ?? false);
+		return buildBarOption(data, chartIndex, xName, yLabel, isGrouped, colors, showLabels, showPercentages, data.hasDomainOverride());
+	}
+}
+
+export const barChartRegistration = {
+	viewType: BAR_CHART_VIEW_TYPE,
+	name: 'Bar Chart',
+	icon: 'lucide-chart-column',
+	createView: BarChartView,
+	viewOptions: () => barViewOptions(),
+};
 
 export function buildBarOption(
 	data: DataWrapper,

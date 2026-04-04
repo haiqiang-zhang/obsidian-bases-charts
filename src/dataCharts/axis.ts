@@ -1,7 +1,7 @@
-import type { DataWrapper, ProcessedData } from './chartData';
-import type { ResolvedColors } from './charts/echartsSetup';
-import type { XAxisType } from './utils';
-import { toCompactString } from './utils';
+import type { DataWrapper, ProcessedData } from './data';
+import type { ResolvedColors } from '../ui/colors';
+import type { XAxisType } from '../utils/utils';
+import { toCompactString } from '../utils/utils';
 
 /**
  * Build the shared xAxis ECharts config from the DataWrapper.

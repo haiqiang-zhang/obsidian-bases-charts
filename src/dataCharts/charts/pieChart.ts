@@ -1,10 +1,12 @@
+export const PIE_CHART_VIEW_TYPE = 'chart-pie';
+
 import type { EChartsOption } from 'echarts';
 import type { ViewOption } from 'obsidian';
-import type { DataWrapper } from '../chartData';
-import { ChartView } from '../chartView';
-import type { ResolvedColors } from './echartsSetup';
-import { toCompactString } from '../utils';
-import { mapXValue } from '../axisConfig';
+import type { DataWrapper } from '../data';
+import { DataChartView } from '../dataChartView';
+import type { ResolvedColors } from '../../ui/colors';
+import { toCompactString } from '../../utils/utils';
+import { mapXValue } from '../axis';
 
 export const PIE_SETTINGS = {
 	SHOW_LABELS: 'show-labels',
@@ -12,8 +14,8 @@ export const PIE_SETTINGS = {
 	IGNORE_NULL: 'ignore-null',
 } as const;
 
-export function pieViewOptions(): ViewOption[] {
-	const groups = ChartView.commonViewOptionGroups();
+function pieViewOptions(): ViewOption[] {
+	const groups = DataChartView.commonViewOptionGroups();
 	groups.data.push(
 		{
 			displayName: 'Show labels',
@@ -34,8 +36,27 @@ export function pieViewOptions(): ViewOption[] {
 			default: true,
 		},
 	);
-	return ChartView.buildViewOptions(groups);
+	return DataChartView.buildViewOptions(groups);
 }
+
+export class PieChartView extends DataChartView {
+	readonly type = PIE_CHART_VIEW_TYPE;
+
+	buildOption(data: DataWrapper, chartIndex: number, _xName: string, _yLabel: string, _isGrouped: boolean, colors: ResolvedColors): EChartsOption {
+		const showLabels = Boolean(this.config.get(PIE_SETTINGS.SHOW_LABELS) ?? true);
+		const showPercentages = Boolean(this.config.get(PIE_SETTINGS.SHOW_PERCENTAGES) ?? false);
+		const ignoreNull = Boolean(this.config.get(PIE_SETTINGS.IGNORE_NULL) ?? true);
+		return buildPieOption(data, chartIndex, colors, showLabels, showPercentages, ignoreNull);
+	}
+}
+
+export const pieChartRegistration = {
+	viewType: PIE_CHART_VIEW_TYPE,
+	name: 'Pie Chart',
+	icon: 'lucide-chart-pie',
+	createView: PieChartView,
+	viewOptions: () => pieViewOptions(),
+};
 
 export function buildPieOption(
 	data: DataWrapper,
