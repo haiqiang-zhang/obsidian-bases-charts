@@ -3,6 +3,7 @@ import type { QueryController } from 'obsidian';
 import { BaseChartView } from '../baseChartView';
 import { checkSkillStatus, installSkill } from './aiChartSkill';
 import { writeAiViewIpc, clearAiViewIpc } from './ipc';
+import { hideAiChartToolbarButtons, showAiChartToolbarButtons } from '../ui/uiInjector';
 import { ChartRenderer } from '../utils/renderer';
 
 export const AI_CHART_VIEW_TYPE = 'chart-ai';
@@ -21,6 +22,7 @@ export class AiChartView extends BaseChartView {
 
 	protected onChartLoad(): void {
 		this.containerEl.addClass('bases-ai-chart-view');
+		hideAiChartToolbarButtons(this.containerEl);
 		this.chartEl = this.containerEl.createDiv({ cls: 'bases-charts-plot-grid-item' });
 		this.renderer = new ChartRenderer(this.chartEl, this);
 	}
@@ -29,6 +31,7 @@ export class AiChartView extends BaseChartView {
 		void clearAiViewIpc(this.app.vault.adapter);
 		this.renderer?.dispose();
 		this.renderer = null;
+		showAiChartToolbarButtons(this.containerEl);
 		this.containerEl.removeClass('bases-ai-chart-view');
 	}
 

@@ -73,7 +73,7 @@ export function injectHelpIcons(container: HTMLElement, tooltips: Record<string,
 		}
 		icon.addEventListener('click', (e: MouseEvent) => {
 			e.stopPropagation();
-			displayTooltip(icon, tooltipText, { placement: 'top' });
+			displayTooltip(icon, tooltipText, { placement: 'right' });
 		});
 	}
 }
@@ -108,6 +108,29 @@ export function restoreToolbarButton(containerEl: HTMLElement): void {
 	const label = container.querySelector('.bases-toolbar-properties-menu .text-button-label');
 	if (label) {
 		label.textContent = 'Properties';
+	}
+}
+
+const AI_CHART_HIDDEN_TOOLBAR_SELECTORS = [
+	'.bases-toolbar-sort-menu',
+	'.bases-toolbar-filter-menu',
+	'.bases-toolbar-properties-menu',
+	'.bases-toolbar-search',
+];
+
+export function hideAiChartToolbarButtons(containerEl: HTMLElement): void {
+	const toolbar = containerEl.parentElement?.querySelector('.bases-toolbar');
+	if (!toolbar) return;
+	for (const sel of AI_CHART_HIDDEN_TOOLBAR_SELECTORS) {
+		toolbar.querySelector<HTMLElement>(sel)?.hide();
+	}
+}
+
+export function showAiChartToolbarButtons(containerEl: HTMLElement): void {
+	const toolbar = containerEl.parentElement?.querySelector('.bases-toolbar');
+	if (!toolbar) return;
+	for (const sel of AI_CHART_HIDDEN_TOOLBAR_SELECTORS) {
+		toolbar.querySelector<HTMLElement>(sel)?.show();
 	}
 }
 
