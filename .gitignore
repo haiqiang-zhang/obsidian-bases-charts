@@ -22,7 +22,6 @@ data.json
 .DS_Store
 
 
-obsidian.css
 dist/
 
 !exampleVault/.obsidian
