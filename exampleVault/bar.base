@@ -35,3 +35,4 @@ views:
     aggregate: Count
     x: note.director
     ignore-null: true
+    aggregate:note.director: Count

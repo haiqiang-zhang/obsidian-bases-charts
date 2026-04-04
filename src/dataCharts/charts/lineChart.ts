@@ -6,7 +6,7 @@ import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
 import { ChartRenderer } from '../../utils/renderer';
 import type { ResolvedColors } from '../../ui/colors';
-import { getResolvedColor, GRID_OPTION } from '../../ui/colors';
+import { getResolvedColor, gridOption } from '../../ui/colors';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 
 export enum NullHandling {
@@ -65,7 +65,7 @@ export function buildLineOption(
 	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
-	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
+	const { xAxis, xCategories, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors);
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
 		const arr = seriesMap.get(dp.groupIndex) ?? [];
@@ -100,7 +100,7 @@ export function buildLineOption(
 	}));
 
 	return {
-		grid: GRID_OPTION,
+		grid: gridOption(extraBottom),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),
 		tooltip: isGrouped

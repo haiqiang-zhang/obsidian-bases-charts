@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1000">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1000px;
+    height: 1060px;
+    overflow: hidden;
+    background: #edeaf3;
+    background-image:
+      radial-gradient(ellipse 70% 50% at 15% 0%, rgba(139, 92, 246, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 90% 100%, rgba(99, 102, 241, 0.05) 0%, transparent 50%);
+  }
+
+  .page {
+    width: 1000px;
+    padding: 26px 28px 0;
+    position: relative;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+  }
+  .header-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+  }
+  .header-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .header h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 21px;
+    font-weight: 700;
+    color: #1e1535;
+    letter-spacing: -0.4px;
+    line-height: 1;
+  }
+  .label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.08);
+    border: 1px solid rgba(124, 58, 237, 0.1);
+    padding: 4px 11px;
+    letter-spacing: 0.3px;
+    margin-left: auto;
+  }
+
+  /* Grid rows */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .row.center {
+    grid-template-columns: 1fr;
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 0;
+  }
+
+  .card {
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      0 1px 2px rgba(50, 30, 80, 0.04),
+      0 4px 20px rgba(50, 30, 80, 0.05);
+  }
+  .card img {
+    width: 100%;
+    display: block;
+  }
+
+  /* Bottom accent bar */
+  .accent {
+    margin-top: 22px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 2%, #a78bfa 30%, #7c3aed 50%, #a78bfa 70%, transparent 98%);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 3h4v4"/></svg>
+    </div>
+    <h1>Bases Chart Views</h1>
+    <span class="label">Data Charts</span>
+  </div>
+  <div class="row">
+    <div class="card"><img src="data-charts-screenshot/scatter.png" alt=""></div>
+    <div class="card"><img src="data-charts-screenshot/line-charts.png" alt=""></div>
+  </div>
+  <div class="row">
+    <div class="card"><img src="data-charts-screenshot/bar.png" alt=""></div>
+    <div class="card"><img src="data-charts-screenshot/pie-chart.png" alt=""></div>
+  </div>
+  <div class="row center">
+    <div class="card"><img src="data-charts-screenshot/line-group.png" alt=""></div>
+  </div>
+  <div class="accent"></div>
+</div>
+</body>
+</html>

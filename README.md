@@ -24,6 +24,8 @@ This plugin offers two fundamentally different approaches to charting:
 
 Built-in chart views that visualize Bases data with configurable axes, aggregation, and grouping.
 
+![Data Charts Showcase](images/data-charts.png)
+
 - **Scatter** — individual data points, optional labels, click to open source file
 - **Line** — connected data points, configurable gap handling (Leave gap or Fill with 0)
 - **Bar** — grouped bars with optional data labels and percentage display

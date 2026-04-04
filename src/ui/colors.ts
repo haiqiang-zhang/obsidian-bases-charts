@@ -41,6 +41,10 @@ export const OBSIDIAN_COLOR_PALETTE = [
 
 export const GRID_OPTION = { left: 0, right: 0, top: 30, bottom: 20, containLabel: true } as const;
 
+export function gridOption(extraBottom = 0): { left: number; right: number; top: number; bottom: number; containLabel: true } {
+	return { left: 0, right: 0, top: 30, bottom: 20 + extraBottom, containLabel: true };
+}
+
 export function getResolvedColor(palette: string[], accent: string, groupIndex: number, isGrouped: boolean): string {
 	if (!isGrouped) return accent;
 	return palette[groupIndex % palette.length];

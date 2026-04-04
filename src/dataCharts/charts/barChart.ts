@@ -6,7 +6,7 @@ import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
 import { ChartRenderer } from '../../utils/renderer';
 import type { ResolvedColors } from '../../ui/colors';
-import { getResolvedColor, GRID_OPTION } from '../../ui/colors';
+import { getResolvedColor, gridOption } from '../../ui/colors';
 import { toCompactString } from '../../utils/utils';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 
@@ -67,7 +67,7 @@ export function buildBarOption(
 	const domain = hasDomainOverride ? data.getYDomainForChart(chartIndex) : undefined;
 	const columnName = data.getChartName(chartIndex);
 
-	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
+	const { xAxis, xCategories, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors);
 	// Bar always uses category axis regardless of detected type
 	xAxis.type = 'category';
 	xAxis.data = xCategories;
@@ -114,7 +114,7 @@ export function buildBarOption(
 	});
 
 	return {
-		grid: GRID_OPTION,
+		grid: gridOption(extraBottom),
 		xAxis,
 		yAxis: {
 			...buildYAxisConfig(yLabel, colors, domain),

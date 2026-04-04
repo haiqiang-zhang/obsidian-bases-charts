@@ -16,6 +16,7 @@ export function buildXAxisConfig(
 	xAxis: Record<string, unknown>;
 	xCategories: string[];
 	xAxisType: XAxisType;
+	extraBottom: number;
 } {
 	const xAxisType = data.xAxisType;
 
@@ -29,22 +30,32 @@ export function buildXAxisConfig(
 		nameLocation: 'middle',
 		nameGap: 25,
 		nameTextStyle: { color: colors.text },
-		axisLabel: { color: colors.text },
+		axisLabel: { color: colors.text, hideOverlap: true },
 		axisLine: { lineStyle: { color: colors.grid } },
 		splitLine: { lineStyle: { color: colors.grid } },
 	};
 
+	const MAX_LABEL_WIDTH = 80;
+	const ROTATE_DEG = 45;
+	const rotatedHeight = Math.round(MAX_LABEL_WIDTH * Math.sin(ROTATE_DEG * Math.PI / 180));
+
 	if (xAxisType === 'category') {
 		xAxis.data = xCategories;
+		xAxis.boundaryGap = true;
+		const count = xCategories.length;
+		const step = Math.max(1, Math.floor(count / 20));
+		const last = count - 1;
 		xAxis.axisLabel = {
 			...xAxis.axisLabel as Record<string, unknown>,
-			interval: 0,
 			overflow: 'truncate',
-			width: 80
+			width: MAX_LABEL_WIDTH,
+			rotate: ROTATE_DEG,
+			interval: (index: number) => index === 0 || index === last || index % step === 0,
 		};
+		xAxis.nameGap = rotatedHeight + 15;
 	}
 
-	return { xAxis, xCategories, xAxisType };
+	return { xAxis, xCategories, xAxisType, extraBottom: xAxisType === 'category' ? rotatedHeight : 0 };
 }
 
 /**

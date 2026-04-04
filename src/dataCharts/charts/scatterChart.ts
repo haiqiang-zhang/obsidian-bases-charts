@@ -8,7 +8,7 @@ import { DataChartView } from '../dataChartView';
 import { getFileDisplayName } from '../../utils/utils';
 import { ChartRenderer } from '../../utils/renderer';
 import type { ResolvedColors } from '../../ui/colors';
-import { getResolvedColor, GRID_OPTION } from '../../ui/colors';
+import { getResolvedColor, gridOption } from '../../ui/colors';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 
 const SCATTER_SETTINGS = {
@@ -66,7 +66,7 @@ export function buildScatterOption(
 	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
-	const { xAxis, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
+	const { xAxis, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors);
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
@@ -92,7 +92,7 @@ export function buildScatterOption(
 	}));
 
 	return {
-		grid: GRID_OPTION,
+		grid: gridOption(extraBottom),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),
 		tooltip: isNoneAggregate
@@ -106,6 +106,7 @@ export function buildScatterOption(
 					enterable: true,
 					hideDelay: 300,
 					confine: true,
+					axisPointer: { type: 'cross' as const },
 					position: (...args: Parameters<typeof ChartRenderer.tooltipPosition>) => ChartRenderer.tooltipPosition(...args),
 					formatter: (params: unknown) => {
 						const p = params as { data: { _raw: ProcessedData } };

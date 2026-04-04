@@ -9,11 +9,20 @@ views:
         - file.folder == "movies"
     order:
       - duration
+      - avg_vote
+    sort:
+      - property: year
+        direction: ASC
     x: formula.Release Year
     min-y-override: ""
     max-y-override: ""
     label-property: note.original_title
     aggregate: None
+    aggregate:note.avg_vote: Sum
+    aggregate:note.actors: Count
+    aggregate:note.description: Count
+    aggregate:note.director: Count
+    aggregate:note.genre: Count
   - type: chart-bar
     name: Release year
     filters:

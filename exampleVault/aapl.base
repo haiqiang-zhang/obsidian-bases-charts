@@ -28,9 +28,13 @@ views:
     order:
       - Open
       - Close
+      - Adj Close
+      - High
+      - Low
+      - Volume
     x: note.Date
     multi-chart-mode: Separate by group
-    sync-y-axes: true
+    sync-y-axes: false
     min-y-override: "0"
     null-handling: Leave gap
     aggregate: Sum
