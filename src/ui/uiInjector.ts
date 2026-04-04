@@ -40,8 +40,7 @@ export function injectYAxesHint(configMenu: HTMLElement): void {
 	if (!content) return;
 
 	const hint = content.createDiv({ cls: 'bases-chart-y-axes-hint' });
-	// eslint-disable-next-line obsidianmd/ui/sentence-case -- intentional casing for "Y axes"
-	hint.textContent = 'Select Y axes and set per-property aggregate via the "Y axes" toolbar button in chart view';
+	hint.textContent = 'Set y axes and per-property aggregate using the toolbar button in chart view';
 }
 
 export function getSettingTooltips(type: string): Record<string, string> {
