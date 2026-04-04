@@ -12,5 +12,5 @@ if (!chrome) {
   process.exit(1);
 }
 
-execSync(`"${chrome}" --headless --disable-gpu --screenshot="${outPath}" --window-size=800,260 --force-device-scale-factor=2 --hide-scrollbars "file://${htmlPath}"`, { stdio: 'inherit' });
+execSync(`"${chrome}" --headless --disable-gpu --screenshot="${outPath}" --window-size=800,260 --force-device-scale-factor=5 --hide-scrollbars "file://${htmlPath}"`, { stdio: 'inherit' });
 console.log('Saved banner.png');
