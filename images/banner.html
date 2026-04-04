@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 800px;
+    height: 260px;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #000;
+  }
+  .banner {
+    width: 800px;
+    height: 260px;
+    background: #0a0a0f;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 0 60px;
+    overflow: hidden;
+  }
+
+  /* Subtle gradient glow */
+  .banner::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -40px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Content left */
+  .content {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+  }
+
+  .logos {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-icon.obsidian {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 1px;
+  }
+  .logo-icon.obsidian img {
+    width: 100%;
+    height: 100%;
+    border-radius: 7px;
+  }
+  .logo-icon.echarts {
+    background: #fff;
+    border-radius: 8px;
+    padding: 4px;
+  }
+  .logo-icon.echarts img {
+    width: 100%;
+    height: 100%;
+  }
+  .logo-sep {
+    color: #333;
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  .title {
+    font-size: 36px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #666;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    margin-bottom: 22px;
+  }
+
+  .tags {
+    display: flex;
+    gap: 8px;
+  }
+  .tag {
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+  .tag.data {
+    background: transparent;
+    border: 1px solid #2a2a35;
+    border-radius: 4px;
+    color: #888;
+  }
+  .tag.ai {
+    background: rgba(124, 58, 237, 0.12);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    border-radius: 4px;
+    color: #a78bfa;
+  }
+
+  /* Right side: abstract chart visualization */
+  .chart-viz {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 260px;
+    height: 180px;
+    opacity: 0.35;
+  }
+  .chart-viz svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Bottom border accent */
+  .banner::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #7c3aed, transparent);
+    opacity: 0.4;
+  }
+</style>
+</head>
+<body>
+<div class="banner">
+  <div class="content">
+    <div class="logos">
+      <div class="logo-icon obsidian">
+        <img src="obsidian-icon.svg" alt="Obsidian">
+      </div>
+      <span class="logo-sep">/</span>
+      <div class="logo-icon echarts">
+        <img src="echarts.png" alt="ECharts">
+      </div>
+    </div>
+    <div class="title">Bases Chart Views</div>
+    <div class="subtitle">Interactive chart views for Obsidian Bases</div>
+    <div class="tags">
+      <span class="tag data">Data Charts</span>
+      <span class="tag ai"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>AI Chart</span>
+    </div>
+  </div>
+
+  <div class="chart-viz">
+    <svg viewBox="0 0 260 180" fill="none">
+      <!-- Bars -->
+      <rect x="20" y="110" width="18" height="60" rx="2" fill="#7c3aed"/>
+      <rect x="46" y="70" width="18" height="100" rx="2" fill="#7c3aed"/>
+      <rect x="72" y="90" width="18" height="80" rx="2" fill="#7c3aed"/>
+      <rect x="98" y="50" width="18" height="120" rx="2" fill="#7c3aed"/>
+      <rect x="124" y="80" width="18" height="90" rx="2" fill="#7c3aed"/>
+      <rect x="150" y="40" width="18" height="130" rx="2" fill="#7c3aed"/>
+      <rect x="176" y="65" width="18" height="105" rx="2" fill="#7c3aed"/>
+      <rect x="202" y="30" width="18" height="140" rx="2" fill="#7c3aed"/>
+      <rect x="228" y="55" width="18" height="115" rx="2" fill="#7c3aed"/>
+      <!-- Line overlay -->
+      <polyline points="29,105 55,65 81,82 107,42 133,72 159,32 185,58 211,22 237,48"
+        stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Dots -->
+      <circle cx="29" cy="105" r="2.5" fill="#c4b5fd"/>
+      <circle cx="107" cy="42" r="2.5" fill="#c4b5fd"/>
+      <circle cx="159" cy="32" r="2.5" fill="#c4b5fd"/>
+      <circle cx="211" cy="22" r="2.5" fill="#c4b5fd"/>
+    </svg>
+  </div>
+</div>
+</body>
+</html>
