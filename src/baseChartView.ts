@@ -16,6 +16,13 @@ export abstract class BaseChartView extends BasesView {
 	onload(): void {
 		this.containerEl.addClass('bases-chart-view');
 		this.onChartLoad();
+		// Query results are usually already cached when a note is reopened, so
+		// Obsidian may not call onDataUpdated again. Trigger an update here so
+		// the chart is rendered every time the view loads, not only when data
+		// changes after the view is already open.
+		if (this.config) {
+			this.onDataUpdated();
+		}
 		this.cssChangeRef = this.app.workspace.on('css-change', () => {
 			this.events.trigger('data-updated');
 		});
