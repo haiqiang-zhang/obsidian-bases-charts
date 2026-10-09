@@ -25,8 +25,22 @@ const bundle = await build({
 
 function createWindow() {
 	const listeners = new Map();
+	const timers = new Map();
+	const cancelledTimers = [];
+	let timerId = 0;
 	return {
-		listeners,
+		listeners, timers, cancelledTimers,
+		setTimeout(callback) {
+			const id = ++timerId;
+			timers.set(id, callback);
+			return id;
+		},
+		clearTimeout(id) { cancelledTimers.push(id); timers.delete(id); },
+		flushTimers() {
+			const pending = [...timers.values()];
+			timers.clear();
+			for (const callback of pending) callback();
+		},
 		addEventListener: (name, callback) => listeners.set(name, callback),
 		removeEventListener: (name, callback) => {
 			assert.equal(listeners.get(name), callback, 'remove the listener from its original window');
@@ -40,9 +54,6 @@ function harness() {
 	const tooltips = [];
 	const observers = [];
 	const openedFiles = [];
-	const timers = new Map();
-	const cancelledTimers = [];
-	let timerId = 0;
 	let migration;
 	let removedMigrations = 0;
 	const window = createWindow();
@@ -116,8 +127,8 @@ function harness() {
 		module,
 		exports: module.exports,
 		runtime,
-		setTimeout(callback) { const id = ++timerId; timers.set(id, callback); return id; },
-		clearTimeout(id) { cancelledTimers.push(id); timers.delete(id); },
+		setTimeout() { assert.fail('renderer timers must be created in the owning window'); },
+		clearTimeout() { assert.fail('renderer timers must be cancelled in their original window'); },
 		ResizeObserver: class {
 			constructor(callback) { this.callback = callback; this.disconnected = 0; observers.push(this); }
 			observe(element) { this.observed = element; }
@@ -126,12 +137,10 @@ function harness() {
 	}, { filename: 'chart-renderer-under-test.cjs' });
 	const renderer = new module.exports.ChartRenderer(container, view);
 	return {
-		renderer, charts, tooltips, observers, timers, cancelledTimers, window, openedFiles,
+		renderer, charts, tooltips, observers, window, openedFiles,
 		get removedMigrations() { return removedMigrations; },
 		flushTimers() {
-			const pending = [...timers.values()];
-			timers.clear();
-			for (const callback of pending) callback();
+			container.ownerDocument.defaultView.flushTimers();
 		},
 		migrate(nextWindow) {
 			container.ownerDocument = { defaultView: nextWindow };
@@ -168,11 +177,11 @@ test('deferred first resize cannot overwrite a newer synchronous option', () => 
 
 test('dispose cancels pending resize and releases chart, observer, tooltip, and window/migration listeners', () => {
 	const state = harness();
-	assert.equal(state.timers.size, 1);
+	assert.equal(state.window.timers.size, 1);
 	assert.equal(state.window.listeners.size, 1);
 	state.renderer.dispose();
-	assert.equal(state.timers.size, 0);
-	assert.equal(state.cancelledTimers.length, 1);
+	assert.equal(state.window.timers.size, 0);
+	assert.deepEqual(state.window.cancelledTimers, [1]);
 	assert.equal(state.observers[0].disconnected, 1);
 	assert.equal(state.tooltips[0].disposed, 1);
 	assert.equal(state.charts[0].disposed, 1);
@@ -192,6 +201,9 @@ test('window migration rebuilds in the new window and reapplies the latest optio
 	const latest = { tooltip: { trigger: 'item' }, series: [{ data: [9] }] };
 	state.renderer.setOption(latest, context);
 	const nextWindow = createWindow();
+	let unrelatedCalls = 0;
+	const unrelatedTimer = nextWindow.setTimeout(() => { unrelatedCalls++; });
+	assert.equal(unrelatedTimer, 1, 'different windows can assign the same timer ID');
 	state.migrate(nextWindow);
 	assert.equal(state.charts.length, 2);
 	assert.equal(state.charts[0].disposed, 1);
@@ -199,8 +211,11 @@ test('window migration rebuilds in the new window and reapplies the latest optio
 	assert.equal(state.tooltips[0].disposed, 1);
 	assert.equal(state.window.listeners.size, 0);
 	assert.equal(nextWindow.listeners.size, 1);
-	assert.equal(state.cancelledTimers.length, 1);
-	assert.equal(state.timers.size, 1, 'only the new chart should retain its initial resize');
+	assert.deepEqual(state.window.cancelledTimers, [1]);
+	assert.equal(state.window.timers.size, 0, 'the previous window must not retain a stale resize');
+	assert.equal(nextWindow.timers.size, 2, 'the new resize must coexist with the unrelated timer');
+	assert.ok(nextWindow.timers.has(unrelatedTimer), 'migration must not cancel the same ID in the destination window');
+	assert.deepEqual(nextWindow.cancelledTimers, []);
 	assert.equal(state.charts[1].calls.length, 1);
 	assert.equal(state.charts[1].current.series, latest.series);
 	assert.equal(state.tooltips[1].calls[0].base, latest.tooltip);
@@ -211,12 +226,33 @@ test('window migration rebuilds in the new window and reapplies the latest optio
 	state.charts[1].handlers.get('click')({ data: { _raw: raw } });
 	assert.deepEqual(state.tooltips[1].opened, [{ raw, context }]);
 	state.flushTimers();
+	assert.equal(unrelatedCalls, 1);
 	assert.equal(state.charts[0].resizes, 0);
 	assert.equal(state.charts[1].resizes, 1);
 	assert.equal(state.charts[1].calls.length, 1);
 	state.renderer.dispose();
 	assert.equal(nextWindow.listeners.size, 0);
 	assert.equal(state.charts[1].disposed, 1);
+	assert.deepEqual(nextWindow.cancelledTimers, [], 'an already-fired resize must not be cancelled again');
+});
+
+test('disposing after migration clears only the pending timer in the window that created it', () => {
+	const state = harness();
+	const nextWindow = createWindow();
+	let unrelatedCalls = 0;
+	const destinationTimer = nextWindow.setTimeout(() => { unrelatedCalls++; });
+	state.migrate(nextWindow);
+	const originalTimer = state.window.setTimeout(() => { unrelatedCalls++; });
+	assert.equal(originalTimer, 2, 'the original window can reuse the new resize timer ID');
+	state.renderer.dispose();
+	assert.deepEqual(state.window.cancelledTimers, [1]);
+	assert.deepEqual(nextWindow.cancelledTimers, [2]);
+	assert.ok(state.window.timers.has(originalTimer));
+	assert.ok(nextWindow.timers.has(destinationTimer));
+	state.window.flushTimers();
+	nextWindow.flushTimers();
+	assert.equal(unrelatedCalls, 2);
+	assert.deepEqual(state.charts.map(chart => chart.resizes), [0, 0]);
 });
 
 function barFixture() {

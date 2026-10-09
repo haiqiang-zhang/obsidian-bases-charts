@@ -86,7 +86,7 @@ function harness(width = 1280, height = 900, fontSize = 13, tooltipContext = con
 	const opened = [];
 	const doc = {
 		defaultView: { innerWidth: width, innerHeight: height, getComputedStyle: () => ({ fontSize: `${fontSize}px` }) },
-		createElement: () => new Element(doc),
+		createDocumentFragment: () => new Element(doc),
 	};
 	doc.body = new Element(doc);
 	const container = new Element(doc);
@@ -99,8 +99,11 @@ function harness(width = 1280, height = 900, fontSize = 13, tooltipContext = con
 
 test('63-file columns show a small summary with no interactive file preview', () => {
 	for (const [width, height, fontSize] of [[1280, 900, 13], [360, 320, 13], [360, 190, 13], [1280, 900, 26]]) {
-		const { options } = harness(width, height, fontSize);
+		const { options, doc, container } = harness(width, height, fontSize);
 		const root = options.formatter({ data: { _raw: rawPoint() } });
+		assert.equal(root.ownerDocument, doc);
+		assert.equal(doc.body.children.length, 0, 'ECharts controls when the tooltip enters the document');
+		assert.equal(container.children.length, 0, 'formatting must not append to the chart container');
 		assert.equal(root.find('bases-chart-tooltip-property').textContent, 'Folder');
 		assert.equal(root.find('bases-chart-tooltip-title').textContent, 'Study/Computer science');
 		assert.ok(root.find('bases-chart-tooltip-preview').children.length <= 1);

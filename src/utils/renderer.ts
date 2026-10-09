@@ -19,7 +19,7 @@ export class ChartRenderer {
 	private tooltipContext: ChartTooltipContext | undefined;
 	private unregisterMigration: () => void;
 	private removeWindowListener: (() => void) | null = null;
-	private initialResize: ReturnType<typeof setTimeout> | null = null;
+	private initialResize: { window: Window; id: number } | null = null;
 
 	constructor(
 		private containerEl: HTMLElement,
@@ -70,10 +70,15 @@ export class ChartRenderer {
 		});
 		// Resize after the host's first layout, without deferring a stale option or
 		// moving configuration errors outside the caller's try/catch.
-		this.initialResize = setTimeout(() => {
-			this.initialResize = null;
-			this.chart?.resize();
-		}, 0);
+		if (win) {
+			this.initialResize = {
+				window: win,
+				id: win.setTimeout(() => {
+					this.initialResize = null;
+					this.chart?.resize();
+				}, 0),
+			};
+		}
 	}
 
 	private hideTooltip(): void {
@@ -150,7 +155,8 @@ export class ChartRenderer {
 	}
 
 	private destroyChart(): void {
-		if (this.initialResize !== null) clearTimeout(this.initialResize);
+		// The element may already belong to a different window during migration.
+		if (this.initialResize) this.initialResize.window.clearTimeout(this.initialResize.id);
 		this.initialResize = null;
 		this.removeWindowListener?.();
 		this.removeWindowListener = null;
