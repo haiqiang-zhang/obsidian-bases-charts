@@ -9,7 +9,7 @@ on:
             - '*' # Push events to matching any tag format, i.e. 1.0, 20.15.10
 
 env:
-    PLUGIN_NAME: bases-charts # Change this to the name of your plugin-id folder
+    PLUGIN_NAME: bases-chart-views
 
 permissions:
     contents: write
@@ -31,16 +31,23 @@ jobs:
                     echo "prerelease=false" >> $GITHUB_OUTPUT
                   fi
 
-            - name: Install Bun
-              uses: oven-sh/setup-bun@v1
+            - name: Install Node.js
+              uses: actions/setup-node@v4
               with:
-                  bun-version: latest
+                  node-version: '22'
+                  cache: npm
+
+            - name: Install and validate
+              run: |
+                  npm ci
+                  npm test
+                  npm run lint
+                  node --input-type=module -e 'import fs from "node:fs"; import assert from "node:assert/strict"; const manifest = JSON.parse(fs.readFileSync("manifest.json")); const pkg = JSON.parse(fs.readFileSync("package.json")); assert.equal(manifest.version, process.env.GITHUB_REF_NAME); assert.equal(pkg.version, manifest.version); assert.equal(manifest.id, process.env.PLUGIN_NAME);'
 
             - name: Build
               id: build
               run: |
-                  bun install
-                  bun run build
+                  npm run build
                   cp manifest.json styles.css dist/
                   mkdir ${{ env.PLUGIN_NAME }}
                   cp dist/main.js dist/manifest.json dist/styles.css ${{ env.PLUGIN_NAME }}

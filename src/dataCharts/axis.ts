@@ -1,7 +1,8 @@
+import type { XAXisComponentOption, YAXisComponentOption } from 'echarts';
 import type { DataWrapper, ProcessedData } from './data';
 import type { ResolvedColors } from '../ui/colors';
 import type { XAxisType } from '../utils/utils';
-import { toCompactString } from '../utils/utils';
+import { toXKey } from '../utils/utils';
 
 /**
  * Build the shared xAxis ECharts config from the DataWrapper.
@@ -12,19 +13,18 @@ export function buildXAxisConfig(
 	chartIndex: number,
 	xName: string,
 	colors: ResolvedColors,
+	xAxisType: XAxisType = data.xAxisType,
 ): {
-	xAxis: Record<string, unknown>;
+	xAxis: XAXisComponentOption;
 	xCategories: string[];
 	xAxisType: XAxisType;
 	extraBottom: number;
 } {
-	const xAxisType = data.xAxisType;
-
 	const flatData = data.getFlat(chartIndex);
-	const flatXSet = new Set(flatData.map(d => toCompactString(d.x)));
+	const flatXSet = new Set(flatData.map(d => toXKey(d.x)));
 	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
 
-	const xAxis: Record<string, unknown> = {
+	const xAxis: XAXisComponentOption = {
 		type: xAxisType,
 		name: xName,
 		nameLocation: 'middle',
@@ -39,14 +39,17 @@ export function buildXAxisConfig(
 	const ROTATE_DEG = 45;
 	const rotatedHeight = Math.round(MAX_LABEL_WIDTH * Math.sin(ROTATE_DEG * Math.PI / 180));
 
-	if (xAxisType === 'category') {
+	if (xAxis.type === 'category') {
 		xAxis.data = xCategories;
 		xAxis.boundaryGap = true;
 		const count = xCategories.length;
 		const step = Math.max(1, Math.floor(count / 20));
 		const last = count - 1;
 		xAxis.axisLabel = {
-			...xAxis.axisLabel as Record<string, unknown>,
+			...xAxis.axisLabel,
+			// Bar charts use categorical positions even for timestamps. Format only
+			// the visible label; keep the full timestamp as the category identity.
+			formatter: data.xAxisType === 'time' ? value => new Date(value).toLocaleString() : undefined,
 			overflow: 'truncate',
 			width: MAX_LABEL_WIDTH,
 			rotate: ROTATE_DEG,
@@ -65,7 +68,7 @@ export function buildYAxisConfig(
 	yLabel: string,
 	colors: ResolvedColors,
 	domain?: [number, number],
-): Record<string, unknown> {
+): YAXisComponentOption & { type: 'value' } {
 	return {
 		type: 'value',
 		name: yLabel,
@@ -82,13 +85,13 @@ export function buildYAxisConfig(
 
 /**
  * Map a data point's x value to the format expected by ECharts series data.
- *   category → display string
+ *   category → lossless category identity (labels are formatted separately)
  *   time     → timestamp
  *   value    → raw number
  */
 export function mapXValue(point: ProcessedData, xAxisType: XAxisType): number | string {
 	if (xAxisType === 'category') {
-		return toCompactString(point.x);
+		return toXKey(point.x);
 	}
-	return point.x instanceof Date ? point.x.getTime() : (point.x as number);
+	return point.x instanceof Date ? point.x.getTime() : point.x;
 }

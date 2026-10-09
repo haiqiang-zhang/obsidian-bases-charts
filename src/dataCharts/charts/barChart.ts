@@ -1,7 +1,7 @@
 export const BAR_CHART_VIEW_TYPE = 'chart-bar';
 
 import type { EChartsOption } from 'echarts';
-import type { ViewOption } from 'obsidian';
+import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
 import { ChartRenderer } from '../../utils/renderer';
@@ -15,7 +15,7 @@ export const BAR_SETTINGS = {
 	SHOW_PERCENTAGES: 'show-percentages',
 } as const;
 
-function barViewOptions(): ViewOption[] {
+function barViewOptions(): BasesAllOptions[] {
 	const groups = DataChartView.commonViewOptionGroups();
 	groups.data.push(
 		{
@@ -67,10 +67,8 @@ export function buildBarOption(
 	const domain = hasDomainOverride ? data.getYDomainForChart(chartIndex) : undefined;
 	const columnName = data.getChartName(chartIndex);
 
-	const { xAxis, xCategories, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors);
 	// Bar always uses category axis regardless of detected type
-	xAxis.type = 'category';
-	xAxis.data = xCategories;
+	const { xAxis, xCategories, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors, 'category');
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of flatData) {
@@ -79,7 +77,7 @@ export function buildBarOption(
 		seriesMap.set(dp.groupIndex, arr);
 	}
 
-	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => {
+	const series = Array.from(seriesMap.entries()).sort(([a], [b]) => a - b).map(([groupIdx, points]) => {
 		const categoryData = xCategories.map(cat => {
 			const match = points.find(p => String(mapXValue(p, xAxisType)) === cat);
 			return match ? { value: match.y, _raw: match } : { value: 0, _raw: null };
@@ -120,7 +118,7 @@ export function buildBarOption(
 			...buildYAxisConfig(yLabel, colors, domain),
 			axisLabel: {
 				color: colors.text,
-				formatter: showPercentages ? ('{value}%' as string) : ((v: number) => toCompactString(v)),
+				formatter: showPercentages ? ('{value}%') : ((v: number) => toCompactString(v)),
 			},
 		},
 		tooltip: isGrouped

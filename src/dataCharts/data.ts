@@ -1,7 +1,7 @@
 import type { BasesPropertyId } from 'obsidian';
 import type { XAxisType } from '../utils/utils';
 import { OBSIDIAN_COLOR_PALETTE } from '../ui/colors';
-import { toCompactString } from '../utils/utils';
+import { toXKey } from '../utils/utils';
 
 export interface YDomainOverrides {
 	min: number | null;
@@ -35,7 +35,7 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 		this.data = data;
 		this.groupBySet = groupBySet;
 		this.xAxisType = xAxisType;
-		this.sortedXOrder = sortedXOrder.map(v => toCompactString(v));
+		this.sortedXOrder = sortedXOrder.map(toXKey);
 		this.yDomain = yDomain;
 
 		this.orderMap = new Map<string, number>();
@@ -66,8 +66,8 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 
 		const data = this.data.filter(d => d.chartIndex === chartIndex);
 		data.sort((a, b) => {
-			const ia = this.orderMap.get(toCompactString(a.x)) ?? Infinity;
-			const ib = this.orderMap.get(toCompactString(b.x)) ?? Infinity;
+			const ia = this.orderMap.get(toXKey(a.x)) ?? Infinity;
+			const ib = this.orderMap.get(toXKey(b.x)) ?? Infinity;
 			return ia - ib;
 		});
 

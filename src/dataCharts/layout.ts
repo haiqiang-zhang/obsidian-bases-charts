@@ -1,4 +1,5 @@
 import { debounce } from 'obsidian';
+import type { EventRef } from 'obsidian';
 import type { DataWrapper } from './data';
 import type { DataChartView } from './dataChartView';
 import { AggregateMode, aggregateKey } from './aggregate';
@@ -11,7 +12,9 @@ export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
 	private legendEl: HTMLElement;
 	private gridEl: HTMLElement;
+	private emptyEl: HTMLElement;
 	private debouncedUpdate = debounce(() => this.update(), 50, true);
+	private updateRef: EventRef;
 
 	constructor(
 		private view: DataChartView,
@@ -19,23 +22,36 @@ export class ChartLayout {
 	) {
 		this.legendEl = containerEl.createDiv({ cls: 'bases-charts-plot-legend' });
 		this.gridEl = containerEl.createDiv({ cls: 'bases-charts-plot-grid' });
+		this.emptyEl = containerEl.createDiv({ cls: 'bases-chart-empty-state bases-charts-hidden' });
 
-		view.events.on('data-updated', () => this.debouncedUpdate());
+		this.updateRef = view.events.on('data-updated', () => this.debouncedUpdate());
 	}
 
 	update(): void {
+		const xField = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
+		const propertyOrder = this.view.getYProperties();
+		this.emptyEl.empty();
+		const needsAxis = !xField || propertyOrder.length === 0;
+		this.emptyEl.toggleClass('bases-charts-hidden', !needsAxis);
+		this.gridEl.toggleClass('bases-charts-hidden', needsAxis);
+		if (needsAxis) {
+			this.legendEl.empty();
+			this.reconcileRenderers(0);
+			const axis = !xField ? 'x' : 'y';
+			this.emptyEl.createDiv({ text: !xField ? 'Choose an X axis to start your chart.' : 'Add a Y axis to show values.' });
+			const button = this.emptyEl.createEl('button', { text: !xField ? 'Choose X axis' : 'Add Y axis' });
+			button.addEventListener('click', () => this.view.openAxisSettings(axis));
+			return;
+		}
 		const data = this.view.processData();
 		const chartIds = data.getChartIdentifiers();
 
 		this.renderLegend(data);
 		this.reconcileRenderers(chartIds.length);
 
-		const xField = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const xName = xField ? `${this.view.config.getDisplayName(xField)} →` : '';
 
 		const colors = resolveColors(this.containerEl);
-
-		const propertyOrder = this.view.config.getOrder();
 
 		for (let i = 0; i < chartIds.length; i++) {
 			const renderer = this.renderers[i];
@@ -45,8 +61,10 @@ export class ChartLayout {
 
 			if (chartData.length === 0) {
 				renderer.showMessage(
-					'Non-numeric properties require Count aggregate.',
-					propId ? {
+					this.view.data.groupedData.every(group => group.entries.length === 0)
+						? 'No entries in the selected groups.'
+						: 'No numeric values. Use Count for text properties.',
+					propId && this.view.data.groupedData.some(group => group.entries.length > 0) ? {
 						label: 'Use Count',
 						onClick: () => {
 							this.view.config.set(aggregateKey(propId), AggregateMode.COUNT);
@@ -100,11 +118,14 @@ export class ChartLayout {
 	}
 
 	destroy(): void {
+		this.view.events.offref(this.updateRef);
+		this.debouncedUpdate.cancel();
 		for (const renderer of this.renderers) {
 			renderer.dispose();
 		}
 		this.renderers = [];
 		this.legendEl.remove();
 		this.gridEl.remove();
+		this.emptyEl.remove();
 	}
 }

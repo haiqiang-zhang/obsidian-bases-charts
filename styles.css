@@ -127,19 +127,125 @@ body {
 	padding: 2px 0;
 }
 
-.bases-chart-help-icon {
-	cursor: pointer;
-	margin-left: 4px;
-	display: inline-flex;
-	vertical-align: middle;
-	opacity: 0.5;
+/* Scoped to this Bases view; native Group retains all of its own behavior. */
+.bases-chart-toolbar > .bases-toolbar-views-menu { order: 0; }
+.bases-chart-toolbar > .bases-toolbar-results-menu { order: 1; }
+.bases-chart-toolbar > .bases-chart-x-menu { order: 2; }
+.bases-chart-toolbar > .bases-chart-y-menu { order: 3; }
+.bases-chart-toolbar > .bases-toolbar-group-menu { order: 4; }
+.bases-chart-toolbar > .bases-toolbar-sort-menu { order: 5; }
+.bases-chart-toolbar > .bases-toolbar-filter-menu { order: 6; }
+.bases-chart-toolbar > .bases-toolbar-search { order: 7; }
+.bases-chart-toolbar > .bases-toolbar-new-item-menu { order: 8; }
+.bases-chart-toolbar > .bases-toolbar-properties-menu { display: none; }
+
+.bases-chart-axis-button {
+    box-shadow: none;
+    background: transparent;
+    height: auto;
+    font-weight: var(--font-normal);
 }
-
-.bases-chart-y-axes-hint {
-	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
-	width: 0;
-	min-width: 100%;
+/* Follow the native compact toolbar breakpoint without wrapping its fixed-height header. */
+.bases-chart-axis-summary {
+    display: var(--bases-toolbar-label-display, inline);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
 }
-
-
+.bases-chart-axis-panel {
+    position: fixed;
+    z-index: var(--layer-menu, 100);
+    left: var(--chart-panel-left);
+    top: var(--chart-panel-top, auto);
+    bottom: var(--chart-panel-bottom, auto);
+    width: var(--chart-panel-width);
+    max-height: min(560px, var(--chart-panel-height));
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-2);
+    padding: var(--size-4-3);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-l);
+    font-size: var(--font-ui-small);
+}
+.bases-chart-panel-title { font-weight: var(--font-semibold); }
+.bases-chart-panel-description {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    line-height: 1.5;
+}
+.bases-chart-property-search { width: 100%; flex-shrink: 0; }
+.bases-chart-property-results { overflow-y: auto; min-height: 48px; }
+.bases-chart-property-section {
+    padding: var(--size-4-2) var(--size-4-2) var(--size-2-1);
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-semibold);
+}
+.bases-chart-property-option {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-2);
+    width: 100%;
+    height: auto;
+    min-height: 34px;
+    padding: var(--size-4-2);
+    text-align: start;
+    background: transparent;
+    border-radius: var(--radius-s);
+    box-shadow: none;
+    white-space: normal;
+}
+.bases-chart-property-option:hover,
+.bases-chart-property-option:focus-visible,
+.bases-chart-property-option[aria-pressed="true"] { background: var(--background-modifier-hover); }
+.bases-chart-property-icon { display: flex; color: var(--text-muted); }
+.bases-chart-property-icon svg { width: 16px; height: 16px; }
+.bases-chart-property-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.bases-chart-selected-properties {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+    max-height: 200px;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+.bases-chart-selected-property {
+    display: flex;
+    align-items: center;
+    gap: var(--size-2-2);
+    padding: var(--size-2-2);
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+}
+.bases-chart-aggregate-select { max-width: 110px; }
+.bases-chart-property-actions { display: flex; gap: 0; }
+.bases-chart-property-actions .clickable-icon { padding: 4px; box-shadow: none; height: auto; }
+.bases-chart-property-actions svg { width: 14px; height: 14px; }
+.bases-chart-property-actions button:disabled { opacity: 0.3; }
+.bases-chart-empty-state {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--size-4-2);
+    color: var(--text-muted);
+    text-align: center;
+}
+.bases-chart-empty-state.bases-charts-hidden { display: none; }
+.bases-chart-fallback-toolbar { display: flex; gap: var(--size-4-2); flex-wrap: wrap; }
+.bases-chart-toolbar button.bases-chart-axis-button,
+.bases-chart-axis-panel button.bases-chart-property-option { background: transparent; box-shadow: none; }
+.bases-chart-toolbar button.bases-chart-axis-button:hover,
+.bases-chart-toolbar button.bases-chart-axis-button[aria-expanded="true"],
+.bases-chart-axis-panel button.bases-chart-property-option:hover,
+.bases-chart-axis-panel button.bases-chart-property-option:focus-visible,
+.bases-chart-axis-panel button.bases-chart-property-option[aria-pressed="true"] { background: var(--background-modifier-hover); }

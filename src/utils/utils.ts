@@ -40,6 +40,9 @@ export type XAxisType = 'time' | 'value' | 'category';
  *   others   → category
  */
 export function detectXAxisType(app: App, propertyId: string): XAxisType {
+	if (propertyId === 'file.ctime' || propertyId === 'file.mtime') return 'time';
+	if (propertyId === 'file.size') return 'value';
+	if (propertyId.startsWith('file.')) return 'category';
 	const manager = (app as unknown as Record<string, unknown>).metadataTypeManager as
 		| { properties: Record<string, { widget?: string }> }
 		| undefined;
@@ -54,22 +57,20 @@ export function detectXAxisType(app: App, propertyId: string): XAxisType {
 // --- Value parsing ---
 
 export function parseValueAsNumber(value: Value | null): number | null {
-	if (!value) return null;
-	if (value instanceof NumberValue) return value.data;
-	if (value instanceof StringValue) {
-		const parsed = parseFloat(value.data);
-		return isNaN(parsed) ? null : parsed;
-	}
-	// Fallback for Value types not matched by instanceof
-	const str = value.toString();
-	if (str && str !== 'null') {
-		const parsed = parseFloat(str);
-		return isNaN(parsed) ? null : parsed;
+	if (value instanceof NumberValue) return Number.isFinite(value.data) ? value.data : null;
+	if (value instanceof StringValue && value.data.trim() !== '') {
+		const parsed = Number(value.data);
+		return Number.isFinite(parsed) ? parsed : null;
 	}
 	return null;
 }
 
 export type XValue = number | Date | string;
+
+/** Lossless X identity; compact numbers and date-only labels must never merge data. */
+export function toXKey(value: XValue): string {
+	return value instanceof Date ? value.toISOString() : String(value);
+}
 
 /**
  * Parse a single Obsidian Value into an X axis value based on the axis type.
@@ -103,12 +104,18 @@ function parseSingleValueAsX(value: Value, axisType: XAxisType): XValue | null {
 	}
 
 	// time: always return a Date for ECharts time axis
-	if (value instanceof DateValue) return new Date(value.toString());
+	if (value instanceof DateValue) {
+		const date = new Date(value.toString());
+		return Number.isFinite(date.getTime()) ? date : null;
+	}
 	if (value instanceof StringValue) {
 		const date = new Date(value.data);
 		return !isNaN(date.getTime()) ? date : null;
 	}
-	if (value instanceof NumberValue) return new Date(value.data);
+	if (value instanceof NumberValue) {
+		const date = new Date(value.data);
+		return Number.isFinite(date.getTime()) ? date : null;
+	}
 	const str = value.toString();
 	if (str && str !== 'null') {
 		const date = new Date(str);
@@ -117,8 +124,10 @@ function parseSingleValueAsX(value: Value, axisType: XAxisType): XValue | null {
 	return null;
 }
 
-export function parseValueAsX(value: Value | null, axisType: XAxisType): XValue[] | null {
+export function parseValueAsX(value: Value | null, axisType: XAxisType, propertyId?: string): XValue[] | null {
 	if (!value) return null;
+	// An empty folder is the vault root, not a missing category.
+	if (propertyId === 'file.folder' && value instanceof StringValue && value.data === '') return ['/'];
 
 	if (value instanceof ListValue) {
 		const result: XValue[] = [];

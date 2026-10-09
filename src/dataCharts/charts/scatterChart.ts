@@ -1,7 +1,7 @@
 export const SCATTER_CHART_VIEW_TYPE = 'chart-scatter';
 
 import type { EChartsOption } from 'echarts';
-import type { ViewOption } from 'obsidian';
+import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper, ProcessedData } from '../data';
 import { AggregateMode } from '../aggregate';
 import { DataChartView } from '../dataChartView';
@@ -15,7 +15,7 @@ const SCATTER_SETTINGS = {
 	LABEL_PROP: 'label-property',
 } as const;
 
-function scatterViewOptions(): ViewOption[] {
+function scatterViewOptions(): BasesAllOptions[] {
 	const groups = DataChartView.commonViewOptionGroups();
 	groups.data.push({
 		displayName: 'Label property',
@@ -38,7 +38,7 @@ export class ScatterChartView extends DataChartView {
 	}
 
 	buildOption(data: DataWrapper, chartIndex: number, xName: string, yLabel: string, isGrouped: boolean, colors: ResolvedColors): EChartsOption {
-		const propId = this.config.getOrder()[chartIndex];
+		const propId = this.getYProperties()[chartIndex];
 		const isNoneAggregate = propId ? this.getAggregateModeForProperty(propId) === AggregateMode.NONE : true;
 		return buildScatterOption(data, chartIndex, xName, yLabel, isGrouped, colors, isNoneAggregate);
 	}
@@ -75,7 +75,7 @@ export function buildScatterOption(
 		seriesMap.set(dp.groupIndex, arr);
 	}
 
-	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => ({
+	const series = Array.from(seriesMap.entries()).sort(([a], [b]) => a - b).map(([groupIdx, points]) => ({
 		type: 'scatter' as const,
 		name: isGrouped ? data.getGroupName(groupIdx) : undefined,
 		data: points.map(p => ({

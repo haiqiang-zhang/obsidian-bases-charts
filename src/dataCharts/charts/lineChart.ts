@@ -1,7 +1,7 @@
 export const LINE_CHART_VIEW_TYPE = 'chart-line';
 
 import type { EChartsOption } from 'echarts';
-import type { ViewOption } from 'obsidian';
+import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
 import { ChartRenderer } from '../../utils/renderer';
@@ -18,7 +18,7 @@ export const LINE_SETTINGS = {
 	NULL_HANDLING: 'null-handling',
 } as const;
 
-function lineViewOptions(): ViewOption[] {
+function lineViewOptions(): BasesAllOptions[] {
 	const groups = DataChartView.commonViewOptionGroups();
 	groups.data.push({
 		displayName: 'Gap handling',
@@ -73,7 +73,7 @@ export function buildLineOption(
 		seriesMap.set(dp.groupIndex, arr);
 	}
 
-	const series = Array.from(seriesMap.entries()).map(([groupIdx, points]) => ({
+	const series = Array.from(seriesMap.entries()).sort(([a], [b]) => a - b).map(([groupIdx, points]) => ({
 		type: 'line' as const,
 		name: data.getGroupName(groupIdx),
 		data: xAxisType === 'category'

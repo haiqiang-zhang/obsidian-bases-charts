@@ -10,7 +10,7 @@ description: Generate ECharts configurations for AI Chart views in Obsidian Base
 
 # AI Chart Skill
 
-Generate ECharts option configurations for the Bases Charts plugin's AI Chart view.
+Generate Apache ECharts 6.1 option configurations for the Bases Charts plugin's AI Chart view.
 
 ## How it works
 
@@ -276,6 +276,12 @@ emphasis:
 ## Full ECharts reference
 
 https://echarts.apache.org/en/option.html
+
+## ECharts 6.1 compatibility
+
+- Use \`grid.outerBoundsMode\` and \`grid.outerBoundsContain\` instead of deprecated \`grid.containLabel\`. For the previous label containment behavior, use \`outerBoundsMode: same\` and \`outerBoundsContain: axisLabel\`.
+- \`axis.startValue\` no longer sets the axis minimum implicitly. If a chart needs both a starting value and a fixed minimum, set both \`startValue\` and \`min\` explicitly.
+- Bar, pictorial bar, candlestick, and boxplot edge shapes are contained within their Cartesian grid by default. Keep this behavior unless overflow is intentional; \`axis.containShape: false\` restores the old behavior.
 `;
 
 const SYSTEM_PROMPT_HINT = 'When the user provides a .base file and wants to generate or modify a chart, use the bases-charts-ai skill.';

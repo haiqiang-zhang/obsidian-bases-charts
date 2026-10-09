@@ -1,6 +1,6 @@
 import type { BasesPropertyId } from 'obsidian';
 import type { ProcessedData } from './data';
-import { toCompactString } from '../utils/utils';
+import { toXKey } from '../utils/utils';
 
 export enum AggregateMode {
 	NONE = 'None',
@@ -18,7 +18,7 @@ export function aggregateKey(propId: BasesPropertyId): string {
 export function aggregateData(data: ProcessedData[], modes: Map<number, AggregateMode>, chartType: string): ProcessedData[] {
 	const buckets = new Map<string, ProcessedData[]>();
 	for (const d of data) {
-		const key = `${toCompactString(d.x)}|${d.chartIndex}|${d.groupIndex}`;
+		const key = `${toXKey(d.x)}|${d.chartIndex}|${d.groupIndex}`;
 		let bucket = buckets.get(key);
 		if (!bucket) {
 			bucket = [];

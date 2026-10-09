@@ -1,7 +1,7 @@
 export const PIE_CHART_VIEW_TYPE = 'chart-pie';
 
 import type { EChartsOption } from 'echarts';
-import type { ViewOption } from 'obsidian';
+import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper } from '../data';
 import { DataChartView } from '../dataChartView';
 import type { ResolvedColors } from '../../ui/colors';
@@ -14,7 +14,7 @@ export const PIE_SETTINGS = {
 	IGNORE_NULL: 'ignore-null',
 } as const;
 
-function pieViewOptions(): ViewOption[] {
+function pieViewOptions(): BasesAllOptions[] {
 	const groups = DataChartView.commonViewOptionGroups();
 	groups.data.push(
 		{
@@ -72,13 +72,21 @@ export function buildPieOption(
 		const name = String(mapXValue(d, xAxisType));
 		return name !== '' && name !== 'null' && name !== 'undefined';
 	}) : rawData;
+	const isGrouped = data.hasMultipleGroups();
+	// Group indices follow Bases' configured order. Keep each group's slices
+	// together, without mutating the shared data cache or changing the X order.
+	const orderedData = isGrouped
+		? [...flatData].sort((a, b) => a.groupIndex - b.groupIndex)
+		: flatData;
 
-	const pieData = flatData.map((d, i) => ({
+	const pieData = orderedData.map((d, i) => ({
 		value: d.y,
-		name: String(mapXValue(d, xAxisType)),
+		name: isGrouped
+			? `${data.getGroupName(d.groupIndex)} · ${String(mapXValue(d, xAxisType))}`
+			: String(mapXValue(d, xAxisType)),
 		_raw: d,
 		itemStyle: {
-			color: colors.palette[i % colors.palette.length],
+			color: colors.palette[(isGrouped ? d.groupIndex : i) % colors.palette.length],
 		},
 	}));
 

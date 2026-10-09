@@ -1,24 +1,24 @@
-import type { BasesEntry, GroupOption, QueryController } from 'obsidian';
-import type { BasesPropertyId, ViewOption } from 'obsidian';
+import type { BasesEntry, BasesOptions, QueryController } from 'obsidian';
+import type { BasesPropertyId, BasesAllOptions } from 'obsidian';
+import { NullValue } from 'obsidian';
 import type { EChartsOption } from 'echarts';
 import type { DataWrapper, ProcessedData, YDomainOverrides } from './data';
 import { emptyDataWrapper, PropertySeparatedData } from './data';
 import { ChartLayout } from './layout';
 import { BaseChartView } from '../baseChartView';
 import { AggregateMode, aggregateData, aggregateKey } from './aggregate';
-import { renameToolbarButton, restoreToolbarButton } from '../ui/uiInjector';
+import { ChartToolbar } from '../ui/chartToolbar';
+import { prepareChartGroups } from './grouping';
 import { COMMON_SETTINGS } from './types';
-import { detectXAxisType, parseValueAsNumber, parseValueAsX, toCompactString } from '../utils/utils';
+import { detectXAxisType, parseValueAsNumber, parseValueAsX, toXKey } from '../utils/utils';
 import type { ResolvedColors } from '../ui/colors';
 
 export { AggregateMode, aggregateKey } from './aggregate';
 export type { YDomainOverrides } from './data';
 
-type ViewOptionItem = Exclude<ViewOption, GroupOption>;
-
 export interface CommonViewOptionGroups {
-	data: ViewOptionItem[];
-	yAxis: ViewOptionItem[];
+	data: BasesOptions[];
+	yAxis: BasesOptions[];
 }
 
 function parseConfigAsNumber(value: unknown): number | null {
@@ -39,6 +39,7 @@ function parseConfigAsNumber(value: unknown): number | null {
 
 export abstract class DataChartView extends BaseChartView {
 	private layout: ChartLayout | null = null;
+	private toolbar: ChartToolbar | null = null;
 
 	constructor(controller: QueryController, containerEl: HTMLElement) {
 		super(controller, containerEl);
@@ -55,32 +56,50 @@ export abstract class DataChartView extends BaseChartView {
 
 	protected onChartLoad(): void {
 		this.layout = new ChartLayout(this, this.containerEl);
-		renameToolbarButton(this.containerEl);
+		this.toolbar = this.addChild(new ChartToolbar(this));
 	}
 
 	protected onChartUnload(): void {
 		this.layout?.destroy();
 		this.layout = null;
-		restoreToolbarButton(this.containerEl);
+		if (this.toolbar) this.removeChild(this.toolbar);
+		this.toolbar = null;
+	}
+
+	openAxisSettings(axis: 'x' | 'y'): void {
+		this.toolbar?.openAxis(axis);
+	}
+
+	getYProperties(): BasesPropertyId[] {
+		const configured = this.config.get(COMMON_SETTINGS.Y);
+		// Native order is a reserved Bases field without a public setter. Keep
+		// reading it for existing charts until the user edits the new Y menu.
+		if (!Array.isArray(configured)) return this.config.getOrder();
+		return [...new Set(configured.filter((id): id is BasesPropertyId =>
+			typeof id === 'string' && /^(file|note|formula)\..+/.test(id)))];
 	}
 
 	processData(): DataWrapper {
 		const xField = this.config.getAsPropertyId(COMMON_SETTINGS.X);
-		const propertyOrder = this.config.getOrder();
+		const propertyOrder = this.getYProperties();
 
 		if (!xField) {
 			return emptyDataWrapper();
 		}
 
 		const xAxisType = detectXAxisType(this.app, xField);
+		const groups = prepareChartGroups(this.data.groupedData);
+		const visiblePaths = new Set(groups.flatMap(group => group.entries.map(entry => entry.file.path)));
 
 		const sortedXValues: (number | Date | string)[] = [];
 		const seenXKeys = new Set<string>();
+		// Group order controls series, while Sort still controls the X axis.
 		for (const entry of this.data.data) {
-			const xVals = parseValueAsX(entry.getValue(xField), xAxisType);
+			if (!visiblePaths.has(entry.file.path)) continue;
+			const xVals = parseValueAsX(entry.getValue(xField), xAxisType, xField);
 			if (xVals) {
 				for (const v of xVals) {
-					const key = toCompactString(v);
+					const key = toXKey(v);
 					if (!seenXKeys.has(key)) {
 						seenXKeys.add(key);
 						sortedXValues.push(v);
@@ -90,19 +109,12 @@ export abstract class DataChartView extends BaseChartView {
 		}
 
 		const data: ProcessedData[] = [];
-		const groupBySet = this.data.groupedData.map(g => g.key?.toString()).filter(k => k != null);
+		const groupBySet = groups.map(group => group.label);
 
-		for (const group of this.data?.groupedData ?? []) {
-			const groupKey = group.key?.toString();
-			let groupIndex: number;
-			if (groupKey == null) {
-				groupIndex = 0;
-			} else {
-				groupIndex = groupBySet.indexOf(groupKey);
-			}
+		for (const group of groups) {
 
 			for (const entry of group.entries) {
-				const processedEntry = this.processEntry(entry, xField, propertyOrder, groupIndex, xAxisType);
+				const processedEntry = this.processEntry(entry, xField, propertyOrder, group.groupIndex, xAxisType);
 				data.push(...processedEntry);
 			}
 		}
@@ -135,7 +147,7 @@ export abstract class DataChartView extends BaseChartView {
 	processEntry(entry: BasesEntry, xField: BasesPropertyId, propertyOrder: BasesPropertyId[], groupIndex: number, xAxisType: import('../utils/utils').XAxisType): ProcessedData[] {
 		try {
 			const x = entry.getValue(xField);
-			const xValues = parseValueAsX(x, xAxisType);
+			const xValues = parseValueAsX(x, xAxisType, xField);
 			const labelProp = this.getLabelProperty();
 
 			if (xValues === null) {
@@ -149,7 +161,8 @@ export abstract class DataChartView extends BaseChartView {
 				const yValue = parseValueAsNumber(rawValue);
 				const label = labelProp ? entry.getValue(labelProp)?.toString() : undefined;
 				const isCountMode = this.getAggregateModeForProperty(prop) === AggregateMode.COUNT;
-				const include = yValue !== null || (isCountMode && rawValue !== null);
+				const include = yValue !== null || (isCountMode && rawValue !== null
+					&& !(rawValue instanceof NullValue));
 
 				if (include) {
 					for (const xValue of xValues) {
@@ -210,15 +223,7 @@ export abstract class DataChartView extends BaseChartView {
 
 	static commonViewOptionGroups(): CommonViewOptionGroups {
 		return {
-			data: [
-				{
-					displayName: 'X axis',
-					type: 'property',
-					key: COMMON_SETTINGS.X,
-					filter: prop => !prop.startsWith('file.'),
-					placeholder: 'Property',
-				},
-			],
+			data: [],
 			yAxis: [
 				{
 					displayName: 'Sync across charts',
@@ -244,11 +249,11 @@ export abstract class DataChartView extends BaseChartView {
 		};
 	}
 
-	static buildViewOptions(groups: CommonViewOptionGroups): ViewOption[] {
-		const result: ViewOption[] = [...groups.data];
+	static buildViewOptions(groups: CommonViewOptionGroups): BasesAllOptions[] {
+		const result: BasesAllOptions[] = [...groups.data];
 		result.push({
 			type: 'group',
-			displayName: 'Y axes',
+			displayName: 'Y scale',
 			items: groups.yAxis,
 		});
 		return result;

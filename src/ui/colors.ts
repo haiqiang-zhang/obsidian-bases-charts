@@ -1,3 +1,5 @@
+import type { GridComponentOption } from 'echarts';
+
 const COLOR_VAR_NAMES = [
 	'--color-blue',
 	'--color-orange',
@@ -39,10 +41,17 @@ export const OBSIDIAN_COLOR_PALETTE = [
 	'var(--color-pink)',
 ];
 
-export const GRID_OPTION = { left: 0, right: 0, top: 30, bottom: 20, containLabel: true } as const;
-
-export function gridOption(extraBottom = 0): { left: number; right: number; top: number; bottom: number; containLabel: true } {
-	return { left: 0, right: 0, top: 30, bottom: 20 + extraBottom, containLabel: true };
+export function gridOption(extraBottom = 0): GridComponentOption {
+	return {
+		left: 0,
+		right: 0,
+		top: 30,
+		bottom: 20 + extraBottom,
+		// ECharts 6 replaces containLabel with precise outer-bounds layout.
+		// Keep the existing label containment and spacing for axis names.
+		outerBoundsMode: 'same',
+		outerBoundsContain: 'axisLabel',
+	};
 }
 
 export function getResolvedColor(palette: string[], accent: string, groupIndex: number, isGrouped: boolean): string {
