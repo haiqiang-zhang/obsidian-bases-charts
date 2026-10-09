@@ -81,6 +81,14 @@ AI Chart options follow the [ECharts 6.1 API](https://github.com/apache/echarts/
 3. Copy the downloaded files into that folder.
 4. Enable **Bases Chart Views** in Settings > Community plugins.
 
+Releases from 0.4.0 include GitHub build provenance attestations for all three files. After downloading them, verify their provenance with the [GitHub CLI](https://cli.github.com/):
+
+```sh
+for asset in main.js manifest.json styles.css; do
+  gh attestation verify "$asset" --repo haiqiang-zhang/obsidian-bases-charts
+done
+```
+
 ## License
 
 [GPL-3.0](https://choosealicense.com/licenses/gpl-3.0/)

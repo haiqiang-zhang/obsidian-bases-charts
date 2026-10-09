@@ -7,12 +7,16 @@ on:
         # Sequence of patterns matched against refs/tags
         tags:
             - '*' # Push events to matching any tag format, i.e. 1.0, 20.15.10
+    # Rebuild the current version to attest existing, byte-identical assets.
+    workflow_dispatch:
 
 env:
     PLUGIN_NAME: bases-chart-views
 
 permissions:
     contents: write
+    id-token: write
+    attestations: write
 
 jobs:
     build:
@@ -22,14 +26,24 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Determine prerelease status
-              id: status
+            - name: Validate release version
+              id: version
               run: |
-                  if [[ "${{ github.ref }}" == *"canary"* ]]; then
-                    echo "prerelease=true" >> $GITHUB_OUTPUT
-                  else
-                    echo "prerelease=false" >> $GITHUB_OUTPUT
-                  fi
+                  node --input-type=module <<'NODE'
+                  import fs from 'node:fs';
+                  import assert from 'node:assert/strict';
+                  const manifest = JSON.parse(fs.readFileSync('manifest.json'));
+                  const pkg = JSON.parse(fs.readFileSync('package.json'));
+                  assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
+                  assert.equal(pkg.version, manifest.version);
+                  assert.equal(manifest.id, process.env.PLUGIN_NAME);
+                  if (process.env.GITHUB_EVENT_NAME === 'push') {
+                      assert.equal(process.env.GITHUB_REF_TYPE, 'tag');
+                      assert.equal(manifest.version, process.env.GITHUB_REF_NAME);
+                  }
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT,
+                      `tag=${manifest.version}\nprerelease=${manifest.version.includes('canary')}\n`);
+                  NODE
 
             - name: Install Node.js
               uses: actions/setup-node@v4
@@ -42,25 +56,43 @@ jobs:
                   npm ci
                   npm test
                   npm run lint
-                  node --input-type=module -e 'import fs from "node:fs"; import assert from "node:assert/strict"; const manifest = JSON.parse(fs.readFileSync("manifest.json")); const pkg = JSON.parse(fs.readFileSync("package.json")); assert.equal(manifest.version, process.env.GITHUB_REF_NAME); assert.equal(pkg.version, manifest.version); assert.equal(manifest.id, process.env.PLUGIN_NAME);'
 
             - name: Build
               id: build
               run: |
                   npm run build
                   cp manifest.json styles.css dist/
-                  mkdir ${{ env.PLUGIN_NAME }}
-                  cp dist/main.js dist/manifest.json dist/styles.css ${{ env.PLUGIN_NAME }}
-                  zip -r ${{ env.PLUGIN_NAME }}-${{ github.ref_name }}.zip ${{ env.PLUGIN_NAME }}
+
+            - name: Verify existing release matches the rebuild
+              if: github.event_name == 'workflow_dispatch'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  GH_REPO: ${{ github.repository }}
+                  RELEASE_TAG: ${{ steps.version.outputs.tag }}
+              run: |
+                  release_dir=$(mktemp -d)
+                  gh release download "$RELEASE_TAG" --dir "$release_dir" \
+                    --pattern main.js --pattern manifest.json --pattern styles.css
+                  for asset in main.js manifest.json styles.css; do
+                    cmp "dist/$asset" "$release_dir/$asset"
+                  done
+
+            - name: Attest build provenance
+              uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+              with:
+                  subject-path: |
+                      dist/main.js
+                      dist/manifest.json
+                      dist/styles.css
 
             - name: Release
               id: release
+              if: github.event_name == 'push'
               uses: softprops/action-gh-release@v2
               with:
-                  prerelease: ${{ steps.status.outputs.prerelease }}
+                  prerelease: ${{ steps.version.outputs.prerelease }}
                   token: ${{ secrets.GITHUB_TOKEN }}
                   files: |
-                      ${{ env.PLUGIN_NAME }}-${{ github.ref_name }}.zip
                       dist/main.js
                       dist/manifest.json
                       dist/styles.css
