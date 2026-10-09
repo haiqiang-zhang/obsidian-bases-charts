@@ -4,7 +4,6 @@ import type { EChartsOption } from 'echarts';
 import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
-import { ChartRenderer } from '../../utils/renderer';
 import type { ResolvedColors } from '../../ui/colors';
 import { getResolvedColor, gridOption } from '../../ui/colors';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
@@ -61,7 +60,6 @@ export function buildLineOption(
 	treatNullAsZero: boolean,
 ): EChartsOption {
 	const dataPoints = data.getFlat(chartIndex);
-	const columnName = data.getChartName(chartIndex);
 	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
@@ -103,28 +101,7 @@ export function buildLineOption(
 		grid: gridOption(extraBottom),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),
-		tooltip: isGrouped
-			? {
-					trigger: 'axis',
-					axisPointer: { type: 'cross' },
-					confine: true,
-				}
-			: {
-					trigger: 'axis',
-					enterable: true,
-					hideDelay: 300,
-					axisPointer: { type: 'cross' },
-					confine: true,
-					position: (...args: Parameters<typeof ChartRenderer.tooltipPosition>) => ChartRenderer.tooltipPosition(...args),
-					formatter: (params: unknown) => {
-						const result = ChartRenderer.formatAxisTooltip(
-							params as { marker?: string; seriesName?: string; data: { _raw?: ProcessedData; value?: number } }[],
-							columnName,
-							yLabel.replace('↑ ', ''),
-						);
-						return result.html;
-					},
-				},
+		tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
 		series,
 	};
 }

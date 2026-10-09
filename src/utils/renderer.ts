@@ -1,73 +1,140 @@
+import type { App } from 'obsidian';
 import type { EChartsOption } from 'echarts';
 import type { ProcessedData } from '../dataCharts/data';
 import { echarts } from '../echarts';
-import { getFileDisplayName, toCompactString } from './utils';
+import { ChartTooltip } from '../ui/chartTooltip';
+import type { ChartTooltipContext } from '../ui/chartTooltip';
 
 export interface ChartViewLike {
+	app: App;
 	openFile(filePath: string, newTab: boolean): Promise<void>;
 }
 
 export class ChartRenderer {
 	private chart: ReturnType<typeof echarts.init> | null = null;
+	private tooltip: ChartTooltip | null = null;
 	private resizeObserver: ResizeObserver | null = null;
 	private messageEl: HTMLElement | null = null;
-
-	private firstRender = true;
+	private option: EChartsOption | null = null;
+	private tooltipContext: ChartTooltipContext | undefined;
+	private unregisterMigration: () => void;
+	private removeWindowListener: (() => void) | null = null;
+	private initialResize: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(
 		private containerEl: HTMLElement,
 		private view: ChartViewLike,
 	) {
-		this.chart = echarts.init(containerEl, undefined, { renderer: 'canvas' });
-
-		this.resizeObserver = new ResizeObserver(() => {
-			this.chart?.resize();
-		});
-		this.resizeObserver.observe(containerEl);
-
-		// Click on data point: open file directly if single file
-		this.chart.on('click', (params) => {
-			const raw = (params.data as { _raw?: ProcessedData })?._raw;
-			if (!raw) return;
-			if (raw.files.length === 1) {
-				const newTab = (params.event?.event as MouseEvent)?.ctrlKey || (params.event?.event as MouseEvent)?.metaKey || false;
-				void this.view.openFile(raw.files[0], newTab);
-			}
-		});
-
-		// Handle clicks on tooltip file links
-		containerEl.addEventListener('click', (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			const fileEl = target.closest<HTMLElement>('[data-file-path]');
-			if (!fileEl) return;
-			const filePath = fileEl.dataset.filePath;
-			if (filePath) {
-				const newTab = e.ctrlKey || e.metaKey;
-				void this.view.openFile(filePath, newTab);
-			}
+		this.initialize();
+		this.unregisterMigration = containerEl.onWindowMigrated(() => {
+			this.destroyChart();
+			this.initialize();
+			if (this.option) this.setOption(this.option, this.tooltipContext);
 		});
 	}
 
-	setOption(option: EChartsOption): void {
-		this.clearMessage();
-		if (this.firstRender) {
-			this.firstRender = false;
-			// Defer first render to next macrotask so the container is painted first.
-			// Obsidian's contain:strict on workspace-leaf suppresses ECharts animation
-			// if setOption runs before the browser completes layout/paint.
-			setTimeout(() => {
-				this.chart?.resize();
-				this.chart?.setOption(option, { notMerge: true });
-			}, 0);
-			return;
+	private initialize(): void {
+		this.chart = echarts.init(this.containerEl, undefined, { renderer: 'canvas' });
+		this.tooltip = new ChartTooltip(this.containerEl, this.view, () => this.hideTooltip());
+		this.resizeObserver = new ResizeObserver(() => {
+			this.hideTooltip();
+			this.chart?.resize();
+		});
+		this.resizeObserver.observe(this.containerEl);
+		const win = this.containerEl.ownerDocument.defaultView;
+		const onResize = () => this.hideTooltip();
+		win?.addEventListener('resize', onResize);
+		this.removeWindowListener = () => win?.removeEventListener('resize', onResize);
+
+		this.chart.on('click', params => {
+			// Bar columns (including their empty area) are handled once by ZRender.
+			if (this.tooltipContext?.chartType === 'chart-bar') return;
+			const raw = (params.data as { _raw?: ProcessedData })?._raw;
+			if (!raw) return;
+			if (raw.files.length && this.tooltipContext) {
+				this.tooltip?.openFiles(raw, this.tooltipContext);
+			} else if (raw.files.length === 1) {
+				const event = params.event?.event as MouseEvent | undefined;
+				void this.view.openFile(raw.files[0], !!(event?.ctrlKey || event?.metaKey));
+			}
+		});
+		const zr = this.chart.getZr();
+		zr.on('click', event => {
+			const column = this.columnAt(event.offsetX, event.offsetY);
+			if (column.length && this.tooltipContext) this.tooltip?.openFiles(column, this.tooltipContext);
+		});
+		zr.on('mousemove', event => {
+			if (this.tooltipContext?.chartType === 'chart-bar') {
+				zr.setCursorStyle(this.columnAt(event.offsetX, event.offsetY).length ? 'pointer' : 'default');
+			}
+		});
+		// Resize after the host's first layout, without deferring a stale option or
+		// moving configuration errors outside the caller's try/catch.
+		this.initialResize = setTimeout(() => {
+			this.initialResize = null;
+			this.chart?.resize();
+		}, 0);
+	}
+
+	private hideTooltip(): void {
+		this.chart?.dispatchAction({ type: 'hideTip' });
+	}
+
+	private columnAt(x: number, y: number): ProcessedData[] {
+		if (!this.chart || this.tooltipContext?.chartType !== 'chart-bar'
+			|| !this.chart.containPixel({ gridIndex: 0 }, [x, y])) return [];
+		const axis = Array.isArray(this.option?.xAxis) ? this.option.xAxis[0] : this.option?.xAxis;
+		const count = axis?.type === 'category' ? axis.data?.length ?? 0 : 0;
+		const ordinal = this.chart.convertFromPixel({ xAxisIndex: 0 }, x) as unknown;
+		if (!count || typeof ordinal !== 'number' || !Number.isFinite(ordinal)) return [];
+		const index = Math.max(0, Math.min(count - 1, Math.round(ordinal)));
+		const series = Array.isArray(this.option?.series) ? this.option.series : [this.option?.series];
+		const column: ProcessedData[] = [];
+		for (const item of series) {
+			const data = (item as { data?: { _raw?: ProcessedData | null }[] } | undefined)?.data?.[index];
+			if (data?._raw) column.push(data._raw);
 		}
-		this.chart?.setOption(option, { notMerge: true });
+		return column;
+	}
+
+	private tooltipAnchor(params: unknown): number[] | null {
+		if (!this.chart || this.tooltipContext?.chartType === 'chart-pie') return null;
+		const points = (Array.isArray(params) ? params : [params]) as {
+			seriesIndex: number; dataIndex: number;
+			data?: { value?: unknown; _raw?: ProcessedData | null };
+		}[];
+		const axis = Array.isArray(this.option?.xAxis) ? this.option.xAxis[0] : this.option?.xAxis;
+		const pixels = points.flatMap(point => {
+			const raw = point.data?._raw;
+			if (!raw) return [];
+			// Bar/line scalar data is aligned with every category. Scatter carries
+			// its actual X in a pair because each group can omit categories.
+			const value = axis?.type === 'category' && !Array.isArray(point.data?.value)
+				? [point.dataIndex, raw.y] : point.data?.value;
+			const pixel = this.chart!.convertToPixel({ seriesIndex: point.seriesIndex }, value as number[]) as unknown;
+			return Array.isArray(pixel) && pixel.length === 2 && pixel.every(Number.isFinite) ? [pixel as number[]] : [];
+		});
+		return pixels.length ? [pixels[0][0], Math.min(...pixels.map(pixel => pixel[1]))] : null;
+	}
+
+	setOption(option: EChartsOption, context?: ChartTooltipContext): void {
+		this.clearMessage();
+		this.hideTooltip();
+		const base = Array.isArray(option.tooltip) ? option.tooltip[0] : option.tooltip;
+		const rendered = context && this.tooltip
+			? { ...option, tooltip: this.tooltip.options(base ?? {}, context, params => this.tooltipAnchor(params)) }
+			: option;
+		this.chart?.setOption(rendered, { notMerge: true });
+		this.option = option;
+		this.tooltipContext = context;
 	}
 
 	showMessage(message: string, action?: { label: string; onClick: () => void }): void {
 		this.clearMessage();
-		this.chart?.setOption({ xAxis: { show: false }, yAxis: { show: false }, series: [] }, { notMerge: true });
-
+		this.hideTooltip();
+		this.option = null;
+		this.tooltipContext = undefined;
+		this.chart?.clear();
 		const overlay = this.containerEl.createDiv({ cls: 'bases-charts-message-overlay' });
 		overlay.createEl('p', { cls: 'bases-charts-message-text', text: message });
 		if (action) {
@@ -82,93 +149,23 @@ export class ChartRenderer {
 		this.messageEl = null;
 	}
 
-	dispose(): void {
+	private destroyChart(): void {
+		if (this.initialResize !== null) clearTimeout(this.initialResize);
+		this.initialResize = null;
+		this.removeWindowListener?.();
+		this.removeWindowListener = null;
 		this.resizeObserver?.disconnect();
 		this.resizeObserver = null;
+		this.tooltip?.dispose();
+		this.tooltip = null;
 		this.chart?.dispose();
 		this.chart = null;
 	}
 
-	static tooltipPosition(
-		point: number[],
-		_params: unknown,
-		_dom: unknown,
-		_rect: unknown,
-		size: { contentSize: number[]; viewSize: number[] },
-	): number[] {
-		const [tooltipW, tooltipH] = size.contentSize;
-		const [viewW] = size.viewSize;
-		const margin = 8;
-
-		// Center horizontally on x, clamp within view
-		let x = point[0] - tooltipW / 2;
-		x = Math.max(margin, Math.min(x, viewW - tooltipW - margin));
-
-		// Place above the data point, with gap for labels
-		let y = point[1] - tooltipH - 20;
-		if (y < margin) {
-			// If no room above, place below
-			y = point[1] + 20;
-		}
-
-		return [x, y];
-	}
-
-	static formatTooltip(raw: ProcessedData, columnName: string, aggregateLabel: string): string {
-		const { files, fileValues, y } = raw;
-
-		if (files.length <= 1) {
-			const name = files.length === 1 ? getFileDisplayName(files[0]) : '';
-			return `<div class="bases-chart-tooltip">` +
-				(name ? `<div class="bases-chart-tooltip-file" data-file-path="${files[0]}">${name}</div>` : '') +
-				`<div class="bases-chart-tooltip-value">${columnName}: ${toCompactString(y)}</div>` +
-				`</div>`;
-		}
-
-		let html = `<div class="bases-chart-tooltip">`;
-		html += `<div class="bases-chart-tooltip-header">${aggregateLabel}: ${toCompactString(y)}</div>`;
-		html += `<div class="bases-chart-tooltip-divider"></div>`;
-		for (let i = 0; i < files.length; i++) {
-			const name = getFileDisplayName(files[i]);
-			const value = toCompactString(fileValues[i]);
-			html += `<div class="bases-chart-tooltip-file" data-file-path="${files[i]}">` +
-				`<span class="bases-chart-tooltip-file-name">${name}</span>` +
-				`<span class="bases-chart-tooltip-file-value">${value}</span>` +
-				`</div>`;
-		}
-		html += `</div>`;
-		return html;
-	}
-
-	static formatAxisTooltip(
-		params: { marker?: string; seriesName?: string; data: { _raw?: ProcessedData; value?: number } }[],
-		columnName: string,
-		aggregateLabel: string,
-	): { html: string; hasFiles: boolean } {
-		if (!Array.isArray(params) || params.length === 0) return { html: '', hasFiles: false };
-
-		// Multiple series (group by): use simple display, no file links
-		if (params.length > 1) {
-			let html = `<div class="bases-chart-tooltip">`;
-			for (const p of params) {
-				const raw = p.data?._raw;
-				if (!raw || raw.y === 0) continue;
-				const marker = p.marker ?? '';
-				html += `<div class="bases-chart-tooltip-group-row">`;
-				html += `<span>${marker} ${p.seriesName ?? ''}</span>`;
-				html += `<span class="bases-chart-tooltip-file-value">${toCompactString(raw.y)}</span>`;
-				html += `</div>`;
-			}
-			html += `</div>`;
-			return { html, hasFiles: false };
-		}
-
-		// Single series: show detailed file list
-		const raw = params[0].data?._raw;
-		if (!raw) return { html: '', hasFiles: false };
-		return {
-			html: ChartRenderer.formatTooltip(raw, columnName, aggregateLabel),
-			hasFiles: raw.files.length > 0,
-		};
+	dispose(): void {
+		this.unregisterMigration();
+		this.destroyChart();
+		this.clearMessage();
+		this.option = null;
 	}
 }

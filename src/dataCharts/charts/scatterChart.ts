@@ -6,7 +6,6 @@ import type { DataWrapper, ProcessedData } from '../data';
 import { AggregateMode } from '../aggregate';
 import { DataChartView } from '../dataChartView';
 import { getFileDisplayName } from '../../utils/utils';
-import { ChartRenderer } from '../../utils/renderer';
 import type { ResolvedColors } from '../../ui/colors';
 import { getResolvedColor, gridOption } from '../../ui/colors';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
@@ -17,12 +16,6 @@ const SCATTER_SETTINGS = {
 
 function scatterViewOptions(): BasesAllOptions[] {
 	const groups = DataChartView.commonViewOptionGroups();
-	groups.data.push({
-		displayName: 'Label property',
-		type: 'property',
-		key: SCATTER_SETTINGS.LABEL_PROP,
-		placeholder: 'Property',
-	});
 	return DataChartView.buildViewOptions(groups);
 }
 
@@ -59,10 +52,9 @@ export function buildScatterOption(
 	yLabel: string,
 	isGrouped: boolean,
 	colors: ResolvedColors,
-	isNoneAggregate: boolean,
+	_isNoneAggregate: boolean,
 ): EChartsOption {
 	const dataPoints = data.getFlat(chartIndex);
-	const columnName = data.getChartName(chartIndex);
 	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
@@ -95,25 +87,7 @@ export function buildScatterOption(
 		grid: gridOption(extraBottom),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),
-		tooltip: isNoneAggregate
-			? {
-					trigger: 'item' as const,
-					confine: true,
-					axisPointer: { type: 'cross' as const },
-				}
-			: {
-					trigger: 'item' as const,
-					enterable: true,
-					hideDelay: 300,
-					confine: true,
-					axisPointer: { type: 'cross' as const },
-					position: (...args: Parameters<typeof ChartRenderer.tooltipPosition>) => ChartRenderer.tooltipPosition(...args),
-					formatter: (params: unknown) => {
-						const p = params as { data: { _raw: ProcessedData } };
-						const raw = p.data._raw;
-						return ChartRenderer.formatTooltip(raw, columnName, yLabel.replace('↑ ', ''));
-					},
-				},
+		tooltip: { trigger: 'item', axisPointer: { type: 'cross' } },
 		series,
 	};
 }

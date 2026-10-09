@@ -79,7 +79,13 @@ export class ChartLayout {
 				? `↑ ${data.getChartName(i)} (Count)`
 				: this.view.getYAxisLabel(data.getChartName(i), propId);
 			const option = this.view.buildOption(data, i, xName, yLabel, isGrouped, colors);
-			renderer.setOption(option);
+			renderer.setOption(option, {
+				xName: this.view.config.getDisplayName(xField),
+				yLabel: yLabel.replace(/^↑ /, ''),
+				groupNames: data.getGroupIdentifiers().map((_, index) => data.getGroupName(index)),
+				chartType: this.view.type,
+				showPercentages: Boolean(this.view.config.get('show-percentages')),
+			});
 		}
 	}
 

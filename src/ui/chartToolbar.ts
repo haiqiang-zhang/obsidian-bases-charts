@@ -29,6 +29,11 @@ export class ChartToolbar extends Component {
 		if (button) this.openPanel(axis, button);
 	}
 
+	private axisLabel(axis: Axis): string {
+		if (this.view.type === 'chart-pie') return axis === 'x' ? 'Category' : 'Values';
+		return axis === 'x' ? 'X axis' : 'Y axes';
+	}
+
 	update(): void {
 		// Bases assigns config after loading the view, before onDataUpdated.
 		if (!this.view.config) return;
@@ -46,8 +51,11 @@ export class ChartToolbar extends Component {
 				button.type = 'button';
 				button.setAttribute('aria-haspopup', 'dialog');
 				button.setAttribute('aria-expanded', 'false');
-				setIcon(button.createSpan({ cls: 'text-button-icon' }), axis === 'x' ? 'move-horizontal' : 'move-vertical');
-				button.createSpan({ cls: 'text-button-label', text: axis === 'x' ? 'X axis' : 'Y axes' });
+				const icon = this.view.type === 'chart-pie'
+					? (axis === 'x' ? 'list' : 'sigma')
+					: (axis === 'x' ? 'move-horizontal' : 'move-vertical');
+				setIcon(button.createSpan({ cls: 'text-button-icon' }), icon);
+				button.createSpan({ cls: 'text-button-label', text: this.axisLabel(axis) });
 				button.createSpan({ cls: 'bases-chart-axis-summary' });
 				button.addEventListener('click', () => this.openPanel(axis, button));
 				this.buttons.set(axis, button);
@@ -56,8 +64,9 @@ export class ChartToolbar extends Component {
 		}
 		const x = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const y = this.view.getYProperties();
-		this.updateButton('x', x ? this.view.config.getDisplayName(x) : 'Choose', x ? `X axis: ${this.view.config.getDisplayName(x)}` : 'Choose X axis');
-		this.updateButton('y', String(y.length), `Y axes: ${y.length} selected`);
+		this.updateButton('x', x ? this.view.config.getDisplayName(x) : 'Choose',
+			x ? `${this.axisLabel('x')}: ${this.view.config.getDisplayName(x)}` : `Choose ${this.axisLabel('x')}`);
+		this.updateButton('y', String(y.length), `${this.axisLabel('y')}: ${y.length} selected`);
 	}
 
 	private updateButton(axis: Axis, summary: string, label: string): void {
@@ -78,9 +87,9 @@ export class ChartToolbar extends Component {
 		const panel = doc.body.createDiv({ cls: 'bases-chart-axis-panel' });
 		this.panel = panel;
 		panel.setAttribute('role', 'dialog');
-		panel.setAttribute('aria-label', axis === 'x' ? 'X axis' : 'Y axes');
+		panel.setAttribute('aria-label', this.axisLabel(axis));
 		button.setAttribute('aria-expanded', 'true');
-		panel.createDiv({ cls: 'bases-chart-panel-title', text: axis === 'x' ? 'X axis' : 'Y axes' });
+		panel.createDiv({ cls: 'bases-chart-panel-title', text: this.axisLabel(axis) });
 		panel.createDiv({ cls: 'bases-chart-panel-description', text: axis === 'x'
 			? 'Choose a file property, note property, or formula.'
 			: 'Each property creates a chart. Choose how its values are combined.' });

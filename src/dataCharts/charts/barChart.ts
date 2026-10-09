@@ -4,7 +4,6 @@ import type { EChartsOption } from 'echarts';
 import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
-import { ChartRenderer } from '../../utils/renderer';
 import type { ResolvedColors } from '../../ui/colors';
 import { getResolvedColor, gridOption } from '../../ui/colors';
 import { toCompactString } from '../../utils/utils';
@@ -65,7 +64,6 @@ export function buildBarOption(
 ): EChartsOption {
 	const flatData = data.getFlat(chartIndex);
 	const domain = hasDomainOverride ? data.getYDomainForChart(chartIndex) : undefined;
-	const columnName = data.getChartName(chartIndex);
 
 	// Bar always uses category axis regardless of detected type
 	const { xAxis, xCategories, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors, 'category');
@@ -121,28 +119,7 @@ export function buildBarOption(
 				formatter: showPercentages ? ('{value}%') : ((v: number) => toCompactString(v)),
 			},
 		},
-		tooltip: isGrouped
-			? {
-					trigger: 'axis',
-					axisPointer: { type: 'shadow' },
-					confine: true,
-				}
-			: {
-					trigger: 'axis',
-					enterable: true,
-					hideDelay: 300,
-					axisPointer: { type: 'shadow' },
-					confine: true,
-					position: (...args: Parameters<typeof ChartRenderer.tooltipPosition>) => ChartRenderer.tooltipPosition(...args),
-					formatter: (params: unknown) => {
-						const result = ChartRenderer.formatAxisTooltip(
-							params as { marker?: string; seriesName?: string; data: { _raw?: ProcessedData; value?: number } }[],
-							columnName,
-							yLabel.replace('↑ ', ''),
-						);
-						return result.html;
-					},
-				},
+		tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
 		series,
 	};
 }

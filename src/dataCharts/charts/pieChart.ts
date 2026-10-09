@@ -5,7 +5,6 @@ import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper } from '../data';
 import { DataChartView } from '../dataChartView';
 import type { ResolvedColors } from '../../ui/colors';
-import { toCompactString } from '../../utils/utils';
 import { mapXValue } from '../axis';
 
 export const PIE_SETTINGS = {
@@ -36,7 +35,8 @@ function pieViewOptions(): BasesAllOptions[] {
 			default: true,
 		},
 	);
-	return DataChartView.buildViewOptions(groups);
+	// Pie values do not use a Cartesian Y scale.
+	return groups.data;
 }
 
 export class PieChartView extends DataChartView {
@@ -91,17 +91,7 @@ export function buildPieOption(
 	}));
 
 	return {
-		tooltip: {
-			trigger: 'item',
-			confine: true,
-			formatter: (params: unknown) => {
-				const p = params as { name: string; value: number; percent: number };
-				return `<div class="bases-chart-tooltip">` +
-					`<div class="bases-chart-tooltip-header">${p.name}</div>` +
-					`<div class="bases-chart-tooltip-value">${toCompactString(p.value)}${showPercentages ? ` (${p.percent.toFixed(1)}%)` : ''}</div>` +
-					`</div>`;
-			},
-		},
+		tooltip: { trigger: 'item' },
 		series: [
 			{
 				type: 'pie',

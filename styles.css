@@ -22,7 +22,7 @@ body {
 
 .bases-charts-plot-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(var(--bases-charts-min-width), 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--bases-charts-min-width)), 1fr));
 	gap: var(--size-4-4);
 	width: 100%;
 	flex: 1;
@@ -78,54 +78,351 @@ body {
 	margin: 0;
 }
 
+/* Tooltip content is bounded to its owning window, outside the clipped plot. */
 .bases-chart-tooltip {
-	min-width: 120px;
+    box-sizing: border-box;
+    width: var(--chart-tooltip-width);
+    max-height: var(--chart-tooltip-max-height);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--text-normal);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-s);
+    font-family: var(--font-interface);
+    font-size: var(--font-ui-small);
+    line-height: 1.4;
+    white-space: normal;
 }
-
 .bases-chart-tooltip-header {
-	font-weight: 600;
-	margin-bottom: 4px;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px 6px;
 }
-
-.bases-chart-tooltip-divider {
-	height: 1px;
-	background: rgba(128, 128, 128, 0.2);
-	margin: 6px 0;
+.bases-chart-tooltip-property {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
-
-.bases-chart-tooltip-value {
-	color: #999;
-	font-size: 12px;
+.bases-chart-tooltip-title {
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    overflow-wrap: anywhere;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
 }
-
-.bases-chart-tooltip-file {
-	display: flex;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 3px 4px;
-	border-radius: 4px;
-	cursor: pointer;
+.bases-chart-tooltip-preview {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    padding: 2px 4px 6px;
+    overscroll-behavior: contain;
 }
-
-.bases-chart-tooltip-file:hover {
-	background: rgba(128, 128, 128, 0.15);
+.bases-chart-tooltip-preview:empty { display: none; }
+.bases-chart-tooltip-row {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: var(--chart-tooltip-row-height);
+    padding: 0 8px;
+    margin: 0;
+    border: 0;
+    border-radius: var(--radius-s);
+    color: var(--text-normal);
+    background: transparent;
+    box-shadow: none;
+    font: inherit;
+    text-align: start;
 }
-
+.bases-chart-tooltip-swatch {
+    flex: 0 0 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--text-faint);
+}
 .bases-chart-tooltip-file-name {
-	font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-
 .bases-chart-tooltip-file-value {
-	color: #999;
-	font-size: 12px;
+    flex: 0 0 auto;
+    max-width: 35%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    font-variant-numeric: tabular-nums;
+}
+.bases-chart-tooltip-footer {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 5px 6px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+.bases-chart-tooltip-count {
+    color: var(--text-faint);
+    padding: 0 6px;
+    font-size: var(--font-ui-smaller);
+}
+.bases-chart-tooltip-hint {
+    display: block;
+    padding: 6px;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bases-chart-tooltip-host { pointer-events: none !important; }
+/* Native file drill-down dialog: the table owns both scroll directions. */
+.modal.bases-chart-files-modal {
+    box-sizing: border-box;
+    width: min(880px, calc(100vw - 40px));
+    max-width: calc(100vw - 24px);
+    height: min(680px, calc(100vh - 56px));
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.bases-chart-files-modal .modal-title {
+    flex-shrink: 0;
+    margin-bottom: 16px;
+    font-size: var(--font-ui-large);
+    font-weight: var(--font-semibold);
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.bases-chart-files-modal .modal-content.bases-chart-files-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+}
+.bases-chart-files-conditions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 0;
+}
+.bases-chart-files-condition {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 4px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    color: var(--text-normal);
+    font-size: var(--font-ui-small);
+}
+.bases-chart-files-condition-property {
+    min-width: 0;
+    max-width: 20ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.bases-chart-files-condition-operator { flex-shrink: 0; }
+.bases-chart-files-condition-operator { color: var(--text-faint); }
+.bases-chart-files-condition-value {
+    min-width: 0;
+    max-width: 36ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.bases-chart-files-summary {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    overflow-wrap: anywhere;
+}
+.bases-chart-files-tools {
+    /* Keep the native focus ring inside the clipped modal content. */
+    box-sizing: border-box;
+    padding: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: 0;
+}
+.bases-chart-files-count {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+}
+.bases-chart-files-tools .bases-chart-files-search {
+    flex: 0 1 240px;
+    width: min(240px, 100%);
+    min-width: 0;
+    max-width: 100%;
+}
+.bases-chart-files-list {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+}
+.bases-chart-files-table {
+    width: 100%;
+    min-width: 440px;
+    margin: 0;
+    border-spacing: 0;
+    border-collapse: collapse;
+    font-size: var(--font-ui-small);
+}
+.bases-chart-files-table-grouped { min-width: 560px; }
+.bases-chart-files-table th,
+.bases-chart-files-table td {
+    padding: 10px 14px;
+    border: 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+    text-align: start;
+    vertical-align: middle;
+}
+.bases-chart-files-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--background-primary);
+    color: var(--text-muted);
+    font-weight: var(--font-normal);
+    white-space: nowrap;
+}
+.bases-chart-files-table .bases-chart-file-row { display: table-row; cursor: pointer; }
+.bases-chart-files-table .bases-chart-file-row:hover td { background: var(--background-modifier-hover); }
+.bases-chart-files-table .bases-chart-file-row:last-child td { border-bottom: 0; }
+.bases-chart-files-file-heading { width: 60%; }
+.bases-chart-files-table .bases-chart-file-cell { min-width: 220px; padding: 0; }
+.bases-chart-files-table button.bases-chart-file-open {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 52px;
+    margin: 0;
+    padding: 10px 14px;
+    text-align: start;
+    background: transparent;
+    box-shadow: none;
+    border: 0;
+    border-radius: 0;
+    font-weight: var(--font-normal);
+    white-space: normal;
+}
+.bases-chart-files-table button.bases-chart-file-open:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: -2px;
+}
+.bases-chart-file-details { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bases-chart-file-name { color: var(--text-normal); overflow-wrap: anywhere; }
+.bases-chart-file-folder { color: var(--text-muted); font-size: var(--font-ui-smaller); overflow-wrap: anywhere; }
+.bases-chart-files-table .bases-chart-file-group { display: table-cell; min-width: 100px; color: var(--text-muted); }
+.bases-chart-files-table .bases-chart-file-value,
+.bases-chart-files-table .bases-chart-files-value-heading {
+    display: table-cell;
+    min-width: 88px;
+    text-align: end;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.bases-chart-files-table .bases-chart-files-empty {
+    padding: 32px 16px;
+    color: var(--text-muted);
+    text-align: center;
+}
+.bases-chart-files-footer { display: flex; flex-shrink: 0; justify-content: center; }
+.bases-chart-files-footer[hidden] { display: none; }
+@media (max-width: 480px) {
+    .modal.bases-chart-files-modal { width: calc(100vw - 24px); padding: 16px; }
+    .bases-chart-files-tools .bases-chart-files-search { flex-basis: 100%; width: 100%; }
+    .bases-chart-files-modal .modal-content.bases-chart-files-content { gap: 12px; }
 }
 
-.bases-chart-tooltip-group-row {
-	display: flex;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 2px 0;
+.bases-chart-files-modal .modal-title {
+    padding-right: 24px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
+.bases-chart-files-condition-property {
+    min-width: 0;
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+@media (max-height: 420px) {
+    .modal.bases-chart-files-modal {
+        height: calc(100dvh - 24px);
+        max-height: calc(100dvh - 24px);
+        padding: 12px 16px;
+    }
+    .bases-chart-files-modal .modal-title {
+        -webkit-line-clamp: 1;
+        margin-bottom: 8px;
+        font-size: var(--font-ui-medium);
+    }
+    .bases-chart-files-modal .modal-content.bases-chart-files-content { gap: 8px; }
+    .bases-chart-files-conditions,
+    .bases-chart-files-tools { flex-wrap: nowrap; }
+    .bases-chart-files-condition { flex: 0 1 60%; }
+    .bases-chart-files-summary,
+    .bases-chart-files-count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bases-chart-files-tools .bases-chart-files-search { flex: 1 1 140px; width: 140px; }
+    .bases-chart-tooltip-header { padding: 8px 12px 6px; gap: 2px; }
+    .bases-chart-tooltip-footer { padding: 3px 6px; }
+}
+
+/* AI charts render their own ECharts config, independent of Bases query data.
+   Follow the current view so late-created/rebuilt toolbars and view switches work. */
+:has(> .bases-ai-chart-view) > .bases-header .bases-toolbar > :is(
+    .bases-toolbar-results-menu,
+    .bases-toolbar-sort-menu,
+    .bases-toolbar-group-menu,
+    .bases-toolbar-filter-menu,
+    .bases-toolbar-properties-menu,
+    .bases-toolbar-search,
+    .bases-toolbar-new-item-menu
+) { display: none; }
+
+:has(> .bases-ai-chart-view) > .bases-search-row { display: none; }
 
 /* Scoped to this Bases view; native Group retains all of its own behavior. */
 .bases-chart-toolbar > .bases-toolbar-views-menu { order: 0; }

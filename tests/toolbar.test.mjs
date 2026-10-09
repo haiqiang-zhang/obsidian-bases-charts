@@ -123,3 +123,23 @@ test('first data update mounts axes after config assignment and unload removes t
 	assert.equal(nativeToolbar.children.length, 0);
 	assert.equal(nativeToolbar.classes.has('bases-chart-toolbar'), false);
 });
+
+
+test('pie exposes category/value controls instead of cartesian axis labels', () => {
+	const nativeToolbar = new Element();
+	const containerEl = new Element();
+	containerEl.parentElement = { querySelector: () => nativeToolbar };
+	const view = {
+		type: 'chart-pie', containerEl,
+		config: { getAsPropertyId: () => 'file.folder', getDisplayName: () => 'Folder' },
+		getYProperties: () => ['note.Amount'],
+		events: { on: () => ({}) },
+	};
+	const toolbar = new ChartToolbar(view);
+	toolbar.onload();
+	assert.equal(nativeToolbar.querySelector('.bases-chart-x-menu').querySelector('.text-button-label').textContent, 'Category');
+	assert.equal(nativeToolbar.querySelector('.bases-chart-y-menu').querySelector('.text-button-label').textContent, 'Values');
+	assert.equal(nativeToolbar.querySelector('.bases-chart-x-menu').querySelector('.bases-chart-axis-button').attributes.get('aria-label'), 'Category: Folder');
+	toolbar.onunload();
+	assert.equal(nativeToolbar.children.length, 0);
+});
