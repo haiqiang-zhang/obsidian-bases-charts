@@ -67,27 +67,16 @@ AI Chart options follow the [ECharts 6.1 API](https://github.com/apache/echarts/
 
 ## Installation
 
-### BRAT (recommended)
+### Community plugins (recommended)
+
+Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-views) from the Obsidian community plugin directory, then enable it.
+
+### BRAT
 
 1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
 2. In BRAT settings, click **Add Beta Plugin**.
 3. Enter `https://github.com/haiqiang-zhang/obsidian-bases-charts` and click **Add Plugin**.
 4. Enable **Bases Chart Views** in Settings > Community plugins.
-
-### Manual
-
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases/latest).
-2. Create a folder `bases-chart-views` in your vault's `.obsidian/plugins/` directory.
-3. Copy the downloaded files into that folder.
-4. Enable **Bases Chart Views** in Settings > Community plugins.
-
-Releases from 0.4.0 include GitHub build provenance attestations for all three files. After downloading them, verify their provenance with the [GitHub CLI](https://cli.github.com/):
-
-```sh
-for asset in main.js manifest.json styles.css; do
-  gh attestation verify "$asset" --repo haiqiang-zhang/obsidian-bases-charts
-done
-```
 
 ## License
 
