@@ -17,6 +17,8 @@ const result = await build({
 			builder.onLoad({ filter: /.*/, namespace: 'test-stub' }, () => ({
 				contents: `
 					export class Component { registeredEvents = []; registerEvent(ref) { this.registeredEvents.push(ref); } }
+					export class SearchComponent {}
+					export class DropdownComponent {}
 					export function setIcon() {}
 					export class StringValue {}
 					export class NumberValue {}

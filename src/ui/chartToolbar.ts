@@ -1,4 +1,4 @@
-import { Component, setIcon } from 'obsidian';
+import { Component, DropdownComponent, SearchComponent, setIcon } from 'obsidian';
 import type { DataChartView } from '../dataCharts/dataChartView';
 import { AggregateMode, aggregateKey } from '../dataCharts/aggregate';
 import { COMMON_SETTINGS } from '../dataCharts/types';
@@ -89,33 +89,46 @@ export class ChartToolbar extends Component {
 		panel.setAttribute('role', 'dialog');
 		panel.setAttribute('aria-label', this.axisLabel(axis));
 		button.setAttribute('aria-expanded', 'true');
-		panel.createDiv({ cls: 'bases-chart-panel-title', text: this.axisLabel(axis) });
-		panel.createDiv({ cls: 'bases-chart-panel-description', text: axis === 'x'
-			? 'Choose a file property, note property, or formula.'
-			: 'Each property creates a chart. Choose how its values are combined.' });
-		const selected = axis === 'y' ? panel.createDiv({ cls: 'bases-chart-selected-properties' }) : null;
-		const search = panel.createEl('input', { cls: 'bases-chart-property-search', type: 'search', placeholder: 'Find a property…' });
+		const header = panel.createDiv({ cls: 'bases-chart-panel-header' });
+		header.createDiv({ cls: 'bases-chart-panel-title', text: this.axisLabel(axis) });
+		this.iconButton(header, 'x', 'Close', () => {
+			this.closePanel?.();
+			button.focus();
+		});
+		const selection = panel.createDiv({ cls: 'bases-chart-selection' });
+		const selectionHeading = selection.createDiv({ cls: 'bases-chart-selection-heading' });
+		selectionHeading.createSpan({ text: axis === 'x' ? 'Selected property' : 'Selected properties' });
+		const count = axis === 'y' ? selectionHeading.createSpan({ cls: 'flair bases-chart-selection-count' }) : null;
+		const selected = selection.createDiv({ cls: 'bases-chart-selected-properties' });
+		const searchContainer = panel.createDiv({ cls: 'bases-chart-property-search' });
+		const searchComponent = new SearchComponent(searchContainer).setPlaceholder('Find a property…');
+		const search = searchComponent.inputEl;
 		search.setAttribute('aria-label', 'Find a property');
 		const results = panel.createDiv({ cls: 'bases-chart-property-results' });
 
 		const render = () => {
-			if (selected) this.renderSelected(selected, render);
+			if (axis === 'x') this.renderSelectedX(selected);
+			else this.renderSelected(selected, render);
+			if (count) count.setText(String(this.view.getYProperties().length));
 			this.renderProperties(results, axis, search.value, render);
 		};
-		search.addEventListener('input', render);
+		searchComponent.onChange(render);
 		render();
 
 		const rect = button.getBoundingClientRect();
-		const width = Math.min(420, win.innerWidth - 16);
+		const width = Math.max(0, Math.min(420, win.innerWidth - 16));
 		panel.style.setProperty('--chart-panel-width', `${width}px`);
 		panel.style.setProperty('--chart-panel-left', `${Math.max(8, Math.min(rect.right - width, win.innerWidth - width - 8))}px`);
-		const below = win.innerHeight - rect.bottom - 16;
-		if (below >= 240 || rect.top < below) {
+		const below = win.innerHeight - rect.bottom - 14;
+		if (Math.max(below, rect.top - 14) < 240) {
+			panel.addClass('is-short-window');
+			panel.style.setProperty('--chart-panel-height', `${Math.max(0, win.innerHeight - 16)}px`);
+		} else if (below >= 240 || rect.top < below) {
 			panel.style.setProperty('--chart-panel-top', `${rect.bottom + 6}px`);
-			panel.style.setProperty('--chart-panel-height', `${Math.max(120, below)}px`);
+			panel.style.setProperty('--chart-panel-height', `${Math.max(0, below)}px`);
 		} else {
 			panel.style.setProperty('--chart-panel-bottom', `${win.innerHeight - rect.top + 6}px`);
-			panel.style.setProperty('--chart-panel-height', `${Math.max(120, rect.top - 16)}px`);
+			panel.style.setProperty('--chart-panel-height', `${Math.max(0, rect.top - 14)}px`);
 		}
 
 		const onOutside = (event: PointerEvent) => {
@@ -132,6 +145,16 @@ export class ChartToolbar extends Component {
 			if (event.key === 'ArrowDown' && event.target === search) {
 				event.preventDefault();
 				results.querySelector<HTMLButtonElement>('button')?.focus();
+			}
+			if (event.composedPath().includes(results)
+				&& ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+				const options = Array.from(results.querySelectorAll<HTMLButtonElement>('button'));
+				const index = options.indexOf(event.target as HTMLButtonElement);
+				const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
+					: index + (event.key === 'ArrowDown' ? 1 : -1);
+				event.preventDefault();
+				if (next < 0) search.focus();
+				else options[Math.min(next, options.length - 1)]?.focus();
 			}
 		};
 		const onResize = () => this.closePanel?.();
@@ -155,6 +178,26 @@ export class ChartToolbar extends Component {
 		search.focus();
 	}
 
+	private propertyIcon(id: string): string {
+		return id.startsWith('file.') ? 'file' : id.startsWith('formula.') ? 'square-function' : 'hash';
+	}
+
+	private renderSelectedX(container: HTMLElement): void {
+		container.empty();
+		const x = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
+		if (!x) {
+			container.createDiv({ cls: 'bases-chart-panel-description', text: 'Choose a property below.' });
+			return;
+		}
+		const name = this.view.config.getDisplayName(x);
+		const row = container.createDiv({ cls: 'bases-chart-selected-property bases-chart-selected-x' });
+		row.dataset.property = x;
+		row.setAttribute('aria-label', `Selected ${this.axisLabel('x')}: ${name}`);
+		setIcon(row.createSpan({ cls: 'bases-chart-property-icon' }), this.propertyIcon(x));
+		row.createSpan({ cls: 'bases-chart-property-name', text: name }).setAttribute('title', x);
+		setIcon(row.createSpan({ cls: 'bases-chart-property-check', attr: { 'aria-label': 'Selected' } }), 'check');
+	}
+
 	private renderProperties(container: HTMLElement, axis: Axis, query: string, render: () => void): void {
 		container.empty();
 		const selected = this.view.getYProperties();
@@ -165,7 +208,7 @@ export class ChartToolbar extends Component {
 		let count = 0;
 		for (const [prefix, title] of sections) {
 			const matches = properties.filter(id => id.startsWith(prefix)
-				&& (axis === 'x' || !selected.includes(id))
+				&& (axis === 'x' ? id !== x : !selected.includes(id))
 				&& `${id} ${this.view.config.getDisplayName(id)}`.toLocaleLowerCase().includes(needle));
 			matches.sort((a, b) => this.view.config.getDisplayName(a).localeCompare(this.view.config.getDisplayName(b)));
 			if (!matches.length) continue;
@@ -176,9 +219,9 @@ export class ChartToolbar extends Component {
 				row.type = 'button';
 				row.dataset.property = id;
 				row.setAttribute('aria-label', `${axis === 'x' ? 'Use' : 'Add'} ${this.view.config.getDisplayName(id)} (${id})`);
-				if (axis === 'x') row.setAttribute('aria-pressed', String(id === x));
-				setIcon(row.createSpan({ cls: 'bases-chart-property-icon' }), id === x && axis === 'x' ? 'check' : axis === 'y' ? 'plus' : prefix === 'file.' ? 'file' : prefix === 'formula.' ? 'square-function' : 'hash');
+				setIcon(row.createSpan({ cls: 'bases-chart-property-icon' }), this.propertyIcon(id));
 				row.createSpan({ cls: 'bases-chart-property-name', text: this.view.config.getDisplayName(id) });
+				if (axis === 'y') setIcon(row.createSpan({ cls: 'bases-chart-property-add', attr: { 'aria-hidden': 'true' } }), 'plus');
 				row.addEventListener('click', () => {
 					if (axis === 'x') {
 						this.view.config.set(COMMON_SETTINGS.X, id);
@@ -212,16 +255,19 @@ export class ChartToolbar extends Component {
 			const name = this.view.config.getDisplayName(id);
 			const row = container.createDiv({ cls: 'bases-chart-selected-property' });
 			row.dataset.property = id;
-			row.createSpan({ cls: 'bases-chart-property-name', text: name }).setAttribute('title', id);
-			const select = row.createEl('select', { cls: 'dropdown bases-chart-aggregate-select' });
+			const property = row.createDiv({ cls: 'bases-chart-selected-name' });
+			setIcon(property.createSpan({ cls: 'bases-chart-property-icon' }), this.propertyIcon(id));
+			property.createSpan({ cls: 'bases-chart-property-name', text: name }).setAttribute('title', id);
+			const aggregate = new DropdownComponent(row);
+			const select = aggregate.selectEl;
+			select.addClass('bases-chart-aggregate-select');
 			select.setAttribute('aria-label', `Aggregate ${name}`);
 			for (const mode of Object.values(AggregateMode)) {
 				if (mode === AggregateMode.NONE && this.view.type !== 'chart-scatter') continue;
-				select.createEl('option', { value: mode, text: mode });
+				aggregate.addOption(mode, mode);
 			}
-			select.value = this.view.getAggregateModeForProperty(id);
-			select.addEventListener('change', () => {
-				this.view.config.set(aggregateKey(id), select.value);
+			aggregate.setValue(this.view.getAggregateModeForProperty(id)).onChange(value => {
+				this.view.config.set(aggregateKey(id), value);
 				this.changed();
 			});
 			const actions = row.createDiv({ cls: 'bases-chart-property-actions' });
