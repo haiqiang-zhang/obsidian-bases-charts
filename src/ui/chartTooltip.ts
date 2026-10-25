@@ -27,6 +27,10 @@ interface Selection {
 	files: ChartFileItem[];
 	fileCount: number;
 	groups: { name: string; value: string; color?: string }[];
+	propertyLabel?: string;
+	valueLabel?: string;
+	groupLabel?: string;
+	detailLabel?: string;
 }
 
 interface TooltipHost {
@@ -98,6 +102,22 @@ export class ChartTooltip {
 		const valid = points.filter(point => point?.data?._raw);
 		const first = valid[0]?.data?._raw;
 		if (!first) return null;
+		if (first.radar) {
+			const { name, property, values } = first.radar;
+			const files: ChartFileItem[] = [];
+			let fileCount = 0;
+			for (const { category, point } of values) {
+				if (!point) continue;
+				fileCount += point.files.length;
+				if (includeFiles) point.files.forEach((path, index) => files.push({ path, value: point.fileValues[index], group: category }));
+			}
+			return {
+				x: name, summary: `${property} · ${values.length} categories`, files, fileCount,
+				propertyLabel: 'Series', valueLabel: property, groupLabel: context.xName, detailLabel: 'categories',
+				groups: values.map(value => ({ name: value.category, value: value.value === null ? '—' : toCompactString(value.value),
+					color: typeof valid[0].color === 'string' ? valid[0].color : undefined })),
+			};
+		}
 		const x = first.x instanceof Date ? first.x.toLocaleString() : String(first.x);
 		const formatValue = (value: number, percent?: number) => {
 			const label = toCompactString(value);
@@ -131,13 +151,12 @@ export class ChartTooltip {
 		const win = doc.defaultView;
 		const fontSize = win ? parseFloat(win.getComputedStyle(this.containerEl).fontSize) : 13;
 		const metrics = tooltipMetrics(win?.innerWidth ?? 360, win?.innerHeight ?? 480, fontSize || 13, available);
-		const grouped = context.groupNames.length > 1;
 		const root = doc.createDocumentFragment().createDiv({ cls: 'bases-chart-tooltip' });
 		root.style.setProperty('--chart-tooltip-width', `${metrics.width}px`);
 		root.style.setProperty('--chart-tooltip-max-height', `${metrics.maxHeight}px`);
 		root.style.setProperty('--chart-tooltip-row-height', `${metrics.rowHeight}px`);
 		const header = root.createDiv({ cls: 'bases-chart-tooltip-header' });
-		header.createDiv({ cls: 'bases-chart-tooltip-property', text: context.xName });
+		header.createDiv({ cls: 'bases-chart-tooltip-property', text: selected.propertyLabel ?? context.xName });
 		header.createDiv({ cls: 'bases-chart-tooltip-title', text: selected.x }).title = selected.x;
 		const list = root.createDiv({ cls: 'bases-chart-tooltip-preview' });
 		const visible = Math.min(selected.groups.length, metrics.rowLimit);
@@ -150,8 +169,8 @@ export class ChartTooltip {
 		}
 		if (selected.fileCount) {
 			const footer = root.createDiv({ cls: 'bases-chart-tooltip-footer' });
-			if (grouped && visible < selected.groups.length) footer.createSpan({
-				cls: 'bases-chart-tooltip-count', text: `+${selected.groups.length - visible} more groups`,
+			if (visible < selected.groups.length) footer.createSpan({
+				cls: 'bases-chart-tooltip-count', text: `+${selected.groups.length - visible} more ${selected.detailLabel ?? 'groups'}`,
 			});
 			footer.createSpan({ cls: 'bases-chart-tooltip-hint', text: 'Click to view data' });
 		}
@@ -168,7 +187,8 @@ export class ChartTooltip {
 		this.modal?.close();
 		this.modal = new ChartFilesModal(this.view.app, `${context.xName}: ${selection.x}`, selection.summary,
 			selection.files, (path, newTab) => this.view.openFile(path, newTab),
-			{ xName: context.xName, xValue: selection.x, yLabel: context.yLabel });
+			{ xName: selection.propertyLabel ?? context.xName, xValue: selection.x,
+				yLabel: selection.valueLabel ?? context.yLabel, groupLabel: selection.groupLabel });
 		this.modal.open();
 	}
 

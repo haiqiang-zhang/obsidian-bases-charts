@@ -55,8 +55,8 @@ export class ChartRenderer {
 		};
 
 		this.chart.on('click', params => {
-			// Bar columns (including their empty area) are handled once by ZRender.
-			if (this.tooltipContext?.chartType === 'chart-bar') return;
+			// Column selections (including area fills) are handled once by ZRender.
+			if (['chart-bar', 'chart-area'].includes(this.tooltipContext?.chartType ?? '')) return;
 			const raw = (params.data as { _raw?: ProcessedData })?._raw;
 			if (!raw) return;
 			if (raw.files.length && this.tooltipContext) {
@@ -72,7 +72,7 @@ export class ChartRenderer {
 			if (column.length && this.tooltipContext) this.tooltip?.openFiles(column, this.tooltipContext);
 		});
 		zr.on('mousemove', event => {
-			if (this.tooltipContext?.chartType === 'chart-bar') {
+			if (['chart-bar', 'chart-area'].includes(this.tooltipContext?.chartType ?? '')) {
 				zr.setCursorStyle(this.columnAt(event.offsetX, event.offsetY).length ? 'pointer' : 'default');
 			}
 		});
@@ -95,14 +95,28 @@ export class ChartRenderer {
 	}
 
 	private columnAt(x: number, y: number): ProcessedData[] {
-		if (!this.chart || this.tooltipContext?.chartType !== 'chart-bar'
+		if (!this.chart || !['chart-bar', 'chart-area'].includes(this.tooltipContext?.chartType ?? '')
 			|| !this.chart.containPixel({ gridIndex: 0 }, [x, y])) return [];
 		const axis = Array.isArray(this.option?.xAxis) ? this.option.xAxis[0] : this.option?.xAxis;
-		const count = axis?.type === 'category' ? axis.data?.length ?? 0 : 0;
 		const ordinal = this.chart.convertFromPixel({ xAxisIndex: 0 }, x) as unknown;
-		if (!count || typeof ordinal !== 'number' || !Number.isFinite(ordinal)) return [];
-		const index = Math.max(0, Math.min(count - 1, Math.round(ordinal)));
+		if (typeof ordinal !== 'number' || !Number.isFinite(ordinal)) return [];
 		const series = Array.isArray(this.option?.series) ? this.option.series : [this.option?.series];
+		let index: number;
+		if (axis?.type === 'category') {
+			const count = axis.data?.length ?? 0;
+			if (!count) return [];
+			index = Math.max(0, Math.min(count - 1, Math.round(ordinal)));
+		} else if (this.tooltipContext?.chartType === 'chart-area') {
+			// Area series share the same numeric/time coordinates, including gaps.
+			const points = (series[0] as { data?: { value?: number[] }[] } | undefined)?.data ?? [];
+			index = -1;
+			let distance = Infinity;
+			points.forEach((point, i) => {
+				const delta = Math.abs((point.value?.[0] ?? NaN) - ordinal);
+				if (delta < distance) { distance = delta; index = i; }
+			});
+			if (index < 0) return [];
+		} else return [];
 		const column: ProcessedData[] = [];
 		for (const item of series) {
 			const data = (item as { data?: { _raw?: ProcessedData | null }[] } | undefined)?.data?.[index];
@@ -112,10 +126,10 @@ export class ChartRenderer {
 	}
 
 	private tooltipAnchor(params: unknown): number[] | null {
-		if (!this.chart || this.tooltipContext?.chartType === 'chart-pie') return null;
+		if (!this.chart || ['chart-pie', 'chart-radar'].includes(this.tooltipContext?.chartType ?? '')) return null;
 		const points = (Array.isArray(params) ? params : [params]) as {
 			seriesIndex: number; dataIndex: number;
-			data?: { value?: unknown; _raw?: ProcessedData | null };
+			data?: { value?: unknown; _raw?: ProcessedData | null; _stackY?: number };
 		}[];
 		const axis = Array.isArray(this.option?.xAxis) ? this.option.xAxis[0] : this.option?.xAxis;
 		const pixels = points.flatMap(point => {
@@ -123,8 +137,10 @@ export class ChartRenderer {
 			if (!raw) return [];
 			// Bar/line scalar data is aligned with every category. Scatter carries
 			// its actual X in a pair because each group can omit categories.
+			const y = point.data?._stackY ?? raw.y;
 			const value = axis?.type === 'category' && !Array.isArray(point.data?.value)
-				? [point.dataIndex, raw.y] : point.data?.value;
+				? [point.dataIndex, y]
+				: Array.isArray(point.data?.value) ? [point.data.value[0], y] : point.data?.value;
 			const pixel = this.chart!.convertToPixel({ seriesIndex: point.seriesIndex }, value as number[]) as unknown;
 			return Array.isArray(pixel) && pixel.length === 2 && pixel.every(Number.isFinite) ? [pixel as number[]] : [];
 		});
@@ -147,7 +163,7 @@ export class ChartRenderer {
 		const base = Array.isArray(option.tooltip) ? option.tooltip[0] : option.tooltip;
 		const rendered = context && this.tooltip
 			? { ...option, tooltip: this.tooltip.options(base ?? {}, context, params => this.tooltipAnchor(params),
-				context.chartType === 'chart-pie' ? undefined : () => this.tooltipBounds()) }
+				['chart-pie', 'chart-radar'].includes(context.chartType) ? undefined : () => this.tooltipBounds()) }
 			: option;
 		this.plotBounds = undefined;
 		this.chart?.setOption(rendered, { notMerge: true });

@@ -13,12 +13,18 @@ export type ProcessedData = {
 	y: number;
 	/** Index into the group-by set; used for coloring. */
 	groupIndex: number;
-	/** Index into the Y-axis property list; each value produces a separate chart. */
+	/** Index into the selected Y properties; radar overlays them in one chart. */
 	chartIndex: number;
 	isNumeric: boolean;
 	files: string[];
 	fileValues: number[];
 	label?: string;
+	/** A radar polygon retains each category's value and original source data. */
+	radar?: {
+		name: string;
+		property: string;
+		values: { category: string; value: number | null; point: ProcessedData | null }[];
+	};
 };
 
 export abstract class AbstractDataWrapper<ChartId, GroupId> {

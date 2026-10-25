@@ -16,8 +16,8 @@ This plugin offers two fundamentally different approaches to charting:
 ## How It Works
 
 1. Create a [Base](https://help.obsidian.md/bases) in your vault.
-2. Add a new view and select a chart type — either a **Data Chart** (Scatter, Line, Bar, Pie) or an **AI Chart**.
-3. For Data Charts, choose **X axis** and **Y axes** in the toolbar. X supports file properties (including folder), note properties, and formulas. Add, reorder, and aggregate Y properties directly in the Y menu. Pie uses **Category** and **Values** for these controls.
+2. Add a new view and select a chart type — either a **Data Chart** (Scatter, Line, Stacked Area, Bar, Pie, Radar) or an **AI Chart**.
+3. For Data Charts, choose **X axis** and **Y axes** in the toolbar. X supports file properties (including folder), note properties, and formulas. Add, reorder, and aggregate Y properties directly in the Y menu. Pie and Radar use **Category** and **Values** for these controls.
 4. For AI Charts, install [Claudian](https://github.com/YishenTu/claudian) first. The plugin has deep integration with Claudian — you can chat with it to generate, modify, and iterate on any ECharts visualization. See [AI Chart](#ai-chart) for details.
 
 ## Data Charts
@@ -28,20 +28,24 @@ Built-in chart views that visualize Bases data with configurable axes, aggregati
 
 - **Scatter** — individual data points; click to inspect their source files
 - **Line** — connected data points, configurable gap handling (Leave gap or Fill with 0)
+- **Stacked Area** — stacked group totals over a category, number, or date axis; click anywhere in a column to inspect its files
 - **Bar** — grouped bars with optional data labels and percentage display
 - **Pie** — donut chart with optional labels, percentages, and null filtering
+- **Radar** — compare multiple value properties in one centered radar, with categories as spokes and optional groups as additional profiles
 
 ### Features
 
-- Multiple Y axes: each Y property produces a separate chart, with responsive columns and vertical scrolling when needed
+- Multiple Y axes: each Y property produces a separate chart (Radar overlays the selected properties), with responsive columns and vertical scrolling when needed
 - Per-property aggregation: set Sum, Average, Count, Min, Max (or None for Scatter) independently for each Y axis
-- Sync Y axes and min/max override for Bar, Line, and Scatter charts
+- Sync Y axes and min/max override for Bar, Line, Stacked Area, and Scatter charts
 - Native Group menu: groups become colored series, respecting selected groups and manual group order
 - Per-view color palettes: Auto, Colorful, Earth, Coastal, and nine single-color palettes, each adapted for light and dark themes
 - Compact, stationary tooltips with the X property and group totals; click a chart column to explore its files in a searchable data table
 - X axis sorting via Bases Sort configuration
 
-X, Y, and Group sit together in the toolbar. Pie shows Category and Values instead of axis controls. Open **Configure view** from the view selector on the left and choose **Color palette**. The searchable dropdown previews each palette with color swatches and shows the current selection first with a checkmark. The selection is saved with that view in the `.base` file; other views keep their own colors. Auto preserves the soft default palette. Chart appearance and applicable Y scale settings remain in the view settings. Existing charts keep their previous Y property selection until you edit it in the new Y menu. The vault root appears as `/` when using folder as X.
+X, Y, and Group sit together in the toolbar. Pie and Radar show Category and Values instead of axis controls. Open **Configure view** from the view selector on the left and choose **Color palette**. The searchable dropdown previews each palette with color swatches and shows the current selection first with a checkmark. The selection is saved with that view in the `.base` file; other views keep their own colors. Auto preserves the soft default palette. Chart appearance and applicable Y scale settings remain in the view settings. Existing charts keep their previous Y property selection until you edit it in the new Y menu. The vault root appears as `/` when using folder as X.
+
+Stacked Area fills missing group values with zero and stacks positive and negative values separately. Radar needs at least three categories with values. Its default shared scale preserves differences between categories; choose **Per category** when comparing profiles across categories with different ranges. Missing radar values are plotted at zero and shown as missing in the tooltip. Click a radar profile to inspect its files by category.
 
 ## AI Chart
 
@@ -62,7 +66,7 @@ AI Chart options follow the [ECharts 6.1 API](https://github.com/apache/echarts/
 
 ## General
 
-- Bar, line, and scatter charts sit directly below the native toolbar with narrow chart margins; larger pie charts sit at the center
+- Bar, line, stacked area, and scatter charts sit directly below the native toolbar with narrow chart margins; pie and radar charts sit at the center
 - Legends stay below the charts, and smaller panes scroll naturally
 - Light and dark theme support
 - Mobile-optimized layout

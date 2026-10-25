@@ -49,8 +49,8 @@ body {
 }
 /* Only radial charts float in their pane. Cartesian charts stay attached to
    the native toolbar, with a predictable gap and spare space below the figure. */
-.bases-pie-chart-view:has(> .bases-charts-plot-grid:not(.bases-charts-hidden))::before,
-.bases-pie-chart-view:has(> .bases-charts-plot-grid:not(.bases-charts-hidden))::after {
+:is(.bases-pie-chart-view, .bases-radar-chart-view):has(> .bases-charts-plot-grid:not(.bases-charts-hidden))::before,
+:is(.bases-pie-chart-view, .bases-radar-chart-view):has(> .bases-charts-plot-grid:not(.bases-charts-hidden))::after {
 	content: '';
 	min-height: 0;
 	flex: 1 0 0;
@@ -89,6 +89,18 @@ body {
 .bases-data-chart-view.bases-pie-chart-view > .bases-charts-plot-grid > .bases-charts-plot-grid-item {
 	max-height: 500px;
 	aspect-ratio: 2.4;
+}
+.bases-data-chart-view.bases-radar-chart-view {
+	--bases-charts-min-height: 360px;
+	padding-top: var(--size-4-4);
+}
+.bases-data-chart-view.bases-radar-chart-view > .bases-charts-plot-grid {
+	max-width: 900px;
+	grid-template-columns: 1fr;
+}
+.bases-data-chart-view.bases-radar-chart-view > .bases-charts-plot-grid > .bases-charts-plot-grid-item {
+	max-height: 500px;
+	aspect-ratio: 1.8;
 }
 
 .bases-charts-plot-legend {

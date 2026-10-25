@@ -11,6 +11,7 @@ export interface ChartFileDetails {
 	xName: string;
 	xValue: string;
 	yLabel: string;
+	groupLabel?: string;
 }
 
 const PAGE_SIZE = 100;
@@ -72,7 +73,7 @@ export class ChartFilesModal extends Modal {
 		if (this.hasGroups) table.addClass('bases-chart-files-table-grouped');
 		const header = table.createEl('thead').createEl('tr');
 		header.createEl('th', { cls: 'bases-chart-files-file-heading', text: 'File' }).setAttribute('scope', 'col');
-		if (this.hasGroups) header.createEl('th', { cls: 'bases-chart-files-group-heading', text: 'Group' }).setAttribute('scope', 'col');
+		if (this.hasGroups) header.createEl('th', { cls: 'bases-chart-files-group-heading', text: this.details?.groupLabel || 'Group' }).setAttribute('scope', 'col');
 		header.createEl('th', { cls: 'bases-chart-files-value-heading', text: this.details?.yLabel || 'Value' }).setAttribute('scope', 'col');
 		this.rowsEl = table.createEl('tbody', { cls: 'bases-chart-files-table-body' });
 		this.footerEl = this.contentEl.createDiv({ cls: 'bases-chart-files-footer' });

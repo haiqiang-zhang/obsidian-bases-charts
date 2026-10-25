@@ -460,3 +460,66 @@ test('tooltip bounds follow the rendered Cartesian plot after resize and scrolli
 	assert.equal(state.tooltip.calls.at(-1).bounds, undefined, 'pie keeps its separate viewport placement');
 	state.renderer.dispose();
 });
+
+test('radar bypasses Cartesian coordinate and bounds queries while retaining polygon activation', () => {
+	const state = harness();
+	const context = { chartType: 'chart-radar', xName: 'Department', yLabel: 'Values', groupNames: [] };
+	const raw = { x: 'Budget', y: 0, files: ['sales.md'], radar: { name: 'Budget', property: 'Budget', values: [] } };
+	const point = { value: [2, 4, 6], _raw: raw };
+	state.renderer.setOption({ radar: { indicator: [{ name: 'A' }, { name: 'B' }, { name: 'C' }] }, series: [{ type: 'radar', data: [point] }] }, context);
+	const tooltip = state.tooltips[0];
+	assert.equal(tooltip.calls[0].anchor({ seriesIndex: 0, dataIndex: 0, data: point }), null);
+	assert.equal(tooltip.calls[0].bounds, undefined);
+	assert.equal(state.charts[0].toPixelCalls.length, 0);
+	assert.equal(state.charts[0].containCalls.length, 0);
+	state.charts[0].handlers.get('click')({ data: point });
+	state.charts[0].zr.handlers.get('click')({ offsetX: 100, offsetY: 100 });
+	assert.deepEqual(tooltip.opened, [{ raw, context }]);
+	assert.equal(state.charts[0].containCalls.length, 0, 'radar clicks must not query a nonexistent Cartesian grid');
+	state.renderer.dispose();
+});
+
+test('area tooltip anchors use stacked display heights while retaining original values for previews', () => {
+	for (const axisType of ['category', 'value', 'time']) {
+		const state = harness();
+		const context = { chartType: 'chart-area', xName: 'Period', yLabel: 'Amount', groupNames: ['A', 'B'] };
+		const x = axisType === 'category' ? 'Middle' : 1000;
+		const raw = { x, y: 3, files: ['source.md'] };
+		const point = { value: axisType === 'category' ? 3 : [x, 3], _raw: raw, _stackY: 11 };
+		state.renderer.setOption({ xAxis: { type: axisType }, series: [{ type: 'line', stack: 'total', data: [point] }] }, context);
+		const anchor = state.tooltips[0].calls[0].anchor;
+		assert.deepEqual(Array.from(anchor({ seriesIndex: 1, dataIndex: 2, data: point })), [axisType === 'category' ? 2 : x, 11]);
+		assert.equal(raw.y, 3);
+		assert.deepEqual(point.value, axisType === 'category' ? 3 : [x, 3]);
+		assert.deepEqual(state.charts[0].toPixelCalls, [{ finder: { seriesIndex: 1 }, value: [axisType === 'category' ? 2 : x, 11] }]);
+		state.renderer.dispose();
+	}
+});
+
+test('numeric area clicks select the nearest aligned X across all groups without duplicate activation', () => {
+	const state = harness();
+	const context = { chartType: 'chart-area', xName: 'Period', yLabel: 'Amount', groupNames: ['A', 'B'] };
+	const first = { x: 10, y: 2, files: ['first.md'] };
+	const middleA = { x: 50, y: 3, files: ['middle-a.md'] };
+	const middleB = { x: 50, y: 0, files: ['middle-b.md'] };
+	const last = { x: 90, y: 4, files: ['last.md'] };
+	const datum = raw => ({ value: [raw.x, raw.y], _raw: raw });
+	state.renderer.setOption({ xAxis: { type: 'value' }, series: [
+		{ type: 'line', data: [datum(first), datum(middleA), datum(last)] },
+		{ type: 'line', data: [{ value: [10, 0], _raw: null }, datum(middleB), { value: [90, 0], _raw: null }] },
+	] }, context);
+	const chart = state.charts[0];
+	chart.ordinal = 43;
+	chart.handlers.get('click')({ data: datum(middleA) });
+	chart.zr.handlers.get('click')({ offsetX: 150, offsetY: 100 });
+	assert.equal(state.tooltips[0].opened.length, 1);
+	assert.deepEqual(Array.from(state.tooltips[0].opened[0].raw), [middleA, middleB]);
+	assert.deepEqual(chart.fromPixelCalls, [{ finder: { xAxisIndex: 0 }, value: 150 }]);
+	chart.ordinal = 84;
+	chart.zr.handlers.get('click')({ offsetX: 250, offsetY: 100 });
+	assert.deepEqual(Array.from(state.tooltips[0].opened[1].raw), [last]);
+	chart.contains = false;
+	chart.zr.handlers.get('click')({ offsetX: 250, offsetY: 100 });
+	assert.equal(state.tooltips[0].opened.length, 2);
+	state.renderer.dispose();
+});

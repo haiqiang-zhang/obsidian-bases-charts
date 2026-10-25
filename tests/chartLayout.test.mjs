@@ -8,7 +8,9 @@ const bundle = await build({
 	stdin: {
 		contents: `
 			export { ChartLayout } from './src/dataCharts/layout.ts';
-			export { BaseChartView } from './src/baseChartView.ts';
+			export { DataChartView } from './src/dataCharts/dataChartView.ts';
+			export { RadarChartView } from './src/dataCharts/charts/radarChart.ts';
+			export { PropertySeparatedData } from './src/dataCharts/data.ts';
 			export { Events } from 'obsidian';
 			export { CHART_PALETTES, DEFAULT_CHART_PALETTE, getPaletteColors } from './src/ui/chartPalettes.ts';
 		`,
@@ -21,10 +23,10 @@ const bundle = await build({
 	plugins: [{
 		name: 'layout-host-boundaries',
 		setup(builder) {
-			builder.onResolve({ filter: /^(obsidian|\.\.\/utils\/renderer)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
+			builder.onResolve({ filter: /^(obsidian|echarts|\.\.\/ui\/chartToolbar|\.\.\/utils\/renderer)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
 			builder.onLoad({ filter: /.*/, namespace: 'host-stub' }, args => ({
 				contents: args.path === 'obsidian' ? `
-					export class BasesView { constructor(controller) { this.app = controller.app; } }
+					export class BasesView { constructor(controller) { this.app = controller.app; } addChild(child) { return child; } removeChild() {} }
 					export class Events {
 						refs = new Set();
 						on(name, callback) { const ref = { name, callback }; this.refs.add(ref); return ref; }
@@ -36,11 +38,14 @@ const bundle = await build({
 						schedule.cancel = () => runtime.pending.delete(callback);
 						return schedule;
 					}
+					export class NullValue {}
 					export class DateValue {}
 					export class ListValue {}
 					export class NumberValue {}
 					export class StringValue {}
-				` : 'export class ChartRenderer { constructor(...args) { return runtime.createRenderer(...args); } }',
+				` : args.path === 'echarts' ? 'export const format = { truncateText: text => text };'
+					: args.path === '../ui/chartToolbar' ? 'export class ChartToolbar {}'
+						: 'export class ChartRenderer { constructor(...args) { return runtime.createRenderer(...args); } }',
 			}));
 		},
 	}],
@@ -50,16 +55,20 @@ class Element {
 	children = [];
 	classes = new Set();
 	parentElement = null;
-	style = { setProperty() {} };
+	style = { values: new Map(), setProperty(name, value) { this.values.set(name, value); } };
 	win = { getComputedStyle: () => ({ getPropertyValue: () => '' }) };
 	doc = { body: { classList: { contains: () => false } } };
 
-	createDiv() {
+	createEl(_tag, options = {}) {
 		const child = new Element();
+		child.textContent = options.text ?? '';
+		child.classes = new Set((options.cls ?? '').split(' ').filter(Boolean));
 		child.parentElement = this;
 		this.children.push(child);
 		return child;
 	}
+	createDiv(options) { return this.createEl('div', options); }
+	addEventListener() {}
 	empty() { this.children = []; }
 	addClass(name) { this.classes.add(name); }
 	removeClass(name) { this.classes.delete(name); }
@@ -73,16 +82,16 @@ function harness() {
 	const runtime = {
 		pending,
 		createRenderer(_container, view) {
-			const renderer = { view, calls: [], setOption(...args) { this.calls.push(args); }, dispose() {} };
+			const renderer = { view, calls: [], messages: [], setOption(...args) { this.calls.push(args); }, showMessage(...args) { this.messages.push(args); }, dispose() {} };
 			renderers.push(renderer);
 			return renderer;
 		},
 	};
 	const module = { exports: {} };
 	runInNewContext(bundle.outputFiles[0].text, { module, exports: module.exports, runtime });
-	const { ChartLayout, BaseChartView, Events, CHART_PALETTES, DEFAULT_CHART_PALETTE, getPaletteColors } = module.exports;
+	const { ChartLayout, DataChartView, RadarChartView, PropertySeparatedData, Events, CHART_PALETTES, DEFAULT_CHART_PALETTE, getPaletteColors } = module.exports;
 	const workspace = new Events();
-	class TestView extends BaseChartView {
+	class TestView extends DataChartView {
 		type = 'chart-bar';
 		processCalls = 0;
 		onChartLoad() { this.layout = new ChartLayout(this, this.containerEl); }
@@ -113,7 +122,7 @@ function harness() {
 	};
 	const view = createView();
 	return {
-		view, workspace, renderers, createView, CHART_PALETTES, DEFAULT_CHART_PALETTE, getPaletteColors,
+		view, workspace, renderers, createView, RadarChartView, PropertySeparatedData, CHART_PALETTES, DEFAULT_CHART_PALETTE, getPaletteColors,
 		flush() {
 			const callbacks = [...pending];
 			pending.clear();
@@ -205,3 +214,54 @@ for (const missing of ['data', 'config']) {
 		view.onunload();
 	});
 }
+
+function radarLayoutFixture(categories) {
+	const host = harness();
+	const view = new host.RadarChartView({ app: { workspace: host.workspace } }, new Element());
+	const properties = ['note.budget', 'note.spending'];
+	const points = categories.map((x, index) => ({
+		x, y: index + 1, chartIndex: 1, groupIndex: 0, isNumeric: true,
+		files: [`${x}.md`], fileValues: [index + 1],
+	}));
+	const processed = new host.PropertySeparatedData(points, ['All'], categories, 'category',
+		{ min: null, max: null, synced: false }, properties,
+		new Map([['note.budget', 'Budget'], ['note.spending', 'Spending']]));
+	view.processData = () => processed;
+	view.config = { ...config, get: key => key === 'y' ? properties : undefined };
+	view.data = { groupedData: [{ entries: points }] };
+	view.onload();
+	view.onDataUpdated();
+	host.flush();
+	return { ...host, radar: view, processed };
+}
+
+test('radar combines selected values into one plot when only the second value property has data', () => {
+	const host = radarLayoutFixture(['Sales', 'Support', 'Marketing']);
+	const renderers = host.renderers.filter(renderer => renderer.view === host.radar);
+	assert.equal(renderers.length, 1, 'all selected measures share one radar canvas');
+	assert.equal(host.processed.getFlat(0).length, 0, 'the fixture must have no first-property values');
+	assert.equal(renderers[0].messages.length, 0, 'data in later measures must not be hidden by the first empty measure');
+	assert.equal(renderers[0].calls.length, 1);
+	const [option, context] = renderers[0].calls[0];
+	assert.equal(option.series.length, 1);
+	assert.equal(option.series[0].name, 'Spending');
+	assert.deepEqual(Array.from(option.series[0].data[0].value), [1, 2, 3]);
+	assert.equal(context.chartType, 'chart-radar');
+	assert.equal(context.yLabel, 'Values');
+	const legend = host.radar.containerEl.children[1];
+	assert.equal(legend.children[0].children[1].textContent, 'Spending');
+	assert.equal(legend.children[0].children[0].style.values.get('--color'), option.series[0].itemStyle.color,
+		'the legend must retain the same measure color when an earlier measure has no values');
+	host.radar.onunload();
+	host.view.onunload();
+});
+
+test('radar explains the three-category minimum instead of rendering an invalid polygon', () => {
+	const host = radarLayoutFixture(['Sales', 'Support']);
+	const renderer = host.renderers.find(item => item.view === host.radar);
+	assert.equal(renderer.calls.length, 0);
+	assert.match(renderer.messages[0][0], /at least three categories/);
+	assert.equal(renderer.messages[0][1], undefined, 'numeric data must not offer the unrelated Count repair');
+	host.radar.onunload();
+	host.view.onunload();
+});

@@ -192,3 +192,23 @@ test('optional Group column remains stable during searches and details use safe 
 	search.dispatch('input');
 	assert.equal(modal.contentEl.find('bases-chart-files-empty').colSpan, 3);
 });
+
+test('radar details label the category column and preserve source values through search', () => {
+	const modal = createModal([
+		{ path: 'Budget/sales.md', value: 4200, group: 'Sales' },
+		{ path: 'Budget/support.md', value: 0, group: '<Support>' },
+	], undefined, { xName: 'Series', xValue: 'Allocated budget', yLabel: 'Budget', groupLabel: 'Department' });
+	assert.equal(modal.titleEl.textContent, 'Allocated budget');
+	assert.equal(modal.contentEl.find('bases-chart-files-condition-property').textContent, 'Series');
+	assert.equal(modal.contentEl.find('bases-chart-files-group-heading').textContent, 'Department');
+	assert.equal(modal.contentEl.find('bases-chart-files-value-heading').textContent, 'Budget');
+	const search = modal.contentEl.find('bases-chart-files-search');
+	search.value = 'support';
+	search.dispatch('input');
+	const rows = modal.contentEl.find('bases-chart-files-table-body').children;
+	assert.equal(rows.length, 1);
+	assert.equal(rows[0].find('bases-chart-file-group').textContent, '<Support>');
+	assert.equal(rows[0].find('bases-chart-file-value').textContent, '0');
+	assert.equal(modal.contentEl.find('bases-chart-files-group-heading').textContent, 'Department');
+	modal.close();
+});

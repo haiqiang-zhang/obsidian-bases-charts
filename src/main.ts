@@ -7,6 +7,8 @@ import { lineChartRegistration } from './dataCharts/charts/lineChart';
 import { pieChartRegistration } from './dataCharts/charts/pieChart';
 import { scatterChartRegistration } from './dataCharts/charts/scatterChart';
 import { ChartPaletteSettings } from './ui/chartPaletteSettings';
+import { areaChartRegistration } from './dataCharts/charts/areaChart';
+import { radarChartRegistration } from './dataCharts/charts/radarChart';
 
 interface ChartRegistration {
 	viewType: string;
@@ -19,8 +21,10 @@ interface ChartRegistration {
 const chartRegistrations: ChartRegistration[] = [
 	scatterChartRegistration,
 	lineChartRegistration,
+	areaChartRegistration,
 	barChartRegistration,
 	pieChartRegistration,
+	radarChartRegistration,
 	aiChartRegistration,
 ];
 

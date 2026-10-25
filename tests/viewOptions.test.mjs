@@ -11,6 +11,8 @@ const result = await build({
 			export { pieChartRegistration } from './src/dataCharts/charts/pieChart.ts';
 			export { scatterChartRegistration, ScatterChartView } from './src/dataCharts/charts/scatterChart.ts';
 			export { barChartRegistration } from './src/dataCharts/charts/barChart.ts';
+			export { areaChartRegistration } from './src/dataCharts/charts/areaChart.ts';
+			export { radarChartRegistration } from './src/dataCharts/charts/radarChart.ts';
 			export { lineChartRegistration } from './src/dataCharts/charts/lineChart.ts';
 			export { CHART_PALETTES, DEFAULT_CHART_PALETTE } from './src/ui/chartPalettes.ts';
 		`,
@@ -33,7 +35,7 @@ const result = await build({
 		},
 	}],
 });
-const { pieChartRegistration, scatterChartRegistration, ScatterChartView, barChartRegistration, lineChartRegistration, CHART_PALETTES, DEFAULT_CHART_PALETTE } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-view-options-under-test.mjs`).toString('base64')}`);
+const { pieChartRegistration, scatterChartRegistration, ScatterChartView, barChartRegistration, lineChartRegistration, areaChartRegistration, radarChartRegistration, CHART_PALETTES, DEFAULT_CHART_PALETTE } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-view-options-under-test.mjs`).toString('base64')}`);
 
 function optionKeys(options) {
 	return options.flatMap(option => option.type === 'group' ? optionKeys(option.items) : [option.key]);
@@ -64,8 +66,8 @@ test('bar and line keep their appearance controls and valid Y-scale settings', (
 	assert.deepEqual(optionKeys(lineChartRegistration.viewOptions()), ['color-palette', 'null-handling', ...scaleKeys]);
 });
 
-test('all four chart registrations expose the same native per-view palette dropdown', () => {
-	const registrations = [barChartRegistration, lineChartRegistration, scatterChartRegistration, pieChartRegistration];
+test('all six chart registrations expose the same native per-view palette dropdown', () => {
+	const registrations = [barChartRegistration, lineChartRegistration, scatterChartRegistration, pieChartRegistration, areaChartRegistration, radarChartRegistration];
 	const expectedOptions = Object.fromEntries(CHART_PALETTES.map(palette => [palette.id, palette.name]));
 	for (const registration of registrations) {
 		const options = registration.viewOptions();
@@ -77,4 +79,10 @@ test('all four chart registrations expose the same native per-view palette dropd
 		});
 		assert.ok(paletteOptions[0].default in paletteOptions[0].options, 'the default must be selectable');
 	}
+});
+
+
+test('area supports stacked Y scales and radar exposes only applicable radial controls', () => {
+    assert.ok(scaleKeys.every(key => optionKeys(areaChartRegistration.viewOptions()).includes(key)));
+    assert.deepEqual(optionKeys(radarChartRegistration.viewOptions()), ['color-palette', 'radar-scale', 'show-fill']);
 });

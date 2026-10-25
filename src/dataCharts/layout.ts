@@ -21,7 +21,7 @@ export class ChartLayout {
 	) {
 		this.gridEl = containerEl.createDiv({ cls: 'bases-charts-plot-grid' });
 		this.legendEl = containerEl.createDiv({ cls: 'bases-charts-plot-legend' });
-		this.legendEl.toggleClass('is-line-chart', view.type === 'chart-line');
+		this.legendEl.toggleClass('is-line-chart', ['chart-line', 'chart-area', 'chart-radar'].includes(view.type));
 		this.emptyEl = containerEl.createDiv({ cls: 'bases-chart-empty-state bases-charts-hidden' });
 
 		this.updateRef = view.events.on('data-updated', () => this.debouncedUpdate());
@@ -42,25 +42,29 @@ export class ChartLayout {
 			this.legendEl.addClass('bases-charts-hidden');
 			this.reconcileRenderers(0);
 			const axis = !xField ? 'x' : 'y';
-			this.emptyEl.createDiv({ text: !xField ? 'Choose an X axis to start your chart.' : 'Add a Y axis to show values.' });
-			const button = this.emptyEl.createEl('button', { text: !xField ? 'Choose X axis' : 'Add Y axis' });
+			const radial = ['chart-pie', 'chart-radar'].includes(this.view.type);
+			this.emptyEl.createDiv({ text: !xField
+				? `Choose ${radial ? 'a category' : 'an X axis'} to start your chart.`
+				: `Add ${radial ? 'a value property' : 'a Y axis'} to show values.` });
+			const button = this.emptyEl.createEl('button', { text: !xField
+				? `Choose ${radial ? 'category' : 'X axis'}` : `Add ${radial ? 'values' : 'Y axis'}` });
 			button.addEventListener('click', () => this.view.openAxisSettings(axis));
 			return;
 		}
 		const data = this.view.processData();
-		const chartIds = data.getChartIdentifiers();
+		const chartCount = this.view.getChartCount(data);
 
 		const colors = resolveColors(this.containerEl, this.view.config.get(COMMON_SETTINGS.COLOR_PALETTE));
 		const fontFamily = this.containerEl.win.getComputedStyle(this.containerEl).fontFamily;
 		this.renderLegend(data, colors.palette);
-		this.reconcileRenderers(chartIds.length);
+		this.reconcileRenderers(chartCount);
 
 		const xName = xField ? this.view.config.getDisplayName(xField) : '';
 
-		for (let i = 0; i < chartIds.length; i++) {
+		for (let i = 0; i < chartCount; i++) {
 			const renderer = this.renderers[i];
 			const isGrouped = data.hasMultipleGroups();
-			const chartData = data.getFlat(i);
+			const chartData = this.view.getChartData(data, i);
 			const propId = propertyOrder[i];
 
 			if (chartData.length === 0) {
@@ -78,10 +82,12 @@ export class ChartLayout {
 				continue;
 			}
 
-			const hasNonNumeric = chartData.some(d => !d.isNumeric);
-			const yLabel = hasNonNumeric
-				? `${data.getChartName(i)} (Count)`
-				: this.view.getYAxisLabel(data.getChartName(i), propId);
+			const message = this.view.getChartMessage(data, i);
+			if (message) {
+				renderer.showMessage(message);
+				continue;
+			}
+			const yLabel = this.view.getChartLabel(data, i);
 			const option = this.view.buildOption(data, i, xName, yLabel, isGrouped, colors);
 			renderer.setOption({ ...option, textStyle: { fontFamily, ...option.textStyle } }, {
 				xName: this.view.config.getDisplayName(xField),
@@ -95,18 +101,18 @@ export class ChartLayout {
 
 	private renderLegend(data: DataWrapper, palette: string[]): void {
 		this.legendEl.empty();
-		const groupIds = data.getGroupIdentifiers();
-		if (groupIds.length <= 1) {
+		const entries = this.view.getChartLegend(data);
+		if (entries.length === 0) {
 			this.legendEl.addClass('bases-charts-hidden');
 			return;
 		}
 		this.legendEl.removeClass('bases-charts-hidden');
 
-		for (let i = 0; i < groupIds.length; i++) {
+		for (const entry of entries) {
 			const itemEl = this.legendEl.createDiv({ cls: 'bases-charts-plot-legend-item' });
 			const colorEl = itemEl.createDiv({ cls: 'bases-charts-plot-legend-color' });
-			colorEl.style.setProperty('--color', palette[i % palette.length]);
-			itemEl.createEl('span', { cls: 'bases-charts-plot-legend-label', text: data.getGroupName(i), attr: { title: data.getGroupName(i) } });
+			colorEl.style.setProperty('--color', palette[entry.colorIndex % palette.length]);
+			itemEl.createEl('span', { cls: 'bases-charts-plot-legend-label', text: entry.name, attr: { title: entry.name } });
 		}
 	}
 

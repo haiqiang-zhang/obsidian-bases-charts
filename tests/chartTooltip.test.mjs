@@ -25,8 +25,8 @@ const result = await build({
 				contents: args.path === 'obsidian'
 					? 'export class DateValue {} export class ListValue {} export class NumberValue {} export class StringValue {}'
 					: `export class ChartFilesModal {
-						constructor(app, title, summary, files, openFile) {
-							Object.assign(this, { app, title, summary, files, openFile });
+						constructor(app, title, summary, files, openFile, details) {
+							Object.assign(this, { app, title, summary, files, openFile, details });
 							app.modals.push(this); app.events.push('construct');
 						}
 						open() { this.app.events.push('open'); }
@@ -294,4 +294,53 @@ test('plot detection and CSS-scaled placement honor fractional chart bounds with
 		assert.ok(rect.left + x * scale + metrics.width <= bounds.left + bounds.width + 0.01);
 		assert.ok(rect.top + y * scale + metrics.maxHeight <= bounds.top + bounds.height + 0.01);
 	}
+});
+
+test('radar previews original category values and opens source rows without a synthetic total', () => {
+	const radarContext = { ...context, chartType: 'chart-radar', xName: 'Department', yLabel: 'Values' };
+	const { options, tooltip, app } = harness(1280, 900, 13, radarContext);
+	const sales = rawPoint(2, { x: 'Sales', y: 15, files: ['sales-a.md', 'sales-b.md'], fileValues: [10, 5] });
+	const support = rawPoint(1, { x: 'Support', y: 0, files: ['support.md'], fileValues: [0] });
+	const raw = rawPoint(1, {
+		x: 'not a category', y: 999999, files: ['synthetic.md'], fileValues: [999999],
+		radar: { name: 'Spending · Actual', property: 'Spending', values: [
+			{ category: 'Sales', value: 15, point: sales },
+			{ category: 'Support', value: 0, point: support },
+			{ category: '<Marketing>', value: null, point: null },
+		] },
+	});
+	const root = options.formatter({ color: '#6699aa', data: { _raw: raw } });
+	assert.equal(root.find('bases-chart-tooltip-property').textContent, 'Series');
+	assert.equal(root.find('bases-chart-tooltip-title').textContent, 'Spending · Actual');
+	const rows = root.find('bases-chart-tooltip-preview').children;
+	assert.deepEqual(rows.map(row => row.find('bases-chart-tooltip-file-name').textContent), ['Sales', 'Support', '<Marketing>']);
+	assert.deepEqual(rows.map(row => row.find('bases-chart-tooltip-file-value').textContent), ['15', '0', '—']);
+	assert.ok(rows.every(row => row.find('bases-chart-tooltip-swatch').style.values.get('background-color') === '#6699aa'));
+	tooltip.openFiles(raw, radarContext);
+	const modal = app.modals[0];
+	assert.equal(modal.summary, 'Spending · 3 categories');
+	assert.deepEqual(modal.files, [
+		{ path: 'sales-a.md', value: 10, group: 'Sales' },
+		{ path: 'sales-b.md', value: 5, group: 'Sales' },
+		{ path: 'support.md', value: 0, group: 'Support' },
+	]);
+	assert.deepEqual(modal.details, { xName: 'Series', xValue: 'Spending · Actual', yLabel: 'Spending', groupLabel: 'Department' });
+	tooltip.dispose();
+});
+
+test('a large radar preview caps visible categories while the modal retains all source values', () => {
+	const radarContext = { ...context, chartType: 'chart-radar', xName: 'Category' };
+	const { options, tooltip, app } = harness(1280, 900, 13, radarContext);
+	const values = Array.from({ length: 12 }, (_, index) => ({
+		category: `Category ${index}`, value: index,
+		point: rawPoint(1, { files: [`category-${index}.md`], fileValues: [index] }),
+	}));
+	const raw = rawPoint(0, { radar: { name: 'Budget', property: 'Budget', values } });
+	const root = options.formatter({ data: { _raw: raw } });
+	assert.equal(root.find('bases-chart-tooltip-preview').children.length, 5);
+	assert.equal(root.find('bases-chart-tooltip-count').textContent, '+7 more categories');
+	tooltip.openFiles(raw, radarContext);
+	assert.equal(app.modals[0].files.length, 12);
+	assert.deepEqual(app.modals[0].files.map(file => file.value), values.map(item => item.value));
+	tooltip.dispose();
 });

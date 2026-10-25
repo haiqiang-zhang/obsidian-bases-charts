@@ -129,12 +129,12 @@ test('first data update mounts axes after config assignment and unload removes t
 });
 
 
-test('pie exposes category/value controls instead of cartesian axis labels', () => {
+for (const type of ['chart-pie', 'chart-radar']) test(`${type} exposes category/value controls instead of cartesian axis labels`, () => {
 	const nativeToolbar = new Element();
 	const containerEl = new Element();
 	containerEl.parentElement = { querySelector: () => nativeToolbar };
 	const view = {
-		type: 'chart-pie', containerEl,
+		type, containerEl,
 		config: { get: () => undefined, getAsPropertyId: () => 'file.folder', getDisplayName: () => 'Folder' },
 		getYProperties: () => ['note.Amount'],
 		events: { on: () => ({}) },

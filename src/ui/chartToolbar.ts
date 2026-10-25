@@ -30,7 +30,7 @@ export class ChartToolbar extends Component {
 	}
 
 	private axisLabel(axis: Axis): string {
-		if (this.view.type === 'chart-pie') return axis === 'x' ? 'Category' : 'Values';
+		if (['chart-pie', 'chart-radar'].includes(this.view.type)) return axis === 'x' ? 'Category' : 'Values';
 		return axis === 'x' ? 'X axis' : 'Y axes';
 	}
 
@@ -51,7 +51,7 @@ export class ChartToolbar extends Component {
 				button.type = 'button';
 				button.setAttribute('aria-haspopup', 'dialog');
 				button.setAttribute('aria-expanded', 'false');
-				const icon = this.view.type === 'chart-pie'
+				const icon = ['chart-pie', 'chart-radar'].includes(this.view.type)
 					? (axis === 'x' ? 'list' : 'sigma')
 					: (axis === 'x' ? 'move-horizontal' : 'move-vertical');
 				setIcon(button.createSpan({ cls: 'text-button-icon' }), icon);

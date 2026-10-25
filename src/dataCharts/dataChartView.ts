@@ -212,6 +212,30 @@ export abstract class DataChartView extends BaseChartView {
 		return mode !== AggregateMode.NONE ? `${chartName} (${mode})` : chartName;
 	}
 
+	getChartCount(data: DataWrapper): number {
+		return data.getChartIdentifiers().length;
+	}
+
+	getChartData(data: DataWrapper, chartIndex: number): ProcessedData[] {
+		return data.getFlat(chartIndex);
+	}
+
+	getChartLegend(data: DataWrapper): { name: string; colorIndex: number }[] {
+		return data.hasMultipleGroups()
+			? data.getGroupIdentifiers().map((_, index) => ({ name: data.getGroupName(index), colorIndex: index }))
+			: [];
+	}
+
+	getChartLabel(data: DataWrapper, chartIndex: number): string {
+		return this.getChartData(data, chartIndex).some(point => !point.isNumeric)
+			? `${data.getChartName(chartIndex)} (Count)`
+			: this.getYAxisLabel(data.getChartName(chartIndex), this.getYProperties()[chartIndex]);
+	}
+
+	getChartMessage(_data: DataWrapper, _chartIndex: number): string | null {
+		return null;
+	}
+
 	getYDomainOverrides(): YDomainOverrides {
 		const min = this.config.get(COMMON_SETTINGS.MIN_Y_OVERRIDE);
 		const max = this.config.get(COMMON_SETTINGS.MAX_Y_OVERRIDE);
