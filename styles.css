@@ -819,15 +819,18 @@ body {
     flex-direction: column;
     box-sizing: border-box;
     overflow: hidden;
-    padding: 6px;
-    background: var(--background-primary);
+    padding: 0;
     border: var(--border-width) solid var(--background-modifier-border);
     border-radius: var(--radius-m);
     box-shadow: var(--shadow-s);
     z-index: 1;
 }
-.bases-chart-palette-search { flex: 0 0 auto; padding: 2px 2px 6px; }
-.bases-chart-palette-search .search-input-container { width: 100%; --search-icon-color: var(--text-faint); }
+.bases-chart-palette-search { flex: 0 0 auto; }
+.bases-chart-palette-search .search-input-container {
+    width: 100%;
+    margin-top: var(--size-2-1);
+    --search-icon-color: var(--text-faint);
+}
 /* Match the native Layout combobox search field. */
 .bases-chart-palette-search input[type="search"] {
     width: 100%;
@@ -840,7 +843,8 @@ body {
     max-height: none;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 0;
+    /* Keep the inset inside the scroller, as in Obsidian's Layout combobox. */
+    padding: var(--size-2-3);
 }
 .bases-chart-palette-popover button.bases-chart-palette-option {
     display: flex;
@@ -848,16 +852,19 @@ body {
     gap: var(--size-4-3);
     width: 100%;
     height: auto;
-    min-height: 36px;
-    padding: 8px 10px;
-    margin: 0;
+    min-height: 0;
+    padding: var(--size-2-3) var(--size-4-2);
+    margin: 0 0 1px;
     border: 0;
     border-radius: var(--radius-s);
     background: transparent;
     box-shadow: none;
     text-align: start;
     color: var(--text-normal);
-    font: inherit;
+    font-family: inherit;
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-normal);
+    line-height: var(--line-height-tight);
 }
 .bases-chart-palette-popover button.bases-chart-palette-option:is(.is-selected, :hover, :focus-visible) {
     background: var(--background-modifier-hover);
