@@ -53,9 +53,10 @@ export class ChartFilesModal extends Modal {
 		const conditions = this.contentEl.createDiv({ cls: 'bases-chart-files-conditions' });
 		if (this.details) {
 			const chip = conditions.createDiv({ cls: 'bases-chart-files-condition' });
-			chip.createSpan({ cls: 'bases-chart-files-condition-property', text: this.details.xName });
-			chip.createSpan({ cls: 'bases-chart-files-condition-operator', text: 'is' });
-			chip.createSpan({ cls: 'bases-chart-files-condition-value', text: this.details.xValue }).title = this.details.xValue;
+			chip.createSpan({ cls: 'bases-chart-files-condition-property', text: this.details.xName }).title = this.details.xName;
+			const match = chip.createSpan({ cls: 'bases-chart-files-condition-match' });
+			match.createSpan({ cls: 'bases-chart-files-condition-operator', text: 'is' });
+			match.createSpan({ cls: 'bases-chart-files-condition-value', text: this.details.xValue }).title = this.details.xValue;
 		}
 		conditions.createDiv({ cls: 'bases-chart-files-summary', text: this.summary });
 		const tools = this.contentEl.createDiv({ cls: 'bases-chart-files-tools' });
