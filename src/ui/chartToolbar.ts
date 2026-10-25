@@ -100,15 +100,15 @@ export class ChartToolbar extends Component {
 		panel.setAttribute('aria-label', this.axisLabel(axis));
 		button.setAttribute('aria-expanded', 'true');
 		const header = panel.createDiv({ cls: 'bases-chart-panel-header' });
-		header.createDiv({ cls: 'bases-chart-panel-title', text: this.axisLabel(axis) });
+		const title = header.createDiv({ cls: 'bases-chart-panel-title', text: this.axisLabel(axis) });
+		const count = axis === 'y' ? title.createSpan({ cls: 'flair bases-chart-selection-count' }) : null;
 		this.iconButton(header, 'x', 'Close', () => {
 			this.closePanel?.();
 			button.focus();
 		});
 		const selection = panel.createDiv({ cls: 'bases-chart-selection' });
-		const selectionHeading = selection.createDiv({ cls: 'bases-chart-selection-heading' });
-		selectionHeading.createSpan({ text: axis === 'x' ? 'Selected property' : 'Selected properties' });
-		const count = axis === 'y' ? selectionHeading.createSpan({ cls: 'flair bases-chart-selection-count' }) : null;
+		selection.setAttribute('role', 'group');
+		selection.setAttribute('aria-label', axis === 'x' ? 'Selected property' : 'Selected properties');
 		const selected = selection.createDiv({ cls: 'bases-chart-selected-properties' });
 		const searchContainer = panel.createDiv({ cls: 'bases-chart-property-search' });
 		const searchComponent = new SearchComponent(searchContainer).setPlaceholder('Find a property…');
@@ -133,7 +133,7 @@ export class ChartToolbar extends Component {
 		render();
 
 		const rect = button.getBoundingClientRect();
-		const width = Math.max(0, Math.min(420, win.innerWidth - 16));
+		const width = Math.max(0, Math.min(axis === 'x' ? 360 : 420, win.innerWidth - 16));
 		panel.style.setProperty('--chart-panel-width', `${width}px`);
 		panel.style.setProperty('--chart-panel-left', `${Math.max(8, Math.min(rect.right - width, win.innerWidth - width - 8))}px`);
 		const below = win.innerHeight - rect.bottom - 14;
@@ -317,7 +317,6 @@ export class ChartToolbar extends Component {
 					this.openDateGroupingMenu(dropdown);
 				}
 			});
-			container.createDiv({ cls: 'bases-chart-panel-description bases-chart-date-hint', text: 'Local calendar dates. Weeks start on Monday.' });
 		}
 	}
 

@@ -568,11 +568,17 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: var(--size-4-2);
-    padding: var(--size-4-2) var(--size-4-3);
+    padding: var(--size-4-2);
     flex-shrink: 0;
 }
 .bases-chart-axis-panel.is-short-window { top: 8px; }
-.bases-chart-panel-title { font-weight: var(--font-medium); }
+.bases-chart-panel-title {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-2);
+    padding-inline-start: var(--size-4-1);
+    font-weight: var(--font-medium);
+}
 .bases-chart-panel-header .clickable-icon { padding: var(--size-2-1); box-shadow: none; }
 .bases-chart-panel-description {
     color: var(--text-muted);
@@ -584,18 +590,9 @@ body {
     flex-direction: column;
     min-height: 0;
     max-height: min(220px, calc(var(--chart-panel-height) * 0.45));
-    padding: 0 var(--size-4-3) var(--size-4-3);
+    padding: 0 var(--size-4-2) var(--size-4-2);
     border-bottom: var(--border-width) solid var(--background-modifier-border);
     flex: 0 0 auto;
-}
-.bases-chart-selection-heading {
-    display: flex;
-    align-items: center;
-    gap: var(--size-4-1);
-    padding-bottom: var(--size-4-2);
-    color: var(--text-muted);
-    font-size: var(--font-ui-smaller);
-    flex-shrink: 0;
 }
 .bases-chart-selection-count {
     --flair-background: var(--background-modifier-hover);
@@ -627,7 +624,9 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: var(--size-4-2);
-    padding-top: var(--size-4-3);
+    min-height: 32px;
+    padding-inline: var(--size-4-2) var(--size-4-1);
+    flex-shrink: 0;
 }
 .bases-chart-date-grouping > span { color: var(--text-muted); }
 .bases-chart-date-grouping > .dropdown {
@@ -636,7 +635,6 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.bases-chart-date-hint { padding-top: var(--size-4-1); }
 .bases-chart-panel-footer {
     flex: 0 0 auto;
     padding: var(--size-4-1);
@@ -723,7 +721,7 @@ body {
 .bases-chart-selected-properties {
     display: flex;
     flex-direction: column;
-    gap: var(--size-4-2);
+    gap: var(--size-4-1);
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -731,11 +729,10 @@ body {
 .bases-chart-selected-property {
     display: flex;
     align-items: center;
-    min-height: 34px;
+    min-height: 32px;
     flex-shrink: 0;
-    border: var(--border-width) solid var(--background-modifier-border);
-    border-radius: var(--input-radius);
-    background: var(--background-primary);
+    border-radius: var(--radius-s);
+    background: var(--background-modifier-hover);
 }
 .bases-chart-selected-x { gap: var(--size-4-2); padding: var(--size-2-1) var(--size-4-1) var(--size-2-1) var(--size-4-2); }
 .bases-chart-selected-name {
@@ -744,12 +741,12 @@ body {
     gap: var(--size-4-2);
     flex: 1;
     min-width: 0;
-    padding: var(--size-2-3) var(--size-4-2);
+    padding: var(--size-4-1) var(--size-4-2);
 }
 .bases-chart-axis-panel select.bases-chart-aggregate-select {
     max-width: 110px;
     min-width: 0;
-    height: 32px;
+    height: 28px;
     margin: 0;
     border: 0;
     border-inline-start: var(--border-width) solid var(--background-modifier-border);
