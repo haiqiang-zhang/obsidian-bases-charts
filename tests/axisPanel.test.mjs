@@ -38,9 +38,11 @@ const result = await build({
 					}
 					export class Menu {
 						static instances = [];
+						static preference = false;
 						items = [];
-						constructor() { Menu.instances.push(this); }
-						setUseNativeMenu(value) { this.useNativeMenu = value; return this; }
+						overrides = [];
+						constructor() { this.useNativeMenu = Menu.preference; Menu.instances.push(this); }
+						setUseNativeMenu(value) { this.overrides.push(value); this.useNativeMenu = value; return this; }
 						setParentElement(parent) { this.parent = parent; return this; }
 						addItem(callback) {
 							const item = {
@@ -53,6 +55,7 @@ const result = await build({
 						onHide(callback) { this.hideCallback = callback; }
 						showAtPosition(position, doc) {
 							this.position = position; this.doc = doc; this.hidden = false;
+							if (this.useNativeMenu) return this;
 							this.element = doc.body.createDiv({ cls: 'menu' });
 							this.background = doc.body.createDiv({ cls: 'suggestion-bg' });
 							for (const item of this.items) {
@@ -369,7 +372,7 @@ test('date grouping is shown only for an eligible X property, never in Y', () =>
 			assert.equal(dropdown.textContent, 'Month');
 			dropdown.dispatch('click');
 			const menu = Menu.instances.at(-1);
-			assert.equal(menu.useNativeMenu, false);
+			assert.deepEqual(menu.overrides, [], 'the host must choose native or DOM rendering');
 			assert.equal(menu.parent, state.panel());
 			assert.equal(menu.doc, state.doc);
 			assert.deepEqual(menu.position, { x: 500, y: 80, width: 220, overlap: true, left: true });
@@ -381,6 +384,42 @@ test('date grouping is shown only for an eligible X property, never in Y', () =>
 		state.toolbar.openAxis('y');
 		assert.equal(state.panel().querySelector('.bases-chart-date-grouping'), null);
 		state.toolbar.onunload();
+	}
+});
+
+for (const preference of [false, true]) test(`date grouping inherits ${preference ? 'native' : 'DOM'} menus and handles selection and cancellation`, () => {
+	Menu.preference = preference;
+	const state = harness('note.completed at', { date: true });
+	try {
+		state.toolbar.openAxis('x');
+		const panel = state.panel();
+		const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
+		dropdown.dispatch('click');
+		const menu = Menu.instances.at(-1);
+		assert.deepEqual(menu.overrides, []);
+		assert.equal(menu.useNativeMenu, preference);
+		assert.equal(Boolean(menu.element), !preference, 'OS menus have no DOM menu element');
+		assert.equal(menu.doc, state.doc, 'the host must receive the owning popout document');
+		menu.items.find(item => item.title === 'Day').callback();
+		menu.hide();
+		assert.deepEqual(state.writes, [{ key: 'x-date-grouping', value: { property: 'note.completed at', unit: 'day' } }]);
+		assert.equal(state.panel(), panel);
+		assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+		assert.equal(state.doc.activeElement, dropdown);
+		dropdown.dispatch('click');
+		const reopened = Menu.instances.at(-1);
+		assert.deepEqual(reopened.items.filter(item => item.checked).map(item => item.title), ['Day']);
+		reopened.hide(); // Native cancellation can arrive without a DOM keyboard event.
+		assert.equal(state.writes.length, 1);
+		assert.equal(state.panel(), panel);
+		assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+		dropdown.dispatch('click');
+		state.toolbar.onunload();
+		assert.equal(Menu.instances.at(-1).hidden, true);
+		assert.equal(state.panel(), null);
+	} finally {
+		state.toolbar.onunload();
+		Menu.preference = false;
 	}
 });
 

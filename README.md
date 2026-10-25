@@ -75,6 +75,7 @@ AI Chart options follow the [ECharts 6.1 API](https://github.com/apache/echarts/
 - Bar, line, stacked area, and scatter charts sit directly below the native toolbar with narrow chart margins; pie and radar charts sit at the center
 - Legends stay below the charts, and smaller panes scroll naturally
 - Light and dark theme support
+- Standard menus follow Obsidian's **Native menus** preference
 - Mobile-optimized layout
 
 ## Installation

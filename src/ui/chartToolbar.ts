@@ -244,7 +244,8 @@ export class ChartToolbar extends Component {
 			this.closeDateGroupingMenu(true);
 			return;
 		}
-		const menu = new Menu().setUseNativeMenu(false).setParentElement(panel);
+		// Let Obsidian choose native or DOM menus from the user's preference.
+		const menu = new Menu().setParentElement(panel);
 		const current = this.view.getXDateGrouping();
 		for (const [unit, label] of Object.entries(DATE_GROUPING_OPTIONS)) {
 			menu.addItem(item => item.setTitle(label).setChecked(unit === current).onClick(() => {
