@@ -1,8 +1,9 @@
-import { Component, DropdownComponent, SearchComponent, setIcon } from 'obsidian';
+import { Component, DropdownComponent, Menu, SearchComponent, setIcon } from 'obsidian';
 import type { DataChartView } from '../dataCharts/dataChartView';
 import { AggregateMode, aggregateKey } from '../dataCharts/aggregate';
 import { COMMON_SETTINGS } from '../dataCharts/types';
 import { parseValueAsNumber } from '../utils/utils';
+import { DATE_GROUPING_OPTIONS, normalizeDateGrouping } from '../dataCharts/dateBuckets';
 
 type Axis = 'x' | 'y';
 
@@ -14,6 +15,9 @@ export class ChartToolbar extends Component {
 	private items: HTMLElement[] = [];
 	private panel: HTMLElement | null = null;
 	private closePanel: (() => void) | null = null;
+	private dateGroupingMenu: Menu | null = null;
+	private dateGroupingTrigger: HTMLButtonElement | null = null;
+	private dateGroupingDismissals = new WeakMap<Event, HTMLButtonElement>();
 
 	constructor(private view: DataChartView) {
 		super();
@@ -64,9 +68,15 @@ export class ChartToolbar extends Component {
 		}
 		const x = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const y = this.view.getYProperties();
-		this.updateButton('x', x ? this.view.config.getDisplayName(x) : 'Choose',
-			x ? `${this.axisLabel('x')}: ${this.view.config.getDisplayName(x)}` : `Choose ${this.axisLabel('x')}`);
+		const grouping = this.view.getXDateGrouping();
+		const xSummary = x ? `${this.view.config.getDisplayName(x)}${grouping === 'exact' ? '' : ` · ${DATE_GROUPING_OPTIONS[grouping]}`}` : 'Choose';
+		this.updateButton('x', xSummary, x ? `${this.axisLabel('x')}: ${xSummary}` : `Choose ${this.axisLabel('x')}`);
 		this.updateButton('y', String(y.length), `${this.axisLabel('y')}: ${y.length} selected`);
+		for (const row of Array.from(this.panel?.querySelectorAll<HTMLElement>('.bases-chart-selected-property') ?? [])) {
+			const id = row.dataset.property;
+			const select = row.querySelector<HTMLSelectElement>('.bases-chart-aggregate-select');
+			if (id && select) select.value = this.view.getAggregateModeForProperty(id as import('obsidian').BasesPropertyId);
+		}
 	}
 
 	private updateButton(axis: Axis, summary: string, label: string): void {
@@ -105,6 +115,13 @@ export class ChartToolbar extends Component {
 		const search = searchComponent.inputEl;
 		search.setAttribute('aria-label', 'Find a property');
 		const results = panel.createDiv({ cls: 'bases-chart-property-results' });
+		const footer = panel.createDiv({ cls: 'bases-chart-panel-footer' });
+		const formula = footer.createEl('button', { cls: 'bases-chart-add-formula', attr: { type: 'button' } });
+		setIcon(formula.createSpan({ cls: 'bases-chart-property-icon' }), 'square-function');
+		formula.createSpan({ text: 'Add formula' });
+		formula.disabled = !this.view.canEditFormulas();
+		if (formula.disabled) formula.title = 'The native formula editor is unavailable in this Obsidian version.';
+		formula.addEventListener('click', () => this.openEditor(axis));
 
 		const render = () => {
 			if (axis === 'x') this.renderSelectedX(selected);
@@ -133,23 +150,41 @@ export class ChartToolbar extends Component {
 
 		const onOutside = (event: PointerEvent) => {
 			const path = event.composedPath();
+			// Public Menu mounts under body, outside this panel's event path.
+			if (this.dateGroupingMenu && path.some(target => (target as Element).classList?.contains('menu'))) return;
 			if (!path.includes(panel) && !path.includes(button)) this.closePanel?.();
 		};
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') {
+				if (event.defaultPrevented) return;
 				event.preventDefault();
 				event.stopPropagation();
+				// The native keymap can hide Menu earlier in this same key dispatch.
+				const dismissedTrigger = this.dateGroupingDismissals.get(event);
+				if (dismissedTrigger) {
+					this.dateGroupingDismissals.delete(event);
+					event.stopImmediatePropagation();
+					dismissedTrigger.focus();
+					return;
+				}
+				if (this.dateGroupingMenu) {
+					event.stopImmediatePropagation();
+					this.closeDateGroupingMenu(true);
+					return;
+				}
 				this.closePanel?.();
 				button.focus();
 			}
+			if (this.dateGroupingMenu) return;
 			if (event.key === 'ArrowDown' && event.target === search) {
 				event.preventDefault();
-				results.querySelector<HTMLButtonElement>('button')?.focus();
+				results.querySelector<HTMLButtonElement>('.bases-chart-property-option')?.focus();
 			}
 			if (event.composedPath().includes(results)
 				&& ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
-				const options = Array.from(results.querySelectorAll<HTMLButtonElement>('button'));
+				const options = Array.from(results.querySelectorAll<HTMLButtonElement>('.bases-chart-property-option'));
 				const index = options.indexOf(event.target as HTMLButtonElement);
+				if (index < 0) return;
 				const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
 					: index + (event.key === 'ArrowDown' ? 1 : -1);
 				event.preventDefault();
@@ -159,6 +194,7 @@ export class ChartToolbar extends Component {
 		};
 		const onResize = () => this.closePanel?.();
 		const onFocus = (event: FocusEvent) => {
+			if (this.dateGroupingMenu) return;
 			if (!event.composedPath().includes(panel) && event.target !== button) this.closePanel?.();
 		};
 		doc.addEventListener('pointerdown', onOutside, true);
@@ -170,6 +206,7 @@ export class ChartToolbar extends Component {
 			doc.removeEventListener('keydown', onKey, true);
 			doc.removeEventListener('focusin', onFocus);
 			win.removeEventListener('resize', onResize);
+			this.closeDateGroupingMenu();
 			panel.remove();
 			button.setAttribute('aria-expanded', 'false');
 			this.panel = null;
@@ -179,10 +216,78 @@ export class ChartToolbar extends Component {
 	}
 
 	private propertyIcon(id: string): string {
-		return id.startsWith('file.') ? 'file' : id.startsWith('formula.') ? 'square-function' : 'hash';
+		if (id.startsWith('formula.')) return 'square-function';
+		if (id === this.view.config.getAsPropertyId(COMMON_SETTINGS.X) && this.view.isDateXAxis()) return 'calendar-days';
+		return id.startsWith('file.') ? 'file' : 'hash';
+	}
+
+	private openEditor(axis: Axis, propertyId?: import('obsidian').BasesPropertyId): void {
+		const anchor = this.buttons.get(axis);
+		if (!anchor) return;
+		this.closePanel?.();
+		this.view.openFormulaEditor(anchor, axis, propertyId);
+	}
+
+	private propertyEditButton(parent: HTMLElement, axis: Axis, propertyId: import('obsidian').BasesPropertyId): void {
+		if (!this.view.canEditFormulas()) return;
+		const name = this.view.config.getDisplayName(propertyId);
+		const kind = propertyId.startsWith('formula.') ? 'formula' : 'property';
+		const button = this.iconButton(parent, 'chevron-right', `Edit ${kind}: ${name}`, () => this.openEditor(axis, propertyId));
+		button.addClass('bases-chart-property-edit');
+		button.setAttribute('aria-haspopup', 'dialog');
+	}
+
+	private openDateGroupingMenu(button: HTMLButtonElement): void {
+		const panel = this.panel;
+		if (!panel) return;
+		if (this.dateGroupingMenu) {
+			this.closeDateGroupingMenu(true);
+			return;
+		}
+		const menu = new Menu().setUseNativeMenu(false).setParentElement(panel);
+		const current = this.view.getXDateGrouping();
+		for (const [unit, label] of Object.entries(DATE_GROUPING_OPTIONS)) {
+			menu.addItem(item => item.setTitle(label).setChecked(unit === current).onClick(() => {
+				if (this.panel !== panel) return;
+				this.view.setXDateGrouping(normalizeDateGrouping(unit));
+				button.setText(label);
+				this.changed();
+				this.closeDateGroupingMenu(true);
+			}));
+		}
+		menu.onHide(() => {
+			button.setAttribute('aria-expanded', 'false');
+			if (this.dateGroupingMenu === menu) {
+				this.dateGroupingMenu = null;
+				this.dateGroupingTrigger = null;
+				// Native Menu hides from the window keymap without cancelling Escape.
+				// Track only that exact dispatch so later key presses remain independent.
+				// eslint-disable-next-line @typescript-eslint/no-deprecated -- Menu.onHide has no event; Electron exposes the current dispatch here without a timing heuristic.
+				const event = button.ownerDocument.defaultView?.event;
+				if (event?.type === 'keydown' && 'key' in event && event.key === 'Escape') {
+					this.dateGroupingDismissals.set(event, button);
+				}
+			}
+		});
+		this.dateGroupingMenu = menu;
+		this.dateGroupingTrigger = button;
+		button.setAttribute('aria-expanded', 'true');
+		const rect = button.getBoundingClientRect();
+		menu.showAtPosition({ x: rect.left, y: rect.bottom + 4, width: rect.width, overlap: true, left: true }, button.ownerDocument);
+	}
+
+	private closeDateGroupingMenu(restoreFocus = false): void {
+		const menu = this.dateGroupingMenu;
+		const trigger = this.dateGroupingTrigger;
+		this.dateGroupingMenu = null;
+		this.dateGroupingTrigger = null;
+		trigger?.setAttribute('aria-expanded', 'false');
+		menu?.hide();
+		if (restoreFocus && this.panel) trigger?.focus();
 	}
 
 	private renderSelectedX(container: HTMLElement): void {
+		this.closeDateGroupingMenu();
 		container.empty();
 		const x = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		if (!x) {
@@ -196,6 +301,23 @@ export class ChartToolbar extends Component {
 		setIcon(row.createSpan({ cls: 'bases-chart-property-icon' }), this.propertyIcon(x));
 		row.createSpan({ cls: 'bases-chart-property-name', text: name }).setAttribute('title', x);
 		setIcon(row.createSpan({ cls: 'bases-chart-property-check', attr: { 'aria-label': 'Selected' } }), 'check');
+		this.propertyEditButton(row, 'x', x);
+		if (this.view.isDateXAxis()) {
+			const groupingRow = container.createDiv({ cls: 'bases-chart-date-grouping' });
+			groupingRow.createSpan({ text: 'Date grouping' });
+			const dropdown = groupingRow.createEl('button', {
+				cls: 'dropdown', text: DATE_GROUPING_OPTIONS[this.view.getXDateGrouping()],
+				attr: { type: 'button', 'aria-label': 'Date grouping', 'aria-haspopup': 'menu', 'aria-expanded': 'false' },
+			});
+			dropdown.addEventListener('click', () => this.openDateGroupingMenu(dropdown));
+			dropdown.addEventListener('keydown', event => {
+				if (!this.dateGroupingMenu && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+					event.preventDefault();
+					this.openDateGroupingMenu(dropdown);
+				}
+			});
+			container.createDiv({ cls: 'bases-chart-panel-description bases-chart-date-hint', text: 'Local calendar dates. Weeks start on Monday.' });
+		}
 	}
 
 	private renderProperties(container: HTMLElement, axis: Axis, query: string, render: () => void): void {
@@ -215,14 +337,16 @@ export class ChartToolbar extends Component {
 			container.createDiv({ cls: 'bases-chart-property-section', text: title });
 			for (const id of matches) {
 				count++;
-				const row = container.createEl('button', { cls: 'bases-chart-property-option' });
-				row.type = 'button';
+				const row = container.createDiv({ cls: 'bases-chart-property-row' });
 				row.dataset.property = id;
-				row.setAttribute('aria-label', `${axis === 'x' ? 'Use' : 'Add'} ${this.view.config.getDisplayName(id)} (${id})`);
-				setIcon(row.createSpan({ cls: 'bases-chart-property-icon' }), this.propertyIcon(id));
-				row.createSpan({ cls: 'bases-chart-property-name', text: this.view.config.getDisplayName(id) });
-				if (axis === 'y') setIcon(row.createSpan({ cls: 'bases-chart-property-add', attr: { 'aria-hidden': 'true' } }), 'plus');
-				row.addEventListener('click', () => {
+				const choice = row.createEl('button', { cls: 'bases-chart-property-option' });
+				choice.type = 'button';
+				choice.dataset.property = id;
+				choice.setAttribute('aria-label', `${axis === 'x' ? 'Use' : 'Add'} ${this.view.config.getDisplayName(id)} (${id})`);
+				setIcon(choice.createSpan({ cls: 'bases-chart-property-icon' }), this.propertyIcon(id));
+				choice.createSpan({ cls: 'bases-chart-property-name', text: this.view.config.getDisplayName(id) });
+				if (axis === 'y') setIcon(choice.createSpan({ cls: 'bases-chart-property-add', attr: { 'aria-hidden': 'true' } }), 'plus');
+				choice.addEventListener('click', () => {
 					if (axis === 'x') {
 						this.view.config.set(COMMON_SETTINGS.X, id);
 						this.changed();
@@ -242,6 +366,7 @@ export class ChartToolbar extends Component {
 						this.panel?.querySelector<HTMLInputElement>('input')?.focus();
 					}
 				});
+				this.propertyEditButton(row, axis, id);
 			}
 		}
 		if (!count) container.createDiv({ cls: 'bases-chart-panel-description', text: 'No matching properties.' });
@@ -258,6 +383,7 @@ export class ChartToolbar extends Component {
 			const property = row.createDiv({ cls: 'bases-chart-selected-name' });
 			setIcon(property.createSpan({ cls: 'bases-chart-property-icon' }), this.propertyIcon(id));
 			property.createSpan({ cls: 'bases-chart-property-name', text: name }).setAttribute('title', id);
+			this.propertyEditButton(property, 'y', id);
 			const aggregate = new DropdownComponent(row);
 			const select = aggregate.selectEl;
 			select.addClass('bases-chart-aggregate-select');
@@ -281,7 +407,8 @@ export class ChartToolbar extends Component {
 				this.changed();
 				render();
 				const movedRow = Array.from(container.children).find(child => (child as HTMLElement).dataset.property === id);
-				const movedButton = movedRow?.querySelectorAll<HTMLButtonElement>('button')[offset < 0 ? 0 : 1];
+				const movedButton = Array.from(movedRow?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+					.find(button => button.getAttribute('aria-label') === `Move ${name} ${offset < 0 ? 'up' : 'down'}`);
 				if (movedButton && !movedButton.disabled) movedButton.focus();
 				else this.panel?.querySelector<HTMLInputElement>('input')?.focus();
 			};

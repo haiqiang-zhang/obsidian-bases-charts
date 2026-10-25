@@ -42,8 +42,14 @@ Built-in chart views that visualize Bases data with configurable axes, aggregati
 - Per-view color palettes: Auto, Colorful, Earth, Coastal, and nine single-color palettes, each adapted for light and dark themes
 - Compact, stationary tooltips with the X property and group totals; click a chart column to explore its files in a searchable data table
 - X axis sorting via Bases Sort configuration
+- Date grouping for X: Exact time, Day, Week, Month, or Year
+- Native property and formula editors, available from each property row in the axis menus
 
 X, Y, and Group sit together in the toolbar. Pie and Radar show Category and Values instead of axis controls. Open **Configure view** from the view selector on the left and choose **Color palette**. The searchable dropdown previews each palette with color swatches and shows the current selection first with a checkmark. The selection is saved with that view in the `.base` file; other views keep their own colors. Auto preserves the soft default palette. Chart appearance and applicable Y scale settings remain in the view settings. Existing charts keep their previous Y property selection until you edit it in the new Y menu. The vault root appears as `/` when using folder as X.
+
+For a date or datetime X property, choose **Date grouping → Day** to combine timestamps from the same day. Week, Month, and Year are also available. Grouping uses local calendar dates, with weeks starting on Monday; only periods containing records are shown. Choose **Exact time** to retain individual timestamps. The setting belongs to the selected X property in that view.
+
+Click a property name to select it, or its right-hand arrow to open Obsidian’s native property editor. **Add formula** opens the native formula editor with completion and validation. A valid new formula is selected when you leave the editor. **Back** returns to the X or Y menu you came from, with the current selection at the top.
 
 Stacked Area fills missing group values with zero and stacks positive and negative values separately. Radar needs at least three categories with values. Its default shared scale preserves differences between categories; choose **Per category** when comparing profiles across categories with different ranges. Missing radar values are plotted at zero and shown as missing in the tooltip. Click a radar profile to inspect its files by category.
 

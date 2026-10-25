@@ -23,7 +23,7 @@ const bundle = await build({
 	plugins: [{
 		name: 'layout-host-boundaries',
 		setup(builder) {
-			builder.onResolve({ filter: /^(obsidian|echarts|\.\.\/ui\/chartToolbar|\.\.\/utils\/renderer)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
+			builder.onResolve({ filter: /^(obsidian|echarts|\.\.\/ui\/chartToolbar|\.\.\/ui\/chartFormulaEditor|\.\.\/utils\/renderer)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
 			builder.onLoad({ filter: /.*/, namespace: 'host-stub' }, args => ({
 				contents: args.path === 'obsidian' ? `
 					export class BasesView { constructor(controller) { this.app = controller.app; } addChild(child) { return child; } removeChild() {} }
@@ -45,7 +45,8 @@ const bundle = await build({
 					export class StringValue {}
 				` : args.path === 'echarts' ? 'export const format = { truncateText: text => text };'
 					: args.path === '../ui/chartToolbar' ? 'export class ChartToolbar {}'
-						: 'export class ChartRenderer { constructor(...args) { return runtime.createRenderer(...args); } }',
+						: args.path === '../ui/chartFormulaEditor' ? 'export class ChartFormulaEditor {}'
+							: 'export class ChartRenderer { constructor(...args) { return runtime.createRenderer(...args); } }',
 			}));
 		},
 	}],

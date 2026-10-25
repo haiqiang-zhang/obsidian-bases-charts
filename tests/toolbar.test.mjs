@@ -19,6 +19,7 @@ const result = await build({
 					export class Component { registeredEvents = []; registerEvent(ref) { this.registeredEvents.push(ref); } }
 					export class SearchComponent {}
 					export class DropdownComponent {}
+					export class Menu {}
 					export function setIcon() {}
 					export class StringValue {}
 					export class NumberValue {}
@@ -103,6 +104,7 @@ test('first data update mounts axes after config assignment and unload removes t
 	const view = {
 		config: undefined,
 		containerEl,
+		getXDateGrouping: () => 'exact',
 		getYProperties: () => ['note.amount', 'file.name'],
 		events: { on: (_name, callback) => { onDataUpdated = callback; return {}; } },
 	};
@@ -135,6 +137,7 @@ for (const type of ['chart-pie', 'chart-radar']) test(`${type} exposes category/
 	containerEl.parentElement = { querySelector: () => nativeToolbar };
 	const view = {
 		type, containerEl,
+		getXDateGrouping: () => 'exact',
 		config: { get: () => undefined, getAsPropertyId: () => 'file.folder', getDisplayName: () => 'Folder' },
 		getYProperties: () => ['note.Amount'],
 		events: { on: () => ({}) },

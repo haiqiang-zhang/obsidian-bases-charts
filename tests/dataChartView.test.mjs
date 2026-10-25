@@ -11,7 +11,7 @@ const result = await build({
 		contents: `
 			export { DataChartView } from './src/dataCharts/dataChartView.ts';
 			export { detectXAxisType } from './src/utils/utils.ts';
-			export { StringValue, NumberValue, BooleanValue, DateValue, NullValue } from 'obsidian';
+			export { StringValue, NumberValue, BooleanValue, DateValue, NullValue, ListValue } from 'obsidian';
 		`,
 		resolveDir: fileURLToPath(new URL('../', import.meta.url)),
 		loader: 'ts',
@@ -24,7 +24,7 @@ const result = await build({
 		name: 'test-runtime-boundaries',
 		setup(builder) {
 			builder.onResolve({ filter: /^obsidian$/ }, () => ({ path: 'obsidian', namespace: 'test-stub' }));
-			builder.onResolve({ filter: /^(\.\/layout|\.\.\/ui\/chartToolbar)$/ }, args => ({ path: args.path, namespace: 'test-stub' }));
+			builder.onResolve({ filter: /^(\.\/layout|\.\.\/ui\/chartToolbar|\.\.\/ui\/chartFormulaEditor)$/ }, args => ({ path: args.path, namespace: 'test-stub' }));
 			builder.onLoad({ filter: /.*/, namespace: 'test-stub' }, args => ({
 				contents: args.path === 'obsidian' ? `
 					export class BasesView { constructor(controller) { Object.assign(this, controller); } }
@@ -36,13 +36,13 @@ const result = await build({
 					export class DateValue extends Value {}
 					export class NullValue extends Value { constructor() { super(null); } }
 					export class ListValue extends Value { length() { return this.data.length; } get(index) { return this.data[index]; } }
-				` : 'export class ChartLayout {} export class ChartToolbar {}',
+				` : 'export class ChartLayout {} export class ChartToolbar {} export class ChartFormulaEditor {}',
 				loader: 'js',
 			}));
 		},
 	}],
 });
-const { DataChartView, detectXAxisType, StringValue, NumberValue, BooleanValue, DateValue, NullValue } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
+const { DataChartView, detectXAxisType, StringValue, NumberValue, BooleanValue, DateValue, NullValue, ListValue } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
 
 function entry(path, folder, amount, extraValues = {}) {
 	const values = {
@@ -72,6 +72,7 @@ function makeView(entries, groups = [group(entries)], extraConfig = {}) {
 			},
 			getAsPropertyId: key => settings.get(key) ?? null,
 			getOrder: () => legacyOrder,
+			getSort: () => settings.get('sort') ?? [],
 			getDisplayName: id => id,
 		},
 	}, {});
@@ -283,4 +284,105 @@ test('invalid and out-of-range timestamps are skipped before generating X identi
 	const data = makeView(entries, undefined, { x: 'file.ctime' }).processData();
 	assert.deepEqual(data.sortedXOrder, [valid]);
 	assert.deepEqual(data.getFlat(0).flatMap(point => point.files), ['3.md']);
+});
+
+test('daily grouping aggregates counts and sums within each visible group while preserving source files', () => {
+	const dated = (path, date, amount) => entry(path, 'Tasks', amount, { 'note.completed at': new StringValue(date) });
+	const early = dated('early.md', '2026-10-24T08:15:00', 2);
+	const late = dated('late.md', '2026-10-24T23:50:00', 3);
+	const next = dated('next.md', '2026-10-25T09:00:00', 7);
+	const other = dated('other.md', '2026-10-24T13:00:00', 11);
+	const hidden = dated('hidden.md', '2026-10-26T08:00:00', 100);
+	const view = makeView([next, hidden, other, late, early], [
+		group([late, early, next], new StringValue('Study')),
+		group([other], new StringValue('Work')),
+	], { x: 'note.completed at', y: ['file.name', 'note.amount'], 'aggregate:file.name': 'Count' });
+	assert.equal(view.isDateXAxis(), true);
+	assert.equal(view.getXDateGrouping(), 'exact', 'existing charts retain exact timestamps by default');
+	view.setXDateGrouping('day');
+	assert.deepEqual(view.config.get('x-date-grouping'), { property: 'note.completed at', unit: 'day' });
+	const data = view.processData();
+	assert.equal(data.xAxisType, 'category');
+	assert.deepEqual(data.sortedXOrder, ['2026-10-24', '2026-10-25']);
+	assert.deepEqual(data.getFlat(0).map(point => [point.x, point.groupIndex, point.y]), [
+		['2026-10-24', 0, 2], ['2026-10-24', 1, 1], ['2026-10-25', 0, 1],
+	]);
+	assert.deepEqual(data.getFlat(1).map(point => [point.x, point.groupIndex, point.y]), [
+		['2026-10-24', 0, 5], ['2026-10-24', 1, 11], ['2026-10-25', 0, 7],
+	]);
+	assert.deepEqual(data.getFlat(1)[0].files, ['late.md', 'early.md']);
+	assert.deepEqual(data.getFlat(1)[0].fileValues, [3, 2]);
+	assert.ok(!data.data.some(point => point.files.includes('hidden.md')));
+});
+
+test('multiple timestamps from one file contribute once per calendar bucket for Count and Average', () => {
+	const first = entry('first.md', 'Tasks', 7, { 'note.completed': new ListValue([
+		new StringValue('2026-10-24T08:00:00'), new DateValue('2026-10-24T14:00:00'),
+		new StringValue('2026-10-25'), new StringValue('not a date'),
+	]) });
+	const second = entry('second.md', 'Tasks', 3, { 'note.completed': new StringValue('2026-10-24T23:59:00') });
+	const view = makeView([first, second], undefined, {
+		x: 'note.completed', y: ['file.name', 'note.amount'],
+		'aggregate:file.name': 'Count', 'aggregate:note.amount': 'Average',
+	});
+	view.setXDateGrouping('day');
+	const data = view.processData();
+	assert.deepEqual(data.getFlat(0).map(point => [point.x, point.y]), [['2026-10-24', 2], ['2026-10-25', 1]]);
+	assert.deepEqual(data.getFlat(1).map(point => [point.x, point.y]), [['2026-10-24', 5], ['2026-10-25', 7]]);
+	assert.deepEqual(data.getFlat(1)[0].files, ['first.md', 'second.md']);
+	assert.deepEqual(data.getFlat(1)[0].fileValues, [7, 3]);
+});
+
+test('date grouping is bound to its X property and rejects malformed or ineligible settings', () => {
+	const record = entry('task.md', 'Tasks', 7, {
+		'note.completed': new StringValue('2026-10-24T08:00:00'),
+		'note.description': new StringValue('Complete report'),
+	});
+	const view = makeView([record], undefined, { x: 'note.completed' });
+	view.setXDateGrouping('day');
+	view.config.set('x', 'file.folder');
+	assert.equal(view.getXDateGrouping(), 'exact');
+	assert.deepEqual(view.processData().getFlat(0).map(point => point.x), ['Tasks']);
+	view.config.set('x', 'note.completed');
+	assert.equal(view.getXDateGrouping(), 'day', 'returning to the bound property restores its setting');
+	for (const invalid of ['day', [], { unit: 'day' }, { property: 'note.completed', unit: 'century' }]) {
+		view.config.set('x-date-grouping', invalid);
+		assert.equal(view.getXDateGrouping(), 'exact');
+	}
+	view.config.set('x', 'note.description');
+	view.setXDateGrouping('month');
+	assert.equal(view.isDateXAxis(), false);
+	assert.equal(view.getXDateGrouping(), 'exact');
+	assert.deepEqual(view.processData().getFlat(0).map(point => point.x), ['Complete report']);
+});
+
+test('formula dates bucket chronologically and honor explicit descending X sort', () => {
+	const dates = ['2026-03-24T12:00:00', '2026-01-03T08:00:00', '2026-02-01T13:00:00'];
+	const entries = dates.map((date, i) => entry(`${i}.md`, 'Tasks', i + 1, { 'formula.Completed day': new DateValue(date) }));
+	const view = makeView(entries, undefined, { x: 'formula.Completed day', sort: [{ property: 'file.name', direction: 'DESC' }] });
+	assert.equal(view.isDateXAxis(), true, 'formula dates do not need note-property metadata');
+	view.setXDateGrouping('month');
+	assert.deepEqual(view.processData().sortedXOrder, ['2026-01', '2026-02', '2026-03']);
+	view.config.set('sort', [{ property: 'formula.Completed day', direction: 'DESC' }]);
+	const data = view.processData();
+	assert.deepEqual(data.sortedXOrder, ['2026-03', '2026-02', '2026-01']);
+	assert.deepEqual(data.getFlat(0).map(point => point.y), [1, 3, 2]);
+	view.setXDateGrouping('exact');
+	assert.deepEqual(view.processData().sortedXOrder, dates, 'exact mode retains native query order');
+	assert.deepEqual(view.data.data, entries);
+});
+
+test('calendar grouping leaves Scatter None aggregation unchanged', () => {
+	const entries = ['2026-10-24T08:00:00', '2026-10-24T09:00:00'].map((date, i) => entry(`${i}.md`, 'Tasks', i + 1, {
+		'note.completed': new StringValue(date),
+	}));
+	const view = makeView(entries, undefined, { x: 'note.completed', 'aggregate:note.amount': 'None' });
+	view.type = 'chart-scatter';
+	view.setXDateGrouping('day');
+	let data = view.processData();
+	assert.deepEqual(data.getFlat(0).map(point => [point.x, point.y]), [['2026-10-24', 1], ['2026-10-24', 2]]);
+	view.config.set('aggregate:note.amount', 'Count');
+	data = view.processData();
+	assert.deepEqual(data.getFlat(0).map(point => [point.x, point.y]), [['2026-10-24', 2]]);
+	assert.deepEqual(data.getFlat(0)[0].files, ['0.md', '1.md']);
 });

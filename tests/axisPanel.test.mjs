@@ -8,7 +8,7 @@ const result = await build({
 	stdin: {
 		contents: `
 			export { ChartToolbar } from './src/ui/chartToolbar.ts';
-			export { StringValue, NumberValue } from 'obsidian';
+			export { StringValue, NumberValue, Menu } from 'obsidian';
 		`,
 		resolveDir: fileURLToPath(new URL('../', import.meta.url)),
 		loader: 'ts',
@@ -36,6 +36,36 @@ const result = await build({
 						setValue(value) { this.selectEl.value = value; return this; }
 						onChange(callback) { this.selectEl.addEventListener('change', () => callback(this.selectEl.value)); return this; }
 					}
+					export class Menu {
+						static instances = [];
+						items = [];
+						constructor() { Menu.instances.push(this); }
+						setUseNativeMenu(value) { this.useNativeMenu = value; return this; }
+						setParentElement(parent) { this.parent = parent; return this; }
+						addItem(callback) {
+							const item = {
+								setTitle(value) { this.title = value; return this; },
+								setChecked(value) { this.checked = value; return this; },
+								onClick(value) { this.callback = value; return this; },
+							};
+							callback(item); this.items.push(item); return this;
+						}
+						onHide(callback) { this.hideCallback = callback; }
+						showAtPosition(position, doc) {
+							this.position = position; this.doc = doc; this.hidden = false;
+							this.element = doc.body.createDiv({ cls: 'menu' });
+							this.background = doc.body.createDiv({ cls: 'suggestion-bg' });
+							for (const item of this.items) {
+								item.element = this.element.createEl('button', { text: item.title });
+								item.element.addEventListener('click', () => { item.callback(); this.hide(); });
+							}
+							return this;
+						}
+						hide() {
+							this.hidden = true; this.element?.remove(); this.background?.remove();
+							const callback = this.hideCallback; this.hideCallback = null; callback?.(); return this;
+						}
+					}
 					class Value { constructor(data) { this.data = data; } toString() { return String(this.data); } }
 					export class StringValue extends Value {}
 					export class NumberValue extends Value {}
@@ -46,7 +76,7 @@ const result = await build({
 		},
 	}],
 });
-const { ChartToolbar, StringValue, NumberValue } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=axis-panel-under-test.mjs`).toString('base64')}`);
+const { ChartToolbar, StringValue, NumberValue, Menu } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=axis-panel-under-test.mjs`).toString('base64')}`);
 
 class EventTargetFixture {
 	listeners = new Map();
@@ -63,6 +93,7 @@ function eventFor(target, extra = {}) {
 		target, defaultPrevented: false, stopped: false,
 		preventDefault() { this.defaultPrevented = true; },
 		stopPropagation() { this.stopped = true; },
+		stopImmediatePropagation() { this.stopped = true; },
 		composedPath() {
 			const path = [];
 			for (let node = target; node; node = node.parentElement) path.push(node);
@@ -103,7 +134,7 @@ class Element extends EventTargetFixture {
 	setText(text) { this.textContent = text; }
 	setAttribute(key, value) { this.attributes.set(key, value); }
 	getAttribute(key) { return this.attributes.get(key) ?? null; }
-	getBoundingClientRect() { return { left: 500, right: 720, top: 40, bottom: 76 }; }
+	getBoundingClientRect() { return { left: 500, right: 720, top: 40, bottom: 76, width: 220, height: 36 }; }
 	empty() { for (const child of this.children) child.parentElement = null; this.children = []; }
 	remove() {
 		if (this.parentElement) this.parentElement.children = this.parentElement.children.filter(child => child !== this);
@@ -132,7 +163,7 @@ class Element extends EventTargetFixture {
 	}
 }
 
-function harness(x = 'formula.bucket') {
+function harness(x = 'formula.bucket', { date = false, formulaEditor = true, grouping = 'exact' } = {}) {
 	const doc = new EventTargetFixture();
 	doc.defaultView = new EventTargetFixture();
 	Object.assign(doc.defaultView, { innerWidth: 1000, innerHeight: 800 });
@@ -146,10 +177,14 @@ function harness(x = 'formula.bucket') {
 	const names = new Map(Object.entries({
 		'file.folder': 'Folder', 'note.status': 'Status', 'formula.bucket': 'Bucket',
 		'note.hours': 'Hours', 'note.score': 'Score', 'note.mood': 'Mood', 'formula.ratio': 'Ratio',
+		'note.completed at': 'Completed at',
 	}));
 	const settings = new Map(Object.entries({ x, y: ['note.hours', 'note.score'], 'aggregate:note.hours': 'Sum', 'aggregate:note.score': 'Average' }));
+	if (grouping !== 'exact') settings.set('x-date-grouping', { property: x, unit: grouping });
 	const writes = [];
 	const updates = [];
+	const formulaCalls = [];
+	let updateCount = 0;
 	const view = {
 		type: 'chart-bar', containerEl: container,
 		// The selected formula is deliberately absent: old saved properties must still show.
@@ -161,15 +196,26 @@ function harness(x = 'formula.bucket') {
 			set: (key, value) => { assert.notEqual(key, 'order'); writes.push({ key, value }); settings.set(key, value); },
 		},
 		getYProperties: () => [...settings.get('y')],
+		isDateXAxis: () => date,
+		getXDateGrouping: () => settings.get('x-date-grouping')?.unit ?? 'exact',
+		setXDateGrouping: unit => view.config.set('x-date-grouping', { property: settings.get('x'), unit }),
+		canEditFormulas: () => formulaEditor,
+		openFormulaEditor: (anchor, axis, propertyId) => {
+			assert.equal(doc.body.querySelector('.bases-chart-axis-panel'), null, 'close the picker before opening the native editor');
+			for (const event of ['pointerdown', 'keydown', 'focusin']) assert.equal(doc.listeners.get(event)?.size ?? 0, 0);
+			assert.equal(doc.defaultView.listeners.get('resize')?.size ?? 0, 0);
+			formulaCalls.push({ anchor, axis, propertyId });
+		},
 		getAggregateModeForProperty: id => settings.get(`aggregate:${id}`) ?? 'Sum',
 		getDefaultAggregateMode: () => 'Sum',
 		data: { data: [{ getValue: id => id === 'note.mood' ? new StringValue('Good') : new NumberValue(4) }] },
-		events: { on: (_name, callback) => { updates.push(callback); return {}; }, trigger: () => updates.forEach(callback => callback()) },
+		events: { on: (_name, callback) => { updates.push(callback); return {}; }, trigger: () => { updateCount++; updates.forEach(callback => callback()); } },
 	};
 	const toolbar = new ChartToolbar(view);
 	toolbar.onload();
 	return {
-		doc, toolbar, settings, writes,
+		doc, toolbar, settings, writes, formulaCalls,
+		get updateCount() { return updateCount; },
 		button: axis => nativeToolbar.querySelector(`.bases-chart-${axis}-menu`).querySelector('button'),
 		panel: () => doc.body.querySelector('.bases-chart-axis-panel'),
 	};
@@ -198,7 +244,9 @@ for (const x of ['file.folder', 'note.status', 'formula.bucket']) {
 		assert.equal(search.value, 'there-is-no-matching-property');
 		assert.deepEqual(selectedRows(panel).map(row => row.dataset.property), [x]);
 		assert.equal(candidates(panel).length, 0);
-		assert.equal(selectedRows(panel)[0].querySelectorAll('button').length, 0);
+		const selectedActions = selectedRows(panel)[0].querySelectorAll('button');
+		const editLabels = { 'file.folder': 'Edit property: Folder', 'note.status': 'Edit property: Status', 'formula.bucket': 'Edit formula: Bucket' };
+		assert.deepEqual(selectedActions.map(button => button.getAttribute('aria-label')), [editLabels[x]]);
 		search.value = '';
 		search.dispatch('input');
 		assert.equal(panel.querySelectorAll('.bases-chart-selected-property').length, 1);
@@ -249,6 +297,26 @@ test('Y aggregation, reorder, add, and remove keep their existing configuration 
 	state.toolbar.onunload();
 });
 
+test('a late aggregation update refreshes the open Y control without replacing DOM or focus', () => {
+	const state = harness();
+	state.settings.set('y', ['formula.ratio']);
+	state.toolbar.openAxis('y');
+	const panel = state.panel();
+	const row = selectedRows(panel)[0];
+	const select = row.querySelector('select');
+	assert.equal(select.value, 'Sum');
+	select.focus();
+	state.settings.set('aggregate:formula.ratio', 'Count');
+	state.toolbar.update();
+	assert.equal(state.panel(), panel);
+	assert.equal(selectedRows(panel)[0], row);
+	assert.equal(row.querySelector('select'), select);
+	assert.equal(select.value, 'Count');
+	assert.equal(state.doc.activeElement, select);
+	assert.deepEqual(state.writes, []);
+	state.toolbar.onunload();
+});
+
 test('Escape closes the panel, clears document listeners, and restores the trigger focus', () => {
 	const state = harness();
 	state.toolbar.openAxis('x');
@@ -284,5 +352,296 @@ test('candidate keyboard navigation supports arrows, Home, and End without losin
 	options[0].dispatch('keydown', { key: 'ArrowUp' });
 	assert.equal(state.doc.activeElement, search);
 	assert.deepEqual(selectedRows(panel).map(row => row.dataset.property), ['formula.bucket']);
+	state.toolbar.onunload();
+});
+
+test('date grouping is shown only for an eligible X property, never in Y', () => {
+	for (const date of [false, true]) {
+		const state = harness(date ? 'note.completed at' : 'note.status', { date, grouping: 'month' });
+		state.toolbar.openAxis('x');
+		const grouping = state.panel().querySelector('.bases-chart-date-grouping');
+		assert.equal(Boolean(grouping), date);
+		if (grouping) {
+			assert.equal(grouping.querySelector('select'), null, 'date grouping must not open an OS select popup');
+			const dropdown = grouping.querySelector('button');
+			assert.equal(dropdown.getAttribute('aria-label'), 'Date grouping');
+			assert.equal(dropdown.getAttribute('aria-haspopup'), 'menu');
+			assert.equal(dropdown.textContent, 'Month');
+			dropdown.dispatch('click');
+			const menu = Menu.instances.at(-1);
+			assert.equal(menu.useNativeMenu, false);
+			assert.equal(menu.parent, state.panel());
+			assert.equal(menu.doc, state.doc);
+			assert.deepEqual(menu.position, { x: 500, y: 80, width: 220, overlap: true, left: true });
+			assert.deepEqual(menu.items.map(item => [item.title, item.checked]), [
+				['Exact time', false], ['Day', false], ['Week', false], ['Month', true], ['Year', false],
+			]);
+			assert.equal(selectedRows(state.panel())[0].querySelector('.bases-chart-property-icon').dataset.icon, 'calendar-days');
+		}
+		state.toolbar.openAxis('y');
+		assert.equal(state.panel().querySelector('.bases-chart-date-grouping'), null);
+		state.toolbar.onunload();
+	}
+});
+
+test('choosing Day persists the property-bound grouping once and refreshes the X summary', () => {
+	const state = harness('note.completed at', { date: true });
+	state.toolbar.openAxis('x');
+	const panel = state.panel();
+	const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
+	assert.equal(dropdown.textContent, 'Exact time');
+	dropdown.dispatch('click');
+	const menu = Menu.instances.at(-1);
+	const day = menu.items.find(item => item.title === 'Day').element;
+	day.dispatch('pointerdown');
+	day.focus();
+	assert.equal(state.panel(), panel, 'pointer and focus inside the DOM menu must not close its parent');
+	day.dispatch('click');
+	assert.deepEqual(state.writes, [{ key: 'x-date-grouping', value: { property: 'note.completed at', unit: 'day' } }]);
+	assert.equal(state.updateCount, 1);
+	assert.equal(state.button('x').querySelector('.bases-chart-axis-summary').textContent, 'Completed at · Day');
+	assert.equal(state.button('x').getAttribute('aria-label'), 'X axis: Completed at · Day');
+	assert.equal(state.panel(), panel, 'date grouping edits leave the picker open');
+	assert.equal(dropdown.textContent, 'Day');
+	assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+	assert.equal(state.doc.activeElement, dropdown);
+	assert.equal(menu.hidden, true);
+	dropdown.dispatch('click');
+	assert.deepEqual(Menu.instances.at(-1).items.filter(item => item.checked).map(item => item.title), ['Day']);
+	state.toolbar.onunload();
+});
+
+test('date menu Escape closes the child first and then the axis panel', () => {
+	const state = harness('note.completed at', { date: true });
+	state.toolbar.openAxis('x');
+	const panel = state.panel();
+	const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
+	const opening = dropdown.dispatch('keydown', { key: 'ArrowDown' });
+	assert.equal(opening.defaultPrevented, true);
+	assert.equal(dropdown.getAttribute('aria-expanded'), 'true');
+	const menu = Menu.instances.at(-1);
+	assert.equal(dropdown.dispatch('keydown', { key: 'ArrowDown' }).defaultPrevented, false, 'an open menu owns arrow-key navigation');
+	dropdown.dispatch('keydown', { key: 'Escape' });
+	assert.equal(menu.hidden, true);
+	assert.equal(state.panel(), panel);
+	assert.equal(state.doc.activeElement, dropdown);
+	assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+	dropdown.dispatch('keydown', { key: 'Escape' });
+	assert.equal(state.panel(), null);
+	assert.equal(state.doc.activeElement, state.button('x'));
+	state.toolbar.onunload();
+});
+
+test('native keymap hiding the date menu before parent key handling consumes only the same Escape', async () => {
+	const state = harness('note.completed at', { date: true });
+	state.toolbar.openAxis('x');
+	const panel = state.panel();
+	const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
+	dropdown.dispatch('click');
+	const first = eventFor(dropdown, { type: 'keydown', key: 'Escape' });
+	state.doc.defaultView.event = first;
+	Menu.instances.at(-1).hide();
+	delete state.doc.defaultView.event;
+	await Promise.resolve(); // Native event listeners can run a microtask checkpoint between phases.
+	state.doc.emit('keydown', first);
+	assert.equal(first.defaultPrevented, true);
+	assert.equal(state.panel(), panel);
+	assert.equal(state.doc.activeElement, dropdown);
+	dropdown.dispatch('keydown', { key: 'Escape' });
+	assert.equal(state.panel(), null);
+	assert.equal(state.doc.activeElement, state.button('x'));
+	state.toolbar.onunload();
+});
+
+test('native date menu dismissal never swallows an unrelated later Escape', async () => {
+	const state = harness('note.completed at', { date: true });
+	state.toolbar.openAxis('x');
+	const dropdown = state.panel().querySelector('.bases-chart-date-grouping').querySelector('button');
+	dropdown.dispatch('click');
+	Menu.instances.at(-1).hide();
+	await Promise.resolve();
+	dropdown.dispatch('keydown', { key: 'Escape' });
+	assert.equal(state.panel(), null);
+	state.toolbar.onunload();
+});
+
+test('one outside click closes both the date menu and axis panel', () => {
+	const state = harness('note.completed at', { date: true });
+	state.toolbar.openAxis('x');
+	const dropdown = state.panel().querySelector('.bases-chart-date-grouping').querySelector('button');
+	dropdown.dispatch('click');
+	const menu = Menu.instances.at(-1);
+	menu.background.dispatch('pointerdown');
+	assert.equal(menu.hidden, true);
+	assert.equal(state.panel(), null);
+	assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+	assert.equal(state.doc.listeners.get('pointerdown').size, 0);
+	assert.equal(state.doc.listeners.get('focusin').size, 0);
+	state.toolbar.onunload();
+});
+
+test('toggling or native hiding resets date menu state without closing the picker', () => {
+	const state = harness('note.completed at', { date: true });
+	state.toolbar.openAxis('x');
+	const panel = state.panel();
+	const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
+	dropdown.dispatch('click');
+	const first = Menu.instances.at(-1);
+	dropdown.dispatch('click');
+	assert.equal(first.hidden, true);
+	assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+	dropdown.dispatch('click');
+	Menu.instances.at(-1).hide();
+	assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+	dropdown.dispatch('keydown', { key: 'Escape', defaultPrevented: true });
+	assert.equal(state.panel(), panel, 'a native-handled Escape must not also dismiss the parent');
+	state.toolbar.onunload();
+});
+
+for (const close of ['resize', 'unload', 'header', 'rerender']) test(`${close} cleans up the open date menu`, () => {
+	const state = harness('note.completed at', { date: true });
+	state.toolbar.openAxis('x');
+	const panel = state.panel();
+	const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
+	dropdown.dispatch('click');
+	const menu = Menu.instances.at(-1);
+	if (close === 'resize') state.doc.defaultView.emit('resize', {});
+	else if (close === 'unload') state.toolbar.onunload();
+	else if (close === 'header') action(panel.querySelector('.bases-chart-panel-header'), 'Close').dispatch('click');
+	else searchInput(panel).dispatch('input');
+	assert.equal(menu.hidden, true);
+	assert.equal(state.doc.body.querySelector('.menu'), null);
+	assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+	assert.equal(state.panel(), close === 'rerender' ? panel : null);
+	state.toolbar.onunload();
+});
+
+for (const axis of ['x', 'y']) test(`${axis.toUpperCase()} keeps Add formula outside search results and delegates to the native editor`, () => {
+	const state = harness();
+	state.toolbar.openAxis(axis);
+	const panel = state.panel();
+	const footer = panel.querySelector('.bases-chart-panel-footer');
+	const results = panel.querySelector('.bases-chart-property-results');
+	const button = footer.querySelector('.bases-chart-add-formula');
+	assert.equal(footer.parentElement, panel);
+	assert.ok(panel.children.indexOf(footer) > panel.children.indexOf(results));
+	const search = searchInput(panel);
+	search.value = 'no-matching-property';
+	search.dispatch('input');
+	assert.equal(candidates(panel).length, 0);
+	assert.equal(panel.querySelector('.bases-chart-add-formula'), button, 'search must preserve the formula action');
+	assert.equal(button.disabled, false);
+	button.dispatch('click');
+	assert.deepEqual(state.formulaCalls, [{ anchor: state.button(axis), axis, propertyId: undefined }]);
+	assert.equal(state.button(axis).getAttribute('aria-expanded'), 'false');
+	assert.deepEqual(state.writes, [], 'opening the editor should not mutate a property');
+	state.toolbar.onunload();
+});
+
+test('selected X and Y formulas expose edit actions with the correct property and toolbar anchor', () => {
+	const state = harness();
+	state.toolbar.openAxis('x');
+	action(selectedRows(state.panel())[0], 'Edit formula: Bucket').dispatch('click');
+	assert.deepEqual(state.formulaCalls, [{ anchor: state.button('x'), axis: 'x', propertyId: 'formula.bucket' }]);
+	state.settings.set('y', ['note.hours', 'formula.ratio']);
+	state.toolbar.openAxis('y');
+	const ratio = selectedRows(state.panel()).find(row => row.dataset.property === 'formula.ratio');
+	action(ratio, 'Edit formula: Ratio').dispatch('click');
+	assert.deepEqual(state.formulaCalls[1], { anchor: state.button('y'), axis: 'y', propertyId: 'formula.ratio' });
+	assert.deepEqual(state.writes, []);
+	state.toolbar.onunload();
+});
+
+test('unavailable native formula editing disables Add formula and omits selected edit actions', () => {
+	const state = harness('formula.bucket', { formulaEditor: false });
+	state.settings.set('y', ['formula.ratio']);
+	for (const axis of ['x', 'y']) {
+		state.toolbar.openAxis(axis);
+		const panel = state.panel();
+		const button = panel.querySelector('.bases-chart-add-formula');
+		assert.equal(button.disabled, true);
+		button.dispatch('click');
+		assert.equal(state.panel(), panel);
+		assert.ok(selectedRows(panel).every(row => row.querySelectorAll('button').every(action => !action.getAttribute('aria-label').startsWith('Edit'))));
+		assert.equal(panel.querySelectorAll('.bases-chart-property-edit').length, 0);
+	}
+	assert.deepEqual(state.formulaCalls, []);
+	state.toolbar.onunload();
+});
+
+for (const axis of ['x', 'y']) {
+	for (const [id, label] of [
+		['file.folder', 'Edit property: Folder'],
+		['note.status', 'Edit property: Status'],
+		['formula.ratio', 'Edit formula: Ratio'],
+	]) test(`${axis.toUpperCase()} candidate ${id} opens native editing without selecting or adding the property`, () => {
+		const state = harness();
+		state.toolbar.openAxis(axis);
+		const primary = candidates(state.panel()).find(choice => choice.dataset.property === id);
+		const row = primary.parentElement;
+		const edit = action(row, label);
+		assert.equal(row.tag, 'div');
+		assert.equal(edit.parentElement, row, 'selection and editing must be sibling controls');
+		assert.equal(primary.querySelectorAll('button').length, 0, 'do not nest interactive controls');
+		assert.equal(edit.dataset.icon, 'chevron-right');
+		assert.equal(edit.getAttribute('aria-haspopup'), 'dialog');
+		edit.dispatch('click');
+		assert.deepEqual(state.formulaCalls, [{ anchor: state.button(axis), axis, propertyId: id }]);
+		assert.equal(state.settings.get('x'), 'formula.bucket');
+		assert.deepEqual(state.settings.get('y'), ['note.hours', 'note.score']);
+		assert.deepEqual(state.writes, []);
+		assert.equal(state.updateCount, 0);
+		state.toolbar.onunload();
+	});
+}
+
+for (const axis of ['x', 'y']) {
+	for (const [id, label] of [
+		['file.folder', 'Edit property: Folder'],
+		['note.status', 'Edit property: Status'],
+	]) test(`selected ${axis.toUpperCase()} ${id} exposes native property editing while preserving selection`, () => {
+		const state = harness(id);
+		if (axis === 'y') state.settings.set('y', [id]);
+		state.toolbar.openAxis(axis);
+		const row = selectedRows(state.panel())[0];
+		if (axis === 'x') assert.equal(row.querySelector('.bases-chart-property-check').getAttribute('aria-label'), 'Selected');
+		action(row, label).dispatch('click');
+		assert.deepEqual(state.formulaCalls, [{ anchor: state.button(axis), axis, propertyId: id }]);
+		assert.deepEqual(state.writes, []);
+		assert.equal(state.updateCount, 0);
+		state.toolbar.onunload();
+	});
+}
+
+test('candidate keyboard navigation skips editing controls while leaving their native Tab order intact', () => {
+	const state = harness();
+	state.toolbar.openAxis('x');
+	const options = candidates(state.panel());
+	const first = options[0];
+	const edit = first.parentElement.querySelector('.bases-chart-property-edit');
+	assert.deepEqual(first.parentElement.querySelectorAll('button'), [first, edit]);
+	assert.equal(edit.getAttribute('tabindex'), null);
+	first.focus();
+	assert.equal(first.dispatch('keydown', { key: 'Tab' }).defaultPrevented, false);
+	first.dispatch('keydown', { key: 'ArrowDown' });
+	assert.equal(state.doc.activeElement, options[1]);
+	edit.focus();
+	assert.equal(edit.dispatch('keydown', { key: 'ArrowDown' }).defaultPrevented, false);
+	assert.equal(state.doc.activeElement, edit);
+	assert.equal(edit.dispatch('keydown', { key: 'Tab' }).defaultPrevented, false);
+	state.toolbar.onunload();
+});
+
+test('reordering a Y formula preserves move-button focus despite its extra edit action', () => {
+	const state = harness();
+	state.settings.set('y', ['note.hours', 'note.score', 'formula.ratio']);
+	state.toolbar.openAxis('y');
+	const panel = state.panel();
+	let ratio = selectedRows(panel).find(row => row.dataset.property === 'formula.ratio');
+	action(ratio, 'Move Ratio up').dispatch('click');
+	assert.deepEqual(state.settings.get('y'), ['note.hours', 'formula.ratio', 'note.score']);
+	ratio = selectedRows(panel).find(row => row.dataset.property === 'formula.ratio');
+	assert.equal(state.doc.activeElement, action(ratio, 'Move Ratio up'));
+	assert.deepEqual(state.formulaCalls, []);
 	state.toolbar.onunload();
 });

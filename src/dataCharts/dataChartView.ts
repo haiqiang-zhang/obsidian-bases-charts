@@ -8,8 +8,11 @@ import { ChartLayout } from './layout';
 import { BaseChartView } from '../baseChartView';
 import { AggregateMode, aggregateData, aggregateKey } from './aggregate';
 import { ChartToolbar } from '../ui/chartToolbar';
+import { ChartFormulaEditor } from '../ui/chartFormulaEditor';
 import { prepareChartGroups } from './grouping';
 import { COMMON_SETTINGS } from './types';
+import { bucketDateValues, isDateProperty, normalizeDateGrouping } from './dateBuckets';
+import type { DateGrouping } from './dateBuckets';
 import { detectXAxisType, parseValueAsNumber, parseValueAsX, toXKey } from '../utils/utils';
 import type { ResolvedColors } from '../ui/colors';
 import { CHART_PALETTES, DEFAULT_CHART_PALETTE } from '../ui/chartPalettes';
@@ -41,9 +44,10 @@ function parseConfigAsNumber(value: unknown): number | null {
 export abstract class DataChartView extends BaseChartView {
 	private layout: ChartLayout | null = null;
 	private toolbar: ChartToolbar | null = null;
+	private formulaEditor: ChartFormulaEditor | null = null;
 
-	constructor(controller: QueryController, containerEl: HTMLElement) {
-		super(controller, containerEl);
+	constructor(private readonly chartController: QueryController, containerEl: HTMLElement) {
+		super(chartController, containerEl);
 	}
 
 	abstract buildOption(
@@ -58,6 +62,7 @@ export abstract class DataChartView extends BaseChartView {
 	protected onChartLoad(): void {
 		this.containerEl.addClass('bases-data-chart-view');
 		this.layout = new ChartLayout(this, this.containerEl);
+		this.formulaEditor = this.addChild(new ChartFormulaEditor(this, this.chartController));
 		this.toolbar = this.addChild(new ChartToolbar(this));
 	}
 
@@ -66,11 +71,21 @@ export abstract class DataChartView extends BaseChartView {
 		this.layout = null;
 		if (this.toolbar) this.removeChild(this.toolbar);
 		this.toolbar = null;
+		if (this.formulaEditor) this.removeChild(this.formulaEditor);
+		this.formulaEditor = null;
 		this.containerEl.removeClass('bases-data-chart-view');
 	}
 
 	openAxisSettings(axis: 'x' | 'y'): void {
 		this.toolbar?.openAxis(axis);
+	}
+
+	canEditFormulas(): boolean {
+		return this.formulaEditor?.canOpen() ?? false;
+	}
+
+	openFormulaEditor(anchor: HTMLElement, axis: 'x' | 'y', propertyId?: BasesPropertyId): void {
+		this.formulaEditor?.open(anchor, axis, propertyId);
 	}
 
 	getYProperties(): BasesPropertyId[] {
@@ -82,6 +97,29 @@ export abstract class DataChartView extends BaseChartView {
 			typeof id === 'string' && /^(file|note|formula)\..+/.test(id)))];
 	}
 
+	isDateXAxis(): boolean {
+		const property = this.config?.getAsPropertyId(COMMON_SETTINGS.X);
+		if (!property) return false;
+		const entries = this.data?.data ?? [];
+		const values = (function* () {
+			for (const entry of entries) yield entry.getValue(property);
+		})();
+		return isDateProperty(this.app, property, values);
+	}
+
+	getXDateGrouping(): DateGrouping {
+		const setting = this.config?.get(COMMON_SETTINGS.X_DATE_GROUPING);
+		if (!setting || typeof setting !== 'object' || Array.isArray(setting)) return 'exact';
+		const { property, unit } = setting as { property?: unknown; unit?: unknown };
+		return property === this.config.getAsPropertyId(COMMON_SETTINGS.X) && this.isDateXAxis()
+			? normalizeDateGrouping(unit) : 'exact';
+	}
+
+	setXDateGrouping(unit: DateGrouping): void {
+		const property = this.config?.getAsPropertyId(COMMON_SETTINGS.X);
+		if (property) this.config.set(COMMON_SETTINGS.X_DATE_GROUPING, { property, unit: normalizeDateGrouping(unit) });
+	}
+
 	processData(): DataWrapper {
 		const xField = this.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const propertyOrder = this.getYProperties();
@@ -90,7 +128,8 @@ export abstract class DataChartView extends BaseChartView {
 			return emptyDataWrapper();
 		}
 
-		const xAxisType = detectXAxisType(this.app, xField);
+		const dateGrouping = this.getXDateGrouping();
+		const xAxisType = dateGrouping === 'exact' ? detectXAxisType(this.app, xField) : 'category';
 		const groups = prepareChartGroups(this.data.groupedData);
 		const visiblePaths = new Set(groups.flatMap(group => group.entries.map(entry => entry.file.path)));
 
@@ -99,7 +138,9 @@ export abstract class DataChartView extends BaseChartView {
 		// Group order controls series, while Sort still controls the X axis.
 		for (const entry of this.data.data) {
 			if (!visiblePaths.has(entry.file.path)) continue;
-			const xVals = parseValueAsX(entry.getValue(xField), xAxisType, xField);
+			const value = entry.getValue(xField);
+			const xVals = dateGrouping === 'exact'
+				? parseValueAsX(value, xAxisType, xField) : bucketDateValues(value, dateGrouping, xField);
 			if (xVals) {
 				for (const v of xVals) {
 					const key = toXKey(v);
@@ -110,6 +151,11 @@ export abstract class DataChartView extends BaseChartView {
 				}
 			}
 		}
+		if (dateGrouping !== 'exact') {
+			// Calendar buckets form a timeline, independent of file-name ordering.
+			const descending = this.config.getSort().find(sort => sort.property === xField)?.direction === 'DESC';
+			sortedXValues.sort((a, b) => String(a).localeCompare(String(b)) * (descending ? -1 : 1));
+		}
 
 		const data: ProcessedData[] = [];
 		const groupBySet = groups.map(group => group.label);
@@ -117,7 +163,7 @@ export abstract class DataChartView extends BaseChartView {
 		for (const group of groups) {
 
 			for (const entry of group.entries) {
-				const processedEntry = this.processEntry(entry, xField, propertyOrder, group.groupIndex, xAxisType);
+				const processedEntry = this.processEntry(entry, xField, propertyOrder, group.groupIndex, xAxisType, dateGrouping);
 				data.push(...processedEntry);
 			}
 		}
@@ -147,10 +193,11 @@ export abstract class DataChartView extends BaseChartView {
 		return wrapper;
 	}
 
-	processEntry(entry: BasesEntry, xField: BasesPropertyId, propertyOrder: BasesPropertyId[], groupIndex: number, xAxisType: import('../utils/utils').XAxisType): ProcessedData[] {
+	processEntry(entry: BasesEntry, xField: BasesPropertyId, propertyOrder: BasesPropertyId[], groupIndex: number, xAxisType: import('../utils/utils').XAxisType, dateGrouping: DateGrouping = 'exact'): ProcessedData[] {
 		try {
 			const x = entry.getValue(xField);
-			const xValues = parseValueAsX(x, xAxisType, xField);
+			const xValues = dateGrouping === 'exact'
+				? parseValueAsX(x, xAxisType, xField) : bucketDateValues(x, dateGrouping, xField);
 			const labelProp = this.getLabelProperty();
 
 			if (xValues === null) {
