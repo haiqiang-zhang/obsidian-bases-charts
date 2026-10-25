@@ -70,12 +70,13 @@ function harness() {
 			assert.equal(element, container);
 			assert.equal(initOptions.renderer, 'canvas');
 			const zr = {
-				handlers: new Map(), cursorStyles: [],
-				on(name, callback) { this.handlers.set(name, callback); },
+				handlers: new Map(), cursorStyles: [], registrations: [],
+				on(name, callback) { this.handlers.set(name, callback); this.registrations.push(name); },
+				off(name, callback) { if (this.handlers.get(name) === callback) this.handlers.delete(name); },
 				setCursorStyle(style) { this.cursorStyles.push(style); },
 			};
 			const chart = {
-				calls: [], actions: [], handlers: new Map(), resizes: 0, disposed: 0, current: null,
+				calls: [], actions: [], actionPayloads: [], handlers: new Map(), resizes: 0, disposed: 0, current: null,
 				zr, containCalls: [], fromPixelCalls: [], toPixelCalls: [],
 				contains: true, ordinal: 0, width: 700, height: 400,
 				getWidth() { return this.width; },
@@ -98,9 +99,10 @@ function harness() {
 				setOption(option, flags) {
 					if (option.error) throw option.error;
 					this.calls.push({ option, flags });
+					zr.registrations.push('setOption');
 					this.current = option;
 				},
-				dispatchAction(action) { this.actions.push(action.type); },
+				dispatchAction(action) { this.actions.push(action.type); this.actionPayloads.push({ ...action }); },
 				resize() { this.resizes++; },
 				clear() { this.current = null; },
 				dispose() { this.disposed++; },
@@ -521,5 +523,193 @@ test('numeric area clicks select the nearest aligned X across all groups without
 	chart.contains = false;
 	chart.zr.handlers.get('click')({ offsetX: 250, offsetY: 100 });
 	assert.equal(state.tooltips[0].opened.length, 2);
+	state.renderer.dispose();
+});
+
+function pointFixture(chartType, xAxis, series) {
+	const state = harness();
+	const context = { chartType, xName: 'X', yLabel: 'Count', groupNames: ['A', 'B'] };
+	const option = { xAxis, yAxis: { type: 'value' }, series, tooltip: {
+		trigger: chartType === 'chart-line' ? 'axis' : 'item',
+		axisPointer: { axis: 'x', lineStyle: { color: '#ddd' } },
+	} };
+	state.renderer.setOption(option, context);
+	return { ...state, chart: state.charts[0], tooltip: state.tooltips[0], context, option };
+}
+
+const rawPoint = (x, y, name = String(x)) => ({ x, y, files: [`${name}.md`] });
+const pairedPoint = raw => ({ value: [raw.x, raw.y], _raw: raw });
+
+test('singleton line categories use the full column, preserve empty bands, and do not merge groups', () => {
+	const a = rawPoint('A', 0);
+	const b1 = rawPoint('B', 2, 'b1');
+	const b2 = rawPoint('B', 4, 'b2');
+	const d = rawPoint('D', 5);
+	const scalar = raw => ({ value: raw.y, _raw: raw });
+	const gap = { value: 0, _raw: null };
+	const state = pointFixture('chart-line', { type: 'category', data: ['A', 'B', 'C', 'D'] }, [
+		{ type: 'line', data: [scalar(a), scalar(b1), gap, gap] },
+		{ type: 'line', data: [gap, scalar(b2), gap, scalar(d)] },
+	]);
+	for (const ordinal of [0, 1, 2, 3]) {
+		state.chart.ordinal = ordinal;
+		state.chart.zr.handlers.get('click')({ offsetX: 100, offsetY: 20, target: null });
+	}
+	assert.deepEqual(state.tooltip.opened.map(item => Array.from(item.raw)), [[a], [d]],
+		'zero is a real point, an empty category stays empty, and two real groups are ambiguous');
+	state.chart.handlers.get('click')({ data: scalar(b2) });
+	assert.equal(state.tooltip.opened.at(-1).raw, b2, 'ambiguous columns retain precise point selection');
+	state.chart.ordinal = 1;
+	state.chart.zr.handlers.get('mousemove')({ offsetX: 100, offsetY: 20, target: { cursor: 'pointer' } });
+	assert.equal(state.chart.zr.cursorStyles.at(-1), 'pointer', 'retain a real point cursor in an ambiguous column');
+	state.renderer.dispose();
+});
+
+test('sparse scatter columns use explicit category values and do not expand duplicate X points', () => {
+	const a1 = rawPoint('A', 1, 'a1');
+	const a2 = rawPoint('A', 2, 'a2');
+	const c = rawPoint('C', 0);
+	const state = pointFixture('chart-scatter', { type: 'category', data: ['A', 'B', 'C'] }, [
+		{ type: 'scatter', data: [pairedPoint(a1), pairedPoint(a2)] },
+		{ type: 'scatter', data: [pairedPoint(c)] },
+	]);
+	for (const ordinal of [0, 1, 2]) {
+		state.chart.ordinal = ordinal;
+		state.chart.zr.handlers.get('click')({ offsetX: 100, offsetY: 20 });
+	}
+	assert.deepEqual(state.tooltip.opened.map(item => Array.from(item.raw)), [[c]],
+		'C is the only singleton despite being the first datum in its series');
+	state.chart.zr.handlers.get('mousemove')({ offsetX: 100, offsetY: 20 });
+	assert.deepEqual(state.chart.actionPayloads.at(-1), { type: 'showTip', seriesIndex: 1, dataIndex: 0 });
+	state.chart.ordinal = 0;
+	state.chart.zr.handlers.get('mousemove')({ offsetX: 100, offsetY: 20 });
+	assert.equal(state.chart.zr.cursorStyles.at(-1), 'default');
+	assert.equal(state.chart.actions.at(-1), 'hideTip');
+	state.renderer.dispose();
+});
+
+test('continuous line and scatter columns follow projected X midpoints with sparse series and inverse axes', () => {
+	for (const type of ['chart-line', 'chart-scatter']) {
+		for (const axisType of ['value', 'time', 'log']) {
+			for (const inverse of [false, true]) {
+				const a = rawPoint(10, 1);
+				const b = rawPoint(100, 0);
+				const c = rawPoint(1000, 3);
+				const state = pointFixture(type, { type: axisType, inverse }, [
+					{ data: [pairedPoint(a), pairedPoint(c)] },
+					{ data: [pairedPoint(b)] },
+				]);
+				state.chart.toPixel = (_finder, x) => (inverse ? 600 : 0) + (inverse ? -1 : 1) * ({ 10: 100, 100: 300, 1000: 500 }[x]);
+				for (const offsetX of [201, 399]) state.chart.zr.handlers.get('click')({ offsetX, offsetY: 20 });
+				assert.deepEqual(state.tooltip.opened.map(item => Array.from(item.raw)), [[b], [b]], `${type}/${axisType}/${inverse}`);
+				state.chart.zr.handlers.get('mousemove')({ offsetX: 320, offsetY: 20 });
+				assert.deepEqual(state.chart.actionPayloads.at(-1), { type: 'showTip', seriesIndex: 1, dataIndex: 0 });
+				state.chart.zr.handlers.get('click')({ offsetX: inverse ? 400 : 200, offsetY: 20 });
+				assert.equal(state.tooltip.opened.at(-1).raw[0], a, 'exact midpoint selects the lower data X');
+				assert.equal(state.chart.fromPixelCalls.length, 0, 'continuous hit areas use rendered spacing rather than data distances');
+				state.renderer.dispose();
+			}
+		}
+	}
+});
+
+test('numeric duplicate X and explicit empty positions prevent accidental full-column activation', () => {
+	for (const type of ['chart-line', 'chart-scatter']) {
+		const a = rawPoint(10, 1, 'a');
+		const b = rawPoint(10, 2, 'b');
+		const invalid = rawPoint(30, NaN);
+		const state = pointFixture(type, { type: 'value' }, [
+			{ data: [pairedPoint(a), { value: [20, null], _raw: null }, pairedPoint(invalid)] },
+			{ data: [pairedPoint(b)] },
+		]);
+		for (const offsetX of [10, 20, 30]) state.chart.zr.handlers.get('click')({ offsetX, offsetY: 20 });
+		assert.equal(state.tooltip.opened.length, 0);
+		state.chart.handlers.get('click')({ data: pairedPoint(b) });
+		assert.equal(state.tooltip.opened[0].raw, b);
+		state.renderer.dispose();
+	}
+});
+
+test('single-column and exact-point events open one modal in either callback order', () => {
+	for (const type of ['chart-line', 'chart-scatter']) {
+		for (const order of ['zr-first', 'chart-first']) {
+			const raw = rawPoint(10, 2);
+			const point = pairedPoint(raw);
+			const state = pointFixture(type, { type: 'value' }, [{ data: [point] }]);
+			const event = { offsetX: 10, offsetY: 20, target: {} };
+			const zrClick = () => state.chart.zr.handlers.get('click')(event);
+			const pointClick = () => state.chart.handlers.get('click')({ data: point, event });
+			if (order === 'zr-first') { zrClick(); pointClick(); }
+			else { pointClick(); zrClick(); }
+			assert.equal(state.tooltip.opened.length, 1, `${type}/${order}`);
+			assert.equal(state.openedFiles.length, 0);
+			assert.equal(state.chart.actions.at(-1), 'hideTip', 'activation clears the preview');
+			assert.equal(state.chart.actionPayloads.at(-2).currTrigger, 'leave', 'activation also clears the vertical guide');
+			state.renderer.dispose();
+		}
+	}
+});
+
+test('singleton hover refreshes a fixed preview and dashed X guide on every move after native handlers', () => {
+	for (const type of ['chart-line', 'chart-scatter']) {
+		const point = pairedPoint(rawPoint(10, 2));
+		const state = pointFixture(type, { type: 'value' }, [{ data: [point] }]);
+		assert.deepEqual(state.chart.zr.registrations.slice(-3), ['setOption', 'mousemove', 'click']);
+		const pointer = state.chart.current.xAxis[0].axisPointer;
+		assert.equal(pointer.show, true);
+		assert.equal(pointer.type, 'line');
+		assert.equal(pointer.lineStyle.type, 'dashed');
+		assert.equal(pointer.lineStyle.color, '#ddd');
+		assert.equal(pointer.lineStyle.width, 1);
+		assert.equal(pointer.label.show, false);
+		assert.equal(pointer.triggerTooltip, type === 'chart-line');
+		assert.equal(state.option.xAxis.axisPointer, undefined, 'rendering does not mutate the source option');
+		assert.equal(state.chart.current.yAxis.axisPointer, undefined, 'no horizontal guide is introduced');
+		const before = state.chart.actionPayloads.length;
+		for (const [offsetX, offsetY] of [[4, 20], [15, 300], [10, 250]]) {
+			state.chart.zr.handlers.get('mousemove')({ offsetX, offsetY });
+		}
+		assert.deepEqual(state.chart.actionPayloads.slice(before), Array.from({ length: 3 }, () => [
+			{ type: 'updateAxisPointer', currTrigger: 'mousemove', seriesIndex: 0, dataIndex: 0 },
+			{ type: 'showTip', seriesIndex: 0, dataIndex: 0 },
+		]).flat(), 'blank-space moves must re-show the tooltip after the native handler hides it');
+		assert.deepEqual(state.chart.zr.cursorStyles, ['pointer', 'pointer', 'pointer']);
+		state.chart.zr.handlers.get('globalout')();
+		assert.deepEqual(state.chart.actionPayloads.slice(-2), [
+			{ type: 'updateAxisPointer', currTrigger: 'leave' }, { type: 'hideTip' },
+		]);
+		state.chart.contains = false;
+		state.chart.zr.handlers.get('mousemove')({ offsetX: 10, offsetY: 500 });
+		state.chart.zr.handlers.get('click')({ offsetX: 10, offsetY: 500 });
+		assert.equal(state.chart.actions.at(-1), 'hideTip');
+		assert.equal(state.tooltip.opened.length, 0);
+		state.renderer.dispose();
+	}
+});
+
+test('cached projected columns refresh on resizing, option updates, and window migration', () => {
+	const a = rawPoint(10, 1);
+	const b = rawPoint(20, 2);
+	const state = pointFixture('chart-line', { type: 'value' }, [{ data: [pairedPoint(a), pairedPoint(b)] }]);
+	const click = () => state.chart.zr.handlers.get('click')({ offsetX: 15, offsetY: 20 });
+	click();
+	click();
+	assert.equal(state.chart.toPixelCalls.length, 2, 'mousemove/click reuse the projected X index');
+	state.chart.toPixel = (_finder, x) => x - 5;
+	state.observers[0].callback();
+	click();
+	assert.equal(state.tooltip.opened.at(-1).raw[0], b);
+	assert.equal(state.chart.toPixelCalls.length, 4);
+	state.flushTimers();
+	click();
+	assert.equal(state.chart.toPixelCalls.length, 6, 'first-layout resize also invalidates projections');
+	const c = rawPoint(15, 3);
+	state.renderer.setOption({ ...state.option, series: [{ data: [pairedPoint(c)] }] }, state.context);
+	click();
+	assert.equal(state.tooltip.opened.at(-1).raw[0], c);
+	state.migrate(createWindow());
+	state.charts[1].zr.handlers.get('click')({ offsetX: 15, offsetY: 20 });
+	assert.equal(state.tooltips[1].opened[0].raw[0], c);
+	assert.equal(state.charts[1].toPixelCalls.length, 1);
 	state.renderer.dispose();
 });

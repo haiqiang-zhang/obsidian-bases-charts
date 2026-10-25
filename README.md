@@ -41,6 +41,7 @@ Built-in chart views that visualize Bases data with configurable axes, aggregati
 - Native Group menu: groups become colored series, respecting selected groups and manual group order
 - Per-view color palettes: Auto, Colorful, Earth, Coastal, and nine single-color palettes, each adapted for light and dark themes
 - Compact, stationary tooltips with the X property and group totals; click a chart column to explore its files in a searchable data table
+- Line and Scatter columns with one data point support hover and click across the plot height, with a dashed X guide; columns with multiple points keep individual point selection
 - X axis sorting via Bases Sort configuration
 - Date grouping for X: Exact time, Day, Week, Month, or Year
 - Native property and formula editors, available from each property row in the axis menus
