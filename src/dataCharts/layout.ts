@@ -112,7 +112,7 @@ export class ChartLayout {
 			const itemEl = this.legendEl.createDiv({ cls: 'bases-charts-plot-legend-item' });
 			const colorEl = itemEl.createDiv({ cls: 'bases-charts-plot-legend-color' });
 			colorEl.style.setProperty('--color', palette[entry.colorIndex % palette.length]);
-			itemEl.createEl('span', { cls: 'bases-charts-plot-legend-label', text: entry.name, attr: { title: entry.name } });
+			itemEl.createSpan({ cls: 'bases-charts-plot-legend-label', text: entry.name, attr: { title: entry.name } });
 		}
 	}
 

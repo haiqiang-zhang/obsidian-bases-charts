@@ -49,6 +49,7 @@ class Element {
 		this.textContent = options.text ?? '';
 		for (const [name, value] of Object.entries(options.attr ?? {})) this.attributes.set(name, value);
 	}
+	get win() { return this.ownerDocument.defaultView; }
 	set innerHTML(_html) { throw new Error('Tooltip metadata must remain text nodes'); }
 	createEl(tag, options) {
 		const child = new Element(this.ownerDocument, options);
@@ -86,8 +87,8 @@ function harness(width = 1280, height = 900, fontSize = 13, tooltipContext = con
 	const opened = [];
 	const doc = {
 		defaultView: { innerWidth: width, innerHeight: height, getComputedStyle: () => ({ fontSize: `${fontSize}px` }) },
-		createDocumentFragment: () => new Element(doc),
 	};
+	doc.defaultView.createDiv = options => new Element(doc, options);
 	doc.body = new Element(doc);
 	const container = new Element(doc);
 	container.getBoundingClientRect = () => ({ left: 150, top: 80 });

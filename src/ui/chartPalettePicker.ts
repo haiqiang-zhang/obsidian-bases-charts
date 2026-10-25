@@ -26,7 +26,8 @@ export class ChartPalettePicker {
 	private changed = () => this.refresh();
 
 	constructor(readonly select: HTMLSelectElement) {
-		this.button = select.ownerDocument.createDocumentFragment().createEl('button', {
+		const win = select.win as Window & { createEl: typeof createEl };
+		this.button = win.createEl('button', {
 			cls: 'dropdown bases-chart-palette-trigger',
 			attr: { type: 'button', 'aria-label': 'Color palette', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' },
 		});

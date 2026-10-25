@@ -79,6 +79,7 @@ class Element extends EventTargetFixture {
 		this.value = options.value ?? '';
 		for (const [key, value] of Object.entries(options.attr ?? {})) this.setAttribute(key, value);
 	}
+	get win() { return this.ownerDocument.defaultView; }
 	get isConnected() {
 		for (let node = this; node; node = node.parentElement) if (node === this.ownerDocument.body) return true;
 		return false;
@@ -147,7 +148,7 @@ function harness(dark = false) {
 	doc.defaultView = win;
 	doc.body = new Element(doc, 'body');
 	if (dark) doc.body.addClass('theme-dark');
-	doc.createDocumentFragment = () => new Element(doc, 'fragment');
+	win.createEl = (tag, options) => new Element(doc, tag, options);
 	const nativeMenu = doc.body.createDiv({ cls: 'bases-toolbar-menu' });
 	const form = nativeMenu.createDiv({ cls: 'view-config-menu' });
 	const writes = [];

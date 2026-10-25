@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspress/core';
-import { resolve } from 'node:path';
 
 const repository = 'https://github.com/haiqiang-zhang/obsidian-bases-charts';
 
@@ -7,14 +6,15 @@ export default defineConfig({
   title: 'Bases Chart Views',
   description: 'Turn your Obsidian Bases into clear, interactive charts. Documentation, examples, and an English UI gallery.',
   base: '/obsidian-bases-charts/',
-  root: resolve(import.meta.dirname, 'docs'),
-  outDir: resolve(import.meta.dirname, 'build'),
-  themeDir: resolve(import.meta.dirname, 'theme'),
+  root: 'docs',
+  outDir: 'build',
+  themeDir: 'theme',
   logo: '/logo.svg',
   logoText: 'Bases Chart Views',
   icon: '/logo.svg',
-  globalStyles: resolve(import.meta.dirname, 'theme/styles.css'),
-  globalUIComponents: [resolve(import.meta.dirname, 'theme/GalleryLightbox.tsx')],
+  // Rspress requires absolute paths for injected style and component modules.
+  globalStyles: `${import.meta.dirname}/theme/styles.css`,
+  globalUIComponents: [`${import.meta.dirname}/theme/GalleryLightbox.tsx`],
   mediumZoom: false,
   head: [
     ['meta', { property: 'og:image', content: 'https://haiqiang-zhang.github.io/obsidian-bases-charts/gallery/overview.png' }],

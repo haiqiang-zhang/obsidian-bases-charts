@@ -4,11 +4,16 @@
 	"description": "",
 	"main": "main.js",
 	"type": "module",
+	"workspaces": [
+		"site"
+	],
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint .",
+		"lint:site": "eslint site --max-warnings 0",
+		"build:site": "npm run build --workspace bases-chart-views-docs",
 		"test": "node --test tests/*.test.mjs"
 	},
 	"keywords": [],
@@ -19,7 +24,7 @@
 		"echarts": "^6.1.0",
 		"esbuild": "^0.25.5",
 		"eslint": "^9.39.5",
-		"eslint-plugin-obsidianmd": "^0.1.9",
+		"eslint-plugin-obsidianmd": "^0.4.2",
 		"globals": "^17.4.0",
 		"jiti": "^2.6.1",
 		"obsidian": "^1.14.4",

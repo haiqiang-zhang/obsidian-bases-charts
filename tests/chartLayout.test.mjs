@@ -69,6 +69,7 @@ class Element {
 		return child;
 	}
 	createDiv(options) { return this.createEl('div', options); }
+	createSpan(options) { return this.createEl('span', options); }
 	addEventListener() {}
 	empty() { this.children = []; }
 	addClass(name) { this.classes.add(name); }

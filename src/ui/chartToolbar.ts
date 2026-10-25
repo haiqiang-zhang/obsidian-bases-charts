@@ -17,7 +17,6 @@ export class ChartToolbar extends Component {
 	private closePanel: (() => void) | null = null;
 	private dateGroupingMenu: Menu | null = null;
 	private dateGroupingTrigger: HTMLButtonElement | null = null;
-	private dateGroupingDismissals = new WeakMap<Event, HTMLButtonElement>();
 
 	constructor(private view: DataChartView) {
 		super();
@@ -154,16 +153,25 @@ export class ChartToolbar extends Component {
 			if (this.dateGroupingMenu && path.some(target => (target as Element).classList?.contains('menu'))) return;
 			if (!path.includes(panel) && !path.includes(button)) this.closePanel?.();
 		};
+		const dateMenuEscapes = new WeakMap<KeyboardEvent, HTMLButtonElement>();
+		const onWindowKey = (event: KeyboardEvent) => {
+			// Window capture precedes the document keymap, which can hide Menu
+			// before this panel handles the same Escape event.
+			if (event.key === 'Escape' && this.dateGroupingMenu && this.dateGroupingTrigger) {
+				dateMenuEscapes.set(event, this.dateGroupingTrigger);
+			}
+		};
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') {
 				if (event.defaultPrevented) return;
 				event.preventDefault();
 				event.stopPropagation();
 				// The native keymap can hide Menu earlier in this same key dispatch.
-				const dismissedTrigger = this.dateGroupingDismissals.get(event);
+				const dismissedTrigger = dateMenuEscapes.get(event);
 				if (dismissedTrigger) {
-					this.dateGroupingDismissals.delete(event);
+					dateMenuEscapes.delete(event);
 					event.stopImmediatePropagation();
+					this.closeDateGroupingMenu();
 					dismissedTrigger.focus();
 					return;
 				}
@@ -200,11 +208,13 @@ export class ChartToolbar extends Component {
 		doc.addEventListener('pointerdown', onOutside, true);
 		doc.addEventListener('keydown', onKey, true);
 		doc.addEventListener('focusin', onFocus);
+		win.addEventListener('keydown', onWindowKey, true);
 		win.addEventListener('resize', onResize);
 		this.closePanel = () => {
 			doc.removeEventListener('pointerdown', onOutside, true);
 			doc.removeEventListener('keydown', onKey, true);
 			doc.removeEventListener('focusin', onFocus);
+			win.removeEventListener('keydown', onWindowKey, true);
 			win.removeEventListener('resize', onResize);
 			this.closeDateGroupingMenu();
 			panel.remove();
@@ -261,13 +271,6 @@ export class ChartToolbar extends Component {
 			if (this.dateGroupingMenu === menu) {
 				this.dateGroupingMenu = null;
 				this.dateGroupingTrigger = null;
-				// Native Menu hides from the window keymap without cancelling Escape.
-				// Track only that exact dispatch so later key presses remain independent.
-				// eslint-disable-next-line @typescript-eslint/no-deprecated -- Menu.onHide has no event; Electron exposes the current dispatch here without a timing heuristic.
-				const event = button.ownerDocument.defaultView?.event;
-				if (event?.type === 'keydown' && 'key' in event && event.key === 'Escape') {
-					this.dateGroupingDismissals.set(event, button);
-				}
 			}
 		});
 		this.dateGroupingMenu = menu;

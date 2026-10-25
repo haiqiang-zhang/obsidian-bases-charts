@@ -151,7 +151,8 @@ export class ChartTooltip {
 		const win = doc.defaultView;
 		const fontSize = win ? parseFloat(win.getComputedStyle(this.containerEl).fontSize) : 13;
 		const metrics = tooltipMetrics(win?.innerWidth ?? 360, win?.innerHeight ?? 480, fontSize || 13, available);
-		const root = doc.createDocumentFragment().createDiv({ cls: 'bases-chart-tooltip' });
+		const ownerWindow = this.containerEl.win as Window & { createDiv: typeof createDiv };
+		const root = ownerWindow.createDiv({ cls: 'bases-chart-tooltip' });
 		root.style.setProperty('--chart-tooltip-width', `${metrics.width}px`);
 		root.style.setProperty('--chart-tooltip-max-height', `${metrics.maxHeight}px`);
 		root.style.setProperty('--chart-tooltip-row-height', `${metrics.rowHeight}px`);

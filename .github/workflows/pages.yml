@@ -6,6 +6,9 @@ on:
     paths:
       - 'site/**'
       - 'gallery/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'eslint.config.mts'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -27,9 +30,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: site/package-lock.json
-      - run: npm ci --prefix site
-      - run: npm run build --prefix site
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run lint:site
+      - run: npm run build:site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

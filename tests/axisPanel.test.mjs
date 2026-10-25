@@ -83,12 +83,20 @@ const { ChartToolbar, StringValue, NumberValue, Menu } = await import(`data:text
 
 class EventTargetFixture {
 	listeners = new Map();
-	addEventListener(name, callback) {
+	captureOptions = new WeakMap();
+	addEventListener(name, callback, options) {
 		if (!this.listeners.has(name)) this.listeners.set(name, new Set());
 		this.listeners.get(name).add(callback);
+		this.captureOptions.set(callback, options === true || options?.capture === true);
 	}
 	removeEventListener(name, callback) { this.listeners.get(name)?.delete(callback); }
-	emit(name, event) { for (const callback of [...(this.listeners.get(name) ?? [])]) callback(event); }
+	emit(name, event, capture) {
+		for (const callback of [...(this.listeners.get(name) ?? [])]) {
+			if (capture !== undefined && this.captureOptions.get(callback) !== capture) continue;
+			callback(event);
+			if (event.immediateStopped) break;
+		}
+	}
 }
 
 function eventFor(target, extra = {}) {
@@ -96,11 +104,11 @@ function eventFor(target, extra = {}) {
 		target, defaultPrevented: false, stopped: false,
 		preventDefault() { this.defaultPrevented = true; },
 		stopPropagation() { this.stopped = true; },
-		stopImmediatePropagation() { this.stopped = true; },
+		stopImmediatePropagation() { this.stopped = true; this.immediateStopped = true; },
 		composedPath() {
 			const path = [];
 			for (let node = target; node; node = node.parentElement) path.push(node);
-			return [...path, target.ownerDocument];
+			return [...path, target.ownerDocument, target.ownerDocument.defaultView];
 		},
 		...extra,
 	};
@@ -159,9 +167,16 @@ class Element extends EventTargetFixture {
 	}
 	dispatch(name, extra) {
 		if (name === 'click' && this.disabled) return;
-		const event = eventFor(this, extra);
-		for (let node = this; node && !event.stopped; node = node.parentElement) node.emit(name, event);
-		if (!event.stopped) this.ownerDocument.emit(name, event);
+		const event = eventFor(this, { type: name, ...extra });
+		const path = event.composedPath();
+		for (const target of [...path].reverse()) {
+			if (event.stopped) break;
+			target.emit(name, event, true);
+		}
+		for (const target of path) {
+			if (event.stopped) break;
+			target.emit(name, event, false);
+		}
 		return event;
 	}
 }
@@ -170,6 +185,7 @@ function harness(x = 'formula.bucket', { date = false, formulaEditor = true, gro
 	const doc = new EventTargetFixture();
 	doc.defaultView = new EventTargetFixture();
 	Object.assign(doc.defaultView, { innerWidth: 1000, innerHeight: 800 });
+	Object.defineProperty(doc.defaultView, 'event', { get() { throw new Error('do not read deprecated window.event'); } });
 	doc.body = new Element(doc);
 	const nativeToolbar = doc.body.createDiv({ cls: 'bases-toolbar' });
 	const container = new Element(doc);
@@ -206,6 +222,7 @@ function harness(x = 'formula.bucket', { date = false, formulaEditor = true, gro
 		openFormulaEditor: (anchor, axis, propertyId) => {
 			assert.equal(doc.body.querySelector('.bases-chart-axis-panel'), null, 'close the picker before opening the native editor');
 			for (const event of ['pointerdown', 'keydown', 'focusin']) assert.equal(doc.listeners.get(event)?.size ?? 0, 0);
+			assert.equal(doc.defaultView.listeners.get('keydown')?.size ?? 0, 0);
 			assert.equal(doc.defaultView.listeners.get('resize')?.size ?? 0, 0);
 			formulaCalls.push({ anchor, axis, propertyId });
 		},
@@ -478,9 +495,8 @@ test('native keymap hiding the date menu before parent key handling consumes onl
 	const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
 	dropdown.dispatch('click');
 	const first = eventFor(dropdown, { type: 'keydown', key: 'Escape' });
-	state.doc.defaultView.event = first;
+	state.doc.defaultView.emit('keydown', first, true);
 	Menu.instances.at(-1).hide();
-	delete state.doc.defaultView.event;
 	await Promise.resolve(); // Native event listeners can run a microtask checkpoint between phases.
 	state.doc.emit('keydown', first);
 	assert.equal(first.defaultPrevented, true);
@@ -490,6 +506,34 @@ test('native keymap hiding the date menu before parent key handling consumes onl
 	assert.equal(state.panel(), null);
 	assert.equal(state.doc.activeElement, state.button('x'));
 	state.toolbar.onunload();
+});
+
+for (const preference of [false, true]) test(`${preference ? 'native' : 'DOM'} menu cancellation survives an earlier document keymap listener`, () => {
+	Menu.preference = preference;
+	const state = harness('note.completed at', { date: true });
+	// The host keymap is already registered when the plugin opens its panel.
+	state.doc.addEventListener('keydown', event => {
+		if (event.key === 'Escape') Menu.instances.at(-1)?.hide();
+	}, true);
+	try {
+		state.toolbar.openAxis('x');
+		const panel = state.panel();
+		const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
+		dropdown.dispatch('click');
+		const menu = Menu.instances.at(-1);
+		const first = dropdown.dispatch('keydown', { key: 'Escape' });
+		assert.equal(menu.hidden, true);
+		assert.equal(first.defaultPrevented, true);
+		assert.equal(state.panel(), panel, 'the host may hide the child, but the same Escape cannot close its parent');
+		assert.equal(state.doc.activeElement, dropdown);
+		assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
+		dropdown.dispatch('keydown', { key: 'Escape' });
+		assert.equal(state.panel(), null);
+		assert.equal(state.doc.defaultView.listeners.get('keydown').size, 0, 'the owning-window capture listener is removed with its panel');
+	} finally {
+		state.toolbar.onunload();
+		Menu.preference = false;
+	}
 });
 
 test('native date menu dismissal never swallows an unrelated later Escape', async () => {
@@ -553,6 +597,7 @@ for (const close of ['resize', 'unload', 'header', 'rerender']) test(`${close} c
 	assert.equal(dropdown.getAttribute('aria-expanded'), 'false');
 	assert.equal(state.panel(), close === 'rerender' ? panel : null);
 	state.toolbar.onunload();
+	assert.equal(state.doc.defaultView.listeners.get('keydown').size, 0);
 });
 
 for (const axis of ['x', 'y']) test(`${axis.toUpperCase()} keeps Add formula outside search results and delegates to the native editor`, () => {
