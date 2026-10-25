@@ -1,182 +1,172 @@
 ---
-title: UI Gallery
-description: Explore native chart controls, calendar grouping, formulas, multiple measures, and source files through English screenshots.
+title: UI gallery
+description: Screenshots of chart types, configuration controls, and data inspection in Obsidian Bases.
 outline: false
 ---
 
-# UI Gallery
+# UI gallery
 
-From a weekly overview to the notes behind one number. These 15 screenshots show real chart views and controls in Obsidian, using a fictional studio workspace and English sample data.
-
-<a href="/obsidian-bases-charts/gallery/bases-chart-views-gallery.zip" download>Download all 15 PNGs</a> · [Read the documentation](./overview)
+Chart views and controls with fictional English sample data. Select an image to enlarge it.
 
 <figure className="gallery-card">
 
-![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](/gallery/overview.png)
+![Stacked area chart with eight weeks of studio work and a tooltip for the selected week.](/gallery/overview.png)
 
-<figcaption>Four workstreams · Eight weeks · A compact summary for the selected week</figcaption>
+<figcaption>Stacked Area · Hours by week and workstream</figcaption>
 </figure>
 
-## Two measures, one view
+## Multiple measures
 
-Compare the time invested with the work delivered. Add multiple Y properties, choose an aggregation for each, and keep the results in separate charts within one Base view.
+Each Y property has its own chart and aggregation. This view shows hours and deliverables by week.
 
 <figure className="gallery-card">
 
-![Hours and deliverables shown in two charts, with the selected Y properties and their independent aggregations.](/gallery/12-multiple-measures.png)
+![Hours and deliverables in separate charts within one Base view.](/gallery/12-multiple-measures.png)
 
-<figcaption>Multiple measures · Hours and deliverables, each with its own aggregation</figcaption>
+<figcaption>Hours (Sum) and Deliverables (Sum)</figcaption>
 </figure>
 
-## Turn timestamps into calendar weeks
+## Date grouping
 
-Keep the original datetime property in your notes. The X-axis controls combine 64 sessions into eight weekly buckets; the same control also supports days, months, and years.
+The X-axis picker groups the Date property by calendar week. Day, month, and year grouping are also available.
 
 <figure className="gallery-card">
 
-![The X-axis picker with Date selected and native calendar-week grouping.](/gallery/08-date-grouping.png)
+![The X-axis picker with Date selected and calendar-week grouping.](/gallery/08-date-grouping.png)
 
-<figcaption>Date grouping · Original timestamps, useful periods</figcaption>
+<figcaption>Date property grouped by week</figcaption>
 </figure>
 
-## Edit formulas where you choose your axis
+## Formula editor
 
-Open Obsidian's native property editor from the X-axis picker. The **Week label** formula gives an existing week-start date a compact label. Completion and validation stay in the familiar Bases editor.
+The Week label formula formats an existing week-start date. The X-axis picker opens Obsidian’s native formula editor.
 
 <figure className="gallery-card">
 
-![The native Bases formula editor displaying the Week label formula, opened from the chart's X-axis picker.](/gallery/13-formula-editor.png)
+![The native Bases formula editor showing the Week label formula.](/gallery/13-formula-editor.png)
 
-<figcaption>Native formula editor · A short label for each week</figcaption>
+<figcaption>Week label in the native formula editor</figcaption>
 </figure>
 
-## Inspect a whole column
+## Column interaction
 
-When a column contains one selectable point, hover or click anywhere along it. A dashed guide identifies the column, and a compact summary stays anchored to the data.
+A column containing one selectable point supports hover and click across the plot height.
 
 <figure className="gallery-card">
 
-![A single-point column with a dashed vertical guide and an anchored summary.](/gallery/14-column-hover.png)
+![A single-point column with a dashed vertical guide and an anchored tooltip.](/gallery/14-column-hover.png)
 
-<figcaption>Column interaction · Hover for a summary, click for the source files</figcaption>
+<figcaption>Single-point column with a guide and tooltip</figcaption>
 </figure>
 
-## Open the notes behind a number
+## Data details
 
-Click a chart to inspect its source files. Search the complete result set, review each file's contribution, and open a note directly from its row.
+Click a chart value to open its source-file table. Search by file name or folder and select a row to open the note.
 
 <figure className="gallery-card">
 
-![Chart data dialog with a selected category, aggregate summary, search field, and source-file table.](/gallery/09-data-details.png)
+![A complete Bases chart with the data dialog open over it, showing the selected category, search field, and source-file table.](/gallery/09-data-details.png)
 
-<figcaption>View data · From a total to the files that make it up</figcaption>
+<figcaption>Data dialog over the Bases chart</figcaption>
 </figure>
 
-## Give each view its own palette
+## Color palettes
 
-Preview the swatches before choosing. The selected palette stays with this view, with colors for both light and dark themes.
+Each view stores its own palette. The picker includes color previews and search.
 
 <figure className="gallery-card">
 
-![The Color palette dropdown with color swatches and the current selection first.](/gallery/07-color-palettes.png)
+![The Color palette picker with swatches and the current selection first.](/gallery/07-color-palettes.png)
 
-<figcaption>Color palette · Choose once, save with the view</figcaption>
+<figcaption>Per-view palette selection</figcaption>
 </figure>
 
-## Follow the momentum
+## Line
 
-Eight weeks of studio work, split into Design, Engineering, Research, and Writing. Short date labels and distinct group colors keep the timeline easy to scan.
+Weekly hours are grouped by Design, Engineering, Research, and Writing.
 
 <figure className="gallery-card">
 
-![Line chart with four workstream series, eight weekly labels, and native X and Y controls.](/gallery/01-line.png)
+![Line chart with four workstream series and eight weekly labels.](/gallery/01-line.png)
 
-<figcaption>Line · Change over time, compared by group</figcaption>
+<figcaption>Hours by week and workstream</figcaption>
 </figure>
 
-## Compare projects
+## Bar
 
-Compare effort across six projects. Native Bases grouping divides each project into workstreams, while labels show the values above the bars.
+Native Bases groups produce a separate bar for each workstream within a project.
 
 <figure className="gallery-card">
 
-![Grouped bars comparing six projects, with workstream colors and value labels.](/gallery/02-bar.png)
+![Grouped bars showing hours for six projects and four workstreams.](/gallery/02-bar.png)
 
-<figcaption>Bar · Categories, groups, and labeled values</figcaption>
+<figcaption>Hours by project and workstream</figcaption>
 </figure>
 
-## See the total and its composition
+## Stacked Area
 
-Stacked areas show how the workload changes and which workstreams contribute to it.
+Workstream values stack into the total hours for each week.
 
 <figure className="gallery-card">
 
 ![Stacked area chart showing four workstreams across eight weeks.](/gallery/03-area.png)
 
-<figcaption>Stacked Area · Group contributions over time</figcaption>
+<figcaption>Weekly hours stacked by workstream</figcaption>
 </figure>
 
-## Understand the mix
+## Pie
 
-A centered donut focuses on how the four workstreams share the total. Percentage labels make the proportions easy to compare.
+Percentage labels show each workstream’s share of the total hours.
 
 <figure className="gallery-card">
 
-![Centered donut chart with four workstream shares and percentage labels.](/gallery/04-pie.png)
+![Donut chart with four workstream shares and percentage labels.](/gallery/04-pie.png)
 
-<figcaption>Pie · Parts of a whole</figcaption>
+<figcaption>Share of hours by workstream</figcaption>
 </figure>
 
-## Compare complete profiles
+## Radar
 
-Current and target values share six capability axes. Radar overlays the selected measures in one centered chart.
+Current and target values share six capability axes in one chart.
 
 <figure className="gallery-card">
 
 ![Radar chart comparing current and target values across six capabilities.](/gallery/05-radar.png)
 
-<figcaption>Radar · Current practice and future goals</figcaption>
+<figcaption>Current and target capability profiles</figcaption>
 </figure>
 
-## Keep individual observations visible
+## Scatter
 
-Compare effort and impact across 32 initiatives. Each dot is an individual observation, with its workstream shown by color.
+Each point represents one of 32 initiatives. Color identifies its workstream.
 
 <figure className="gallery-card">
 
-![Scatter chart with 32 initiatives plotted by effort and impact and colored by workstream.](/gallery/06-scatter.png)
+![Scatter chart showing 32 initiatives by effort and impact.](/gallery/06-scatter.png)
 
-<figcaption>Scatter · Relationships, variation, and individual records</figcaption>
+<figcaption>Effort and impact by initiative</figcaption>
 </figure>
 
-## Build a custom view
+## AI Chart
 
-The **Reference library** example compares 619 fictional papers across six research collections from 2014 to 2026, with smooth curves, subtle area fills, and an overview zoom slider. AI Chart renders this saved ECharts configuration. Claudian can create and refine your own configurations.
+The Reference library view renders a saved ECharts option with 619 fictional papers across six research collections from 2014 to 2026.
 
 <figure className="gallery-card">
 
-![A saved ECharts timeline comparing six research collections, with smooth curves and an overview zoom slider.](/gallery/10-ai-chart.png)
+![A saved ECharts timeline comparing six research collections with a zoom slider.](/gallery/10-ai-chart.png)
 
-<figcaption>AI Chart · A saved, custom ECharts timeline</figcaption>
+<figcaption>Reference library: saved ECharts configuration</figcaption>
 </figure>
 
-This image demonstrates saved-option rendering with fictional data. It does not show a Claudian generation session or a live query of the sample notes.
+## Dark theme
 
-## At home in dark mode
-
-The palette adapts to the theme while preserving the series' color order. Interface text follows the chart's Obsidian window.
+The chart palette and interface use Obsidian’s dark theme.
 
 <figure className="gallery-card">
 
-![A stacked area chart and native Bases controls in Obsidian's dark theme.](/gallery/11-dark.png)
+![A stacked area chart and native Bases controls in Obsidian’s dark theme.](/gallery/11-dark.png)
 
-<figcaption>Dark theme · The same view, adapted to its surroundings</figcaption>
+<figcaption>Stacked Area in dark mode</figcaption>
 </figure>
 
-## Use the gallery
-
-The <a href="/obsidian-bases-charts/gallery/bases-chart-views-gallery.zip" download>PNG download</a> contains all 15 original images, an offline gallery, and portable sample data. Use the original PNGs for community posts and plugin presentations. No personal vault content is included.
-
-The studio fixtures contain 96 sessions across twelve weeks, six capability records, and 32 initiatives. Timeline views focus on the last eight weeks. The gallery covers the 0.5.0 feature set; the capture manifest records the plugin source used for each gallery build.
-
-[Install the plugin](./installation) or [start with your first chart](./overview#your-first-chart).
+[Chart configuration](./overview) · [Data inspection](./explore-data)

@@ -1,4 +1,4 @@
-import { cp, mkdir, access, readFile } from 'node:fs/promises';
+import { cp, mkdir, access, readFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,9 +28,7 @@ await Promise.all(images.map(async image => {
     throw new Error(`Gallery manifest is stale for ${image}. Rebuild the gallery package.`);
   }
 }));
-const archive = 'bases-chart-views-gallery.zip';
-await access(resolve(source, archive));
 await mkdir(destination, { recursive: true });
 await cp(resolve(source, 'images'), destination, { recursive: true });
-await cp(resolve(source, archive), resolve(destination, archive));
+await rm(resolve(destination, 'bases-chart-views-gallery.zip'), { force: true });
 await cp(resolve(source, manifestName), resolve(destination, manifestName));

@@ -1,6 +1,6 @@
 ---
 title: AI Chart
-description: Use Claudian to generate a custom Apache ECharts visualization saved in your Base.
+description: Claudian setup and saved ECharts configuration for AI Chart views.
 ---
 
 # AI Chart
@@ -11,7 +11,7 @@ AI Chart renders a saved [Apache ECharts](https://echarts.apache.org/) configura
 
 ![A saved ECharts timeline comparing six research collections, with smooth curves and an overview zoom slider.](/gallery/10-ai-chart.png)
 
-The gallery's **Reference library** example compares 619 fictional papers across six research collections from 2014 to 2026. Its saved configuration includes smooth lines, subtle area fills, and an overview zoom slider. It illustrates saved-option rendering; it does not show a Claudian generation session or query source notes live.
+The **Reference library** example uses a saved option containing 619 fictional papers across six collections from 2014 to 2026. The option includes smooth lines, area fills, and a zoom slider.
 
 ## Set up
 
@@ -22,13 +22,13 @@ The gallery's **Reference library** example compares 619 fictional papers across
 
 Setup installs the plugin's `bases-charts-ai` skill and configures the associated Claudian system prompt. The skill describes the saved ECharts option format and how to find the active AI Chart view.
 
-## Give the chart a clear brief
+## Example prompt
 
-A useful prompt names the source data, the comparison you want, and the visual style. For example:
+Specify the source data, chart type, and labels:
 
-> In this Base, create a heatmap of focus hours by weekday and time block. Use the session notes as the source. Keep the palette muted, label the axes in English, and include a readable color scale.
+> In this Base, create a heatmap of focus hours by weekday and time block. Use the session notes as the source, label the axes in English, and include a color scale.
 
-Review the result, then ask for a specific adjustment: a narrower date range, different labels, another palette, or a different chart type.
+Ask Claudian to update the option when you change the date range, labels, palette, or chart type.
 
 ## How it differs from Data Charts
 

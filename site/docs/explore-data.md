@@ -1,15 +1,15 @@
 ---
 title: Explore the data
-description: Move from a compact chart preview to a searchable table of source files.
+description: Chart tooltips, click targets, and the source-file table.
 ---
 
 # Explore the data
 
-## Hover for a quick summary
+## Tooltips
 
-Tooltips show the X property, the selected value, and group totals. They stay anchored to the chart data instead of following the cursor, keeping the plot readable.
+Tooltips show the X property, selected value, and group totals. Their position is anchored to chart data.
 
-The preview is intentionally compact. It does not contain a long file list or require moving the cursor into the tooltip.
+Click the chart to view the source files.
 
 ![A single-point chart column with a dashed vertical guide and a compact summary anchored to its data.](/gallery/14-column-hover.png)
 
@@ -27,7 +27,7 @@ Click the chart itself to open its data table:
 
 When several Line or Scatter points share one column, select the individual point. Single-point columns show a dashed vertical guide and support clicking across the plot height.
 
-![The chart data modal with a selected category, aggregate summary, search, and source-file rows.](/gallery/09-data-details.png)
+![A Bases chart with its data dialog open, showing the selected category, aggregate summary, search field, and source-file table.](/gallery/09-data-details.png)
 
 ## Read the table
 

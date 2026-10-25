@@ -75,8 +75,15 @@ def capture(name, modal=False, hover=None):
         w.electronWindow.webContents.sendInputEvent({type:'mouseMove',x:Math.round(box.x+point[0]),y:Math.round(box.y+point[1])});
         ''' if hover is not None else '') + '''
         await new Promise(resolve=>w.setTimeout(resolve,180));
-        const el=''' + ("w.document.querySelector('.bases-chart-files-modal')" if modal else "leaf.view.containerEl.querySelector('.view-content')") + ''';
+        const el=leaf.view.containerEl.querySelector('.view-content');
         const r=el.getBoundingClientRect();
+        ''' + ('''
+        const modal=w.document.querySelector('.bases-chart-files-modal');
+        if(!modal)throw new Error('Open the data dialog before capturing it');
+        const m=modal.getBoundingClientRect();
+        if(m.top<r.top||m.left<r.left||m.right>r.right||m.bottom>r.bottom)
+            throw new Error('Resize the test window to include the complete dialog and chart background');
+        ''' if modal else '') + '''
         const rect={x:Math.floor(r.x),y:Math.floor(r.y),width:Math.ceil(r.width),height:Math.ceil(r.height)};
         const img=await w.electronWindow.capturePage(rect);
         require('fs').writeFileSync(''' + json.dumps(str(target)) + ''',img.toPNG());
@@ -106,7 +113,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--close', action='store_true')
     parser.add_argument('--current', help='Capture the current dedicated gallery view under this image name')
-    parser.add_argument('--modal', action='store_true', help='Crop the current data-details modal')
+    parser.add_argument('--modal', action='store_true', help='Include the complete data dialog over its chart view')
     args = parser.parse_args()
     if args.close:
         close()

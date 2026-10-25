@@ -2,41 +2,41 @@
 
 Interactive charts for [Obsidian Bases](https://help.obsidian.md/bases), powered by [Apache ECharts](https://echarts.apache.org/).
 
-Compare categories, follow a timeline, and open the notes behind every number. Choose from six Data Chart views, or use Claudian to create a custom ECharts visualization.
+Six chart types display a Base's filtered results. AI Chart renders saved ECharts configurations created with Claudian.
 
-[**Get the plugin**](https://community.obsidian.md/plugins/bases-chart-views) · [Documentation](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview) · [UI Gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots)
+[Install](https://community.obsidian.md/plugins/bases-chart-views) · [Documentation](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview) · [UI gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots)
 
 ![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](gallery/images/overview.png)
 
-## Charts for your notes
+## Chart types
 
-| View | Use it to… |
+| View | Data shown |
 | --- | --- |
-| **Line** | Follow change over time |
-| **Bar** | Compare categories and groups |
-| **Stacked Area** | See how groups contribute to a changing total |
-| **Pie** | Show the composition of a total in a centered donut |
-| **Radar** | Compare profiles across several dimensions |
-| **Scatter** | Explore relationships and individual observations |
+| **Line** | Values over time or ordered categories |
+| **Bar** | Category and group comparisons |
+| **Stacked Area** | Group contributions to a changing total |
+| **Pie** | Category shares in a donut chart |
+| **Radar** | Multiple profiles across shared categories |
+| **Scatter** | Individual or aggregated observations |
 
 Each Data Chart uses the Base's current results. Select note, file, or formula properties from the toolbar, then choose an aggregation for each measure.
 
 - **Native Bases controls.** Filter, sort, and group your notes. Use file folders, note properties, or formulas as X values.
 - **Calendar grouping.** Combine timestamps by day, week, month, or year without changing the source property.
 - **Independent measures.** Add and reorder Y properties, each with its own Sum, Average, Count, Min, or Max aggregation. Scatter also supports None.
-- **A palette for every view.** Preview Auto, Colorful, Earth, Coastal, and single-color palettes. Each has light and dark variants.
+- **Per-view palettes.** Choose Auto, Colorful, Earth, Coastal, or single-color palettes, with light and dark variants.
 - **Source-file inspection.** Hover for a compact, anchored summary. Click a chart mark or supported column to open a searchable table of its source files.
 - **Responsive layout.** Cartesian charts use the available width; Pie and Radar sit at the center. Multiple measures form separate charts, while Radar overlays them.
 
 ![Hours and deliverables displayed as two charts in one Base view, each with its own measure and aggregation.](gallery/images/12-multiple-measures.png)
 
-## From a chart to its source
+## Source files
 
 The data dialog shows the selected category, aggregate summary, and individual file values. Search by file name or folder, load more results, and open a source note directly from its row.
 
-![The chart data dialog with a category condition, search, and source-file table.](gallery/images/09-data-details.png)
+![A Bases chart with its data dialog open, showing the selected category, search field, and source-file table.](gallery/images/09-data-details.png)
 
-[Explore the data →](https://haiqiang-zhang.github.io/obsidian-bases-charts/explore-data)
+[Data inspection](https://haiqiang-zhang.github.io/obsidian-bases-charts/explore-data)
 
 ## AI Chart
 
@@ -46,9 +46,9 @@ Add an **AI Chart** view, choose **Set up AI Chart**, and describe the visualiza
 
 ![A saved ECharts timeline comparing six research collections, with smooth curves and an overview zoom slider.](gallery/images/10-ai-chart.png)
 
-The gallery example uses a saved configuration with fictional reference-library data. It demonstrates rendering a custom option; it does not show a Claudian generation session.
+The example uses a saved configuration with fictional reference-library data.
 
-[AI Chart setup and behavior →](https://haiqiang-zhang.github.io/obsidian-bases-charts/ai-charts)
+[AI Chart configuration](https://haiqiang-zhang.github.io/obsidian-bases-charts/ai-charts)
 
 ## Get started
 
@@ -73,17 +73,15 @@ Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-vi
 3. Enter `https://github.com/haiqiang-zhang/obsidian-bases-charts` and choose **Add Plugin**.
 4. Enable **Bases Chart Views** in **Settings → Community plugins**.
 
-The documentation and gallery cover **0.5.0**. Update the plugin to use all features shown here, and check the [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for changes between versions.
+These docs cover the **0.5.0** feature set. See [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for subsequent changes.
 
-## English UI gallery
+## UI gallery
 
-The 15 screenshots cover all six chart types, multiple measures, calendar grouping, the native formula editor, per-view palettes, column interactions, source files, and dark mode. The overview follows eight weeks of a fictional studio's work; the AI example shows a custom reference-library timeline. All labels and sample data are in English, with no personal vault content.
-
-[Browse the gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots) · [Download the PNG set](https://haiqiang-zhang.github.io/obsidian-bases-charts/gallery/bases-chart-views-gallery.zip) · [Local gallery and sample data](gallery/README.md)
+The [gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots) shows chart types and controls with fictional English sample data. [Sample files and capture instructions](gallery/README.md) are included in the repository.
 
 ## Contributing
 
-Ideas, bug reports, and pull requests are welcome. Open an [issue](https://github.com/haiqiang-zhang/obsidian-bases-charts/issues) with your Obsidian version, plugin version, and steps to reproduce the behavior.
+Report bugs in [GitHub issues](https://github.com/haiqiang-zhang/obsidian-bases-charts/issues), including your Obsidian version, plugin version, and reproduction steps.
 
 ## License
 
@@ -91,4 +89,4 @@ Ideas, bug reports, and pull requests are welcome. Open an [issue](https://githu
 
 ## Acknowledgements
 
-This plugin started as a fork of [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin) by [mProjectsCode](https://github.com/mProjectsCode), and has since been fully rewritten from scratch using native TypeScript and [Apache ECharts](https://echarts.apache.org/). AI Chart is powered by [Claudian](https://github.com/YishenTu/claudian).
+Originally forked from [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin) by [mProjectsCode](https://github.com/mProjectsCode). Charts use [Apache ECharts](https://echarts.apache.org/); AI Chart configuration uses [Claudian](https://github.com/YishenTu/claudian).

@@ -5,9 +5,9 @@ description: Choose between Line, Bar, Stacked Area, Pie, Radar, and Scatter vie
 
 # Chart types
 
-Choose the view that fits your question. All six Data Chart views read the Base's filtered note properties and support per-property aggregation.
+All six Data Chart views read the Base's filtered results and support per-property aggregation.
 
-| View | Good for | Typical setup |
+| View | Data shown | Example |
 | --- | --- | --- |
 | Line | Change over time | Date → hours, completed items, or a measured value |
 | Bar | Comparing categories | Project → total effort or number of notes |
@@ -26,7 +26,7 @@ In **Configure view**, **Gap handling** offers **Leave gap** and **Fill with 0**
 
 ## Bar
 
-Bars make differences between categories easy to compare. Native Bases groups become separate colored bars within each category.
+Each X category has a bar for each native Bases group.
 
 **Show labels** displays values above the bars. **Show as percentages** formats the existing values with a percent sign; it does not calculate each bar's share of the total. Use percentage values or a suitable formula when enabling it.
 
@@ -34,7 +34,7 @@ Bars make differences between categories easy to compare. Native Bases groups be
 
 ## Stacked Area
 
-Each group contributes to a cumulative total across the X axis. Use this view when both the total and its composition matter.
+Groups stack into a cumulative total at each X position.
 
 Missing group values at an existing X position are filled with zero. Positive and negative values stack separately. Scale synchronization uses stacked totals.
 
@@ -70,7 +70,7 @@ When a column contains one selectable point, hover or click anywhere along that 
 
 ![Scatter chart showing individual observations and grouped series.](/gallery/06-scatter.png)
 
-## More than one Y property
+## Multiple Y properties
 
 Line, Bar, Stacked Area, Pie, and Scatter render one chart per selected Y property. The layout adapts to the pane width and scrolls vertically when needed. Radar places selected properties together in one profile comparison.
 

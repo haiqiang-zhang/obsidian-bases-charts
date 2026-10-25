@@ -1,6 +1,6 @@
 ---
 title: Axes and dates
-description: Choose note, file, and formula properties, then group timestamps into useful calendar periods.
+description: X and Y properties, calendar grouping, formulas, sorting, and scale settings.
 ---
 
 # Axes and dates
@@ -27,7 +27,7 @@ Pie and Radar call this control **Values**. See [Groups and aggregation](./group
 
 ## Date grouping
 
-A datetime property can contain many timestamps on the same day. Group it before aggregation to produce a useful timeline.
+Date grouping combines timestamps into calendar periods before Y values are aggregated.
 
 1. Select the date or datetime property in **X axis**.
 2. Open **Date grouping** for the selected property.

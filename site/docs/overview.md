@@ -1,19 +1,19 @@
 ---
 title: Overview
-description: Turn Obsidian Bases properties into interactive charts, with native controls and access to source notes.
+description: Chart types, configuration controls, and source-file inspection in Obsidian Bases.
 ---
 
 # Overview
 
-Bases Chart Views adds interactive chart views to [Obsidian Bases](https://help.obsidian.md/bases), powered by [Apache ECharts](https://echarts.apache.org/). Your notes remain the source data. A Base chooses the files; each chart view chooses how to present them.
+Bases Chart Views adds six Data Chart types and an AI Chart view to [Obsidian Bases](https://help.obsidian.md/bases). Charts use [Apache ECharts](https://echarts.apache.org/).
 
 ![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](/gallery/overview.png)
 
-## Two ways to make a chart
+## Data Charts and AI Chart
 
 | | Data Charts | AI Chart |
 | --- | --- | --- |
-| Start with | Properties in a Base | A description of the visualization you want |
+| Source | Properties in a Base | A saved ECharts configuration |
 | Configure with | X, Y, Group, and view settings | [Claudian](https://github.com/YishenTu/claudian) and a saved ECharts option |
 | Available views | Line, Bar, Stacked Area, Pie, Radar, Scatter | The ECharts chart types supported by the generated option |
 | Data behavior | Uses the Base's current filtered results | Renders data saved in its ECharts option |
@@ -30,7 +30,7 @@ Bases Chart Views adds interactive chart views to [Obsidian Bases](https://help.
 
 To count notes instead, add **file name** as the Y property and select **Count**. Text properties need **Count** to produce a numeric result.
 
-## Where the controls live
+## Controls
 
 | Control | Purpose |
 | --- | --- |
@@ -43,12 +43,12 @@ To count notes instead, add **file name** as the Y property and select **Count**
 
 Pie and Radar label their controls **Category** and **Values**. The AI Chart toolbar only shows its view selector because the saved ECharts option defines its data and appearance.
 
-## Keep the same data, ask another question
+## View configuration
 
 Add several views to one Base: a line for change over time, bars for category comparisons, and a donut for composition. Axis selection, date grouping, aggregation, and palette are saved with each view in the `.base` file.
 
-Start with [Chart types](./chart-types), then explore [Axes and dates](./axes-and-dates) and [Groups and aggregation](./groups-and-aggregation).
+[Chart types](./chart-types) · [Axes and dates](./axes-and-dates) · [Groups and aggregation](./groups-and-aggregation)
 
 :::info Documentation version
-These docs and gallery cover **0.5.0**. Update to 0.5.0 or later to use all features shown. Check the [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) when comparing your installed version.
+These docs cover the **0.5.0** feature set. See [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for subsequent changes.
 :::

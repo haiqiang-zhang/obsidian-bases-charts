@@ -4,7 +4,7 @@ const repository = 'https://github.com/haiqiang-zhang/obsidian-bases-charts';
 
 export default defineConfig({
   title: 'Bases Chart Views',
-  description: 'Turn your Obsidian Bases into clear, interactive charts. Documentation, examples, and an English UI gallery.',
+  description: 'Chart views for Obsidian Bases. Documentation for chart types, axes, date grouping, aggregation, palettes, and source-file details.',
   base: '/obsidian-bases-charts/',
   root: 'docs',
   outDir: 'build',
@@ -51,6 +51,6 @@ export default defineConfig({
     lastUpdated: true,
     search: true,
     socialLinks: [{ icon: 'github', mode: 'link', content: repository }],
-    footer: { message: 'Bases Chart Views · Made for Obsidian Bases · GPL-3.0' },
+    footer: { message: 'Bases Chart Views · GPL-3.0' },
   },
 });

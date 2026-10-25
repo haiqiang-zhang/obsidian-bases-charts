@@ -42,7 +42,7 @@ To count the notes in each category, use **file name → Count**. Every note has
 
 To count how many records have a particular property value, select that property and use **Count**. Missing values are excluded. A numeric zero is a value and is counted.
 
-## One Base, several measures
+## Multiple measures
 
 A view can show `Hours → Sum` and `Rating → Average` together, with a separate chart for each measure. Their aggregations are independent. Radar compares the selected measures in a single chart instead.
 
@@ -52,6 +52,6 @@ Use [Y scale controls](./axes-and-dates#y-scale) when several charts should shar
 
 ## Inspect an aggregate
 
-Click a bar, point, area column, pie slice, or radar profile to see the source files. The data table shows each file's original value, so you can understand how the displayed result was formed.
+Click a bar, point, area column, pie slice, or radar profile to see its source files and their individual values.
 
-[Explore the underlying data →](./explore-data)
+[Data inspection](./explore-data)

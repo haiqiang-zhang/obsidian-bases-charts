@@ -68,7 +68,7 @@ def main():
     capture('12-multiple-measures')
     capture('14-column-hover', hover=(0, 4))
 
-    resize(height=620)
+    resize(1120, 900)
     open_view('03 Capacity.base', 'A season of progress')
     ev('''(async()=>{
         const leaf=window.galleryLeaf;

@@ -37,4 +37,4 @@ AI Chart uses [Claudian](https://github.com/YishenTu/claudian) to create its sav
 
 ## Release availability
 
-The website and English UI gallery cover **0.5.0**. Update to 0.5.0 or later to use all features shown. See the [GitHub releases](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for changes between versions.
+These docs cover the **0.5.0** feature set. See [GitHub releases](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for subsequent changes.

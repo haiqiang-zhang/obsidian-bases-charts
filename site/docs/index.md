@@ -3,17 +3,17 @@ title: Bases Chart Views
 pageType: home
 hero:
   name: Bases Chart Views
-  text: See the patterns in your notes.
-  tagline: Interactive charts for Obsidian Bases. Compare categories, follow a timeline, and open the notes behind every number.
+  text: Charts for Obsidian Bases
+  tagline: Add chart views to a Base. Choose note properties, group dates, and inspect the files behind a value.
   actions:
     - theme: brand
-      text: Get the plugin
+      text: Install plugin
       link: https://community.obsidian.md/plugins/bases-chart-views
     - theme: alt
-      text: Read the docs
+      text: Documentation
       link: /overview
     - theme: alt
-      text: Explore the gallery
+      text: UI Gallery
       link: /screenshots
 ---
 
@@ -23,39 +23,19 @@ hero:
 
 </div>
 
-<div className="home-columns">
+<div className="home-docs">
 
-<div>
+## Documentation
 
-### Your properties, in view
-
-Choose a line, bar, stacked area, pie, scatter, or radar chart. Select properties from the familiar Bases toolbar and keep each view focused on a different question.
-
-</div>
-<div>
-
-### From timestamps to a timeline
-
-Group dates by day, week, month, or year. Compare groups, choose an aggregation for each measure, and give every view its own palette.
-
-</div>
-<div>
-
-### Follow a number back to its notes
-
-Hover for a compact summary. Click a chart mark or supported column to open a searchable file table, then open the source note.
-
-</div>
-</div>
-
-<div className="home-next">
-
-## A chart for the question you have
-
-Use the built-in views for your Bases data. For custom visualizations such as heatmaps or Sankey diagrams, [AI Chart](./ai-charts) renders saved ECharts configurations, with Claudian available to create and refine them.
-
-[Choose a chart type →](./chart-types) · [Build your first chart →](./overview#your-first-chart)
+| Topic | Includes | Guide |
+| --- | --- | --- |
+| Chart types | Line, bar, stacked area, pie, radar, and scatter. | [Views →](./chart-types) |
+| Axes and dates | Note properties, file properties, formulas, and calendar date grouping. | [Axes →](./axes-and-dates) |
+| Groups and aggregation | Bases groups and a separate aggregation for each value property. | [Groups →](./groups-and-aggregation) |
+| Data details | A searchable table of the files contributing to a chart value. | [Files →](./explore-data) |
+| Appearance | Per-view color palettes and chart-specific display options. | [Settings →](./colors-and-layout) |
+| AI Chart | Saved Apache ECharts options, with Claudian integration. | [AI Chart →](./ai-charts) |
 
 </div>
 
-<p className="gallery-note">The gallery uses fictional English sample data and shows features available in 0.5.0.</p>
+<p className="gallery-note">Examples use fictional data.</p>

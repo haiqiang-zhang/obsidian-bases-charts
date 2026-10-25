@@ -71,10 +71,7 @@ export default function GalleryLightbox() {
       <div className="gallery-lightbox__panel">
         <div className="gallery-lightbox__toolbar">
           <span>UI Gallery</span>
-          <div>
-            <a href={preview.src} download>Download PNG</a>
-            <button type="button" onClick={close} aria-label="Close screenshot preview">Close <kbd>Esc</kbd></button>
-          </div>
+          <button type="button" onClick={close} aria-label="Close screenshot preview">Close <kbd>Esc</kbd></button>
         </div>
         <div className="gallery-lightbox__image"><img src={preview.src} alt={preview.alt} /></div>
         <p>{preview.alt}</p>
