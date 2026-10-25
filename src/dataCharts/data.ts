@@ -1,6 +1,5 @@
 import type { BasesPropertyId } from 'obsidian';
 import type { XAxisType } from '../utils/utils';
-import { OBSIDIAN_COLOR_PALETTE } from '../ui/colors';
 import { toXKey } from '../utils/utils';
 
 export interface YDomainOverrides {
@@ -47,10 +46,6 @@ export abstract class AbstractDataWrapper<ChartId, GroupId> {
 
 	abstract getChartName(chartIndex: number): string;
 	abstract getGroupName(groupIndex: number): string;
-
-	getColorFromGroupIndex(groupIndex: number): string {
-		return OBSIDIAN_COLOR_PALETTE[groupIndex % OBSIDIAN_COLOR_PALETTE.length];
-	}
 
 	hasMultipleGroups(): boolean {
 		return this.getGroupIdentifiers().length > 1;

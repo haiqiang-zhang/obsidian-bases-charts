@@ -6,7 +6,6 @@ import { AggregateMode, aggregateKey } from './aggregate';
 import { COMMON_SETTINGS } from './types';
 import { ChartRenderer } from '../utils/renderer';
 import { resolveColors } from '../ui/colors';
-import { OBSIDIAN_COLOR_PALETTE } from '../ui/colors';
 
 export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
@@ -28,6 +27,9 @@ export class ChartLayout {
 	}
 
 	update(): void {
+		// Theme changes can arrive before Bases assigns the first query result.
+		if (!this.view.config || !this.view.data) return;
+
 		const xField = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const propertyOrder = this.view.getYProperties();
 		this.emptyEl.empty();
@@ -46,12 +48,11 @@ export class ChartLayout {
 		const data = this.view.processData();
 		const chartIds = data.getChartIdentifiers();
 
-		this.renderLegend(data);
+		const colors = resolveColors(this.containerEl);
+		this.renderLegend(data, colors.palette);
 		this.reconcileRenderers(chartIds.length);
 
 		const xName = xField ? `${this.view.config.getDisplayName(xField)} →` : '';
-
-		const colors = resolveColors(this.containerEl);
 
 		for (let i = 0; i < chartIds.length; i++) {
 			const renderer = this.renderers[i];
@@ -89,7 +90,7 @@ export class ChartLayout {
 		}
 	}
 
-	private renderLegend(data: DataWrapper): void {
+	private renderLegend(data: DataWrapper, palette: string[]): void {
 		this.legendEl.empty();
 		const groupIds = data.getGroupIdentifiers();
 		if (groupIds.length <= 1) {
@@ -101,7 +102,7 @@ export class ChartLayout {
 		for (let i = 0; i < groupIds.length; i++) {
 			const itemEl = this.legendEl.createDiv({ cls: 'bases-charts-plot-legend-item' });
 			const colorEl = itemEl.createDiv({ cls: 'bases-charts-plot-legend-color' });
-			colorEl.style.setProperty('--color', OBSIDIAN_COLOR_PALETTE[i % OBSIDIAN_COLOR_PALETTE.length]);
+			colorEl.style.setProperty('--color', palette[i % palette.length]);
 			itemEl.createEl('span', { cls: 'bases-charts-plot-legend-label', text: data.getGroupName(i) });
 		}
 	}

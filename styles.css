@@ -2,7 +2,6 @@ body {
 	--bases-charts-text: var(--text-normal);
 	--bases-charts-grid: var(--background-modifier-border);
 	--bases-charts-grid-hover: var(--background-modifier-border);
-	--bases-charts-accent: var(--color-accent);
 	--bases-charts-min-width: 350px;
 	--bases-charts-min-height: 350px;
 }
@@ -55,8 +54,10 @@ body {
 }
 
 .bases-charts-plot-legend-color {
-	width: var(--size-4-4);
-	height: var(--size-4-4);
+	width: 10px;
+	height: 10px;
+	flex-shrink: 0;
+	border-radius: 3px;
 	background-color: var(--color);
 }
 
