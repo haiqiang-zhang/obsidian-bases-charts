@@ -707,3 +707,90 @@ body {
 .bases-chart-toolbar button.bases-chart-axis-button { background: transparent; box-shadow: none; }
 .bases-chart-toolbar button.bases-chart-axis-button:hover,
 .bases-chart-toolbar button.bases-chart-axis-button[aria-expanded="true"] { background: var(--background-modifier-hover); }
+
+/* Enhance only the chart palette field inside native Configure view. */
+.view-config-menu select.bases-chart-palette-native { display: none; }
+.view-config-menu button.bases-chart-palette-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-3);
+    width: 100%;
+    padding-inline-end: 28px;
+    text-align: start;
+}
+.bases-chart-palette-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.bases-chart-palette-swatches {
+    display: flex;
+    flex-shrink: 0;
+    gap: 3px;
+}
+.bases-chart-palette-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+}
+.bases-chart-palette-popover.suggestion-container {
+    position: fixed;
+    inset: auto;
+    left: var(--chart-palette-left);
+    top: var(--chart-palette-top, auto);
+    bottom: var(--chart-palette-bottom, auto);
+    width: var(--chart-palette-width);
+    max-width: calc(100vw - 16px);
+    max-height: var(--chart-palette-height);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 6px;
+    background: var(--background-primary);
+    border: var(--border-width) solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-s);
+    z-index: 1;
+}
+.bases-chart-palette-search { flex: 0 0 auto; padding: 2px 2px 6px; }
+.bases-chart-palette-search .search-input-container { width: 100%; --search-icon-color: var(--text-faint); }
+/* Match the native Layout combobox search field. */
+.bases-chart-palette-search input[type="search"] {
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+    background-color: transparent;
+}
+.bases-chart-palette-list.suggestion {
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0;
+}
+.bases-chart-palette-popover button.bases-chart-palette-option {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-3);
+    width: 100%;
+    height: auto;
+    min-height: 36px;
+    padding: 8px 10px;
+    margin: 0;
+    border: 0;
+    border-radius: var(--radius-s);
+    background: transparent;
+    box-shadow: none;
+    text-align: start;
+    color: var(--text-normal);
+    font: inherit;
+}
+.bases-chart-palette-popover button.bases-chart-palette-option:is(.is-selected, :hover, :focus-visible) {
+    background: var(--background-modifier-hover);
+}
+.bases-chart-palette-check { display: flex; flex: 0 0 16px; }
+.bases-chart-palette-check svg { width: 16px; height: 16px; }
+.bases-chart-palette-empty { padding: 16px 10px; color: var(--text-muted); font-size: var(--font-ui-small); }

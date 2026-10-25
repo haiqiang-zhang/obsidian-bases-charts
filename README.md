@@ -41,7 +41,7 @@ Built-in chart views that visualize Bases data with configurable axes, aggregati
 - Compact, stationary tooltips with the X property and group totals; click a chart column to explore its files in a searchable data table
 - X axis sorting via Bases Sort configuration
 
-X, Y, and Group sit together in the toolbar. Pie shows Category and Values instead of axis controls. Open **Configure view** from the view selector on the left and choose **Color palette**. The selection is saved with that view in the `.base` file; other views keep their own colors. Auto preserves the soft default palette. Chart appearance and applicable Y scale settings remain in the view settings. Existing charts keep their previous Y property selection until you edit it in the new Y menu. The vault root appears as `/` when using folder as X.
+X, Y, and Group sit together in the toolbar. Pie shows Category and Values instead of axis controls. Open **Configure view** from the view selector on the left and choose **Color palette**. The searchable dropdown previews each palette with color swatches and shows the current selection first with a checkmark. The selection is saved with that view in the `.base` file; other views keep their own colors. Auto preserves the soft default palette. Chart appearance and applicable Y scale settings remain in the view settings. Existing charts keep their previous Y property selection until you edit it in the new Y menu. The vault root appears as `/` when using folder as X.
 
 ## AI Chart
 
