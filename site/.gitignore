@@ -1,0 +1,4 @@
+node_modules/
+build/
+.rspress/
+docs/public/gallery/

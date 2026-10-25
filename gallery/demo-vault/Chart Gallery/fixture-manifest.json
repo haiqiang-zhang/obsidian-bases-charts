@@ -1,0 +1,49 @@
+{
+  "description": "Synthetic English-only data for Bases Chart Views UI gallery",
+  "period": "2026-07-06 through 2026-09-25",
+  "sessions": 96,
+  "capabilities": 6,
+  "initiatives": 32,
+  "total_hours": 1132,
+  "property_types": {
+    "Completed": "datetime",
+    "Effort": "number",
+    "Hours": "number",
+    "Deliverables": "number",
+    "Impact": "number",
+    "Current": "number",
+    "Target": "number",
+    "Week": "number",
+    "Sequence": "number"
+  },
+  "views": [
+    {
+      "file": "01 Trend.base",
+      "name": "Weekly momentum"
+    },
+    {
+      "file": "02 Workstreams.base",
+      "name": "Projects by workstream"
+    },
+    {
+      "file": "03 Capacity.base",
+      "name": "A season of progress"
+    },
+    {
+      "file": "04 Focus mix.base",
+      "name": "Where the time goes"
+    },
+    {
+      "file": "05 Skills.base",
+      "name": "A balanced practice"
+    },
+    {
+      "file": "06 Effort and impact.base",
+      "name": "Effort & impact"
+    },
+    {
+      "file": "10 AI insights.base",
+      "name": "Focus rhythm"
+    }
+  ]
+}

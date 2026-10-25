@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "source": "Real Obsidian Sandbox UI with synthetic English-only data",
+  "plugin_commit": "223329651371a6618b6fcaa9b85a3f10e72f7456",
+  "language": "en",
+  "image_format": "PNG",
+  "capture_count": 12,
+  "release_note": "Captured from the development build; some features are newer than release 0.4.1.",
+  "overview_note": "A single capture of four live chart views arranged with native Obsidian split panes.",
+  "ai_chart_note": "The AI Chart image demonstrates rendering a saved Apache ECharts heatmap option. It does not show a Claudian generation session or a live query of the sample notes.",
+  "captures": [
+    {
+      "file": "overview.png",
+      "path": "images/overview.png",
+      "title": "Your notes, in perspective",
+      "description": "Four live chart views arranged with native Obsidian split panes.",
+      "size": {
+        "width": 2880,
+        "height": 1780
+      },
+      "bytes": 316521,
+      "sha256": "577edf2c7725bf5731709ce3ae6674cc6f82555f43ad827f2774d0baa00e05fb"
+    },
+    {
+      "file": "01-line.png",
+      "path": "images/01-line.png",
+      "title": "Follow the momentum",
+      "description": "Twelve weeks of studio work, grouped by calendar week and workstream.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 103367,
+      "sha256": "7ba16e64614feda9a9696904b85cddbe2bba5b08aa78976db64664160849db6e",
+      "viewport": [
+        1120,
+        700
+      ],
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Weekly momentum"
+      }
+    },
+    {
+      "file": "02-bar.png",
+      "path": "images/02-bar.png",
+      "title": "Compare projects",
+      "description": "Grouped bars make the contributions of four workstreams easy to compare.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 83198,
+      "sha256": "8bade45fec265cd616a438d9e0e16e5924ddca4f6a6f4465a0ddfc0cbc2a8ab9",
+      "viewport": [
+        1120,
+        700
+      ],
+      "view": {
+        "file": "Chart Gallery/02 Workstreams.base",
+        "viewName": "Projects by workstream"
+      }
+    },
+    {
+      "file": "03-area.png",
+      "path": "images/03-area.png",
+      "title": "See the bigger picture",
+      "description": "Stacked areas show how the mix of work changes as the quarter progresses.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 99955,
+      "sha256": "7a51d2fefbd25e41af57e6fe757c8002d3e50d4cd1dcabee4ae60f1cc14cb7a9",
+      "viewport": [
+        1120,
+        700
+      ],
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      }
+    },
+    {
+      "file": "04-pie.png",
+      "path": "images/04-pie.png",
+      "title": "Understand the mix",
+      "description": "A centered donut gives each workstream its share of the total.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 61338,
+      "sha256": "75045535791eec2db8e104bdac38015665486fc4875771ba0111fdbd8bfb48e6",
+      "viewport": [
+        1120,
+        700
+      ],
+      "view": {
+        "file": "Chart Gallery/04 Focus mix.base",
+        "viewName": "Where the time goes"
+      }
+    },
+    {
+      "file": "05-radar.png",
+      "path": "images/05-radar.png",
+      "title": "Compare complete profiles",
+      "description": "Current and target values share six capability axes in one radar view.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 89937,
+      "sha256": "6db24eef55759521e0b401d1815f03aa687e36802a850068927b57b6dee764a0",
+      "viewport": [
+        1120,
+        700
+      ],
+      "view": {
+        "file": "Chart Gallery/05 Skills.base",
+        "viewName": "A balanced practice"
+      }
+    },
+    {
+      "file": "06-scatter.png",
+      "path": "images/06-scatter.png",
+      "title": "Explore the trade-offs",
+      "description": "Individual initiatives reveal the relationship between effort and impact.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 58274,
+      "sha256": "c0386a9e99b0c88e7e74a66b999008690d73c93cb2796ec6e5df8d422f461edb",
+      "viewport": [
+        1120,
+        700
+      ],
+      "view": {
+        "file": "Chart Gallery/06 Effort and impact.base",
+        "viewName": "Effort & impact"
+      }
+    },
+    {
+      "file": "07-color-palettes.png",
+      "path": "images/07-color-palettes.png",
+      "title": "Give each view its own palette",
+      "description": "Preview restrained color collections directly in the view's palette picker.",
+      "size": {
+        "width": 2240,
+        "height": 1484
+      },
+      "bytes": 156316,
+      "sha256": "58daf8dbb0fcc63bc6300876019926670ec7a9df2dde46e896b070ea03bbd11c",
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      }
+    },
+    {
+      "file": "08-date-grouping.png",
+      "path": "images/08-date-grouping.png",
+      "title": "Choose the right time scale",
+      "description": "Use a date property, then group timestamps by day, week, month, or year.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 136974,
+      "sha256": "82850c07ae1fd4f7de444ce444167c5b0d9bf743b14434fa168dbd37908aacb9",
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Weekly momentum"
+      }
+    },
+    {
+      "file": "09-data-details.png",
+      "path": "images/09-data-details.png",
+      "title": "Go from a value to its files",
+      "description": "Open the source-file table, search its contents, and return to the underlying notes.",
+      "size": {
+        "width": 1760,
+        "height": 1288
+      },
+      "bytes": 166061,
+      "sha256": "2ae2d4690028497fc7d440b85f0ced04b2d5618970555c3ca1a081c1aa7565a6",
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      }
+    },
+    {
+      "file": "10-ai-chart.png",
+      "path": "images/10-ai-chart.png",
+      "title": "Go beyond the built-in views",
+      "description": "A saved Apache ECharts heatmap rendered in AI Chart. This image does not show an AI generation session.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 93118,
+      "sha256": "a54ed04ca1b09670a3b32cbc99ff2e82cc099afec5eaf1bd428b9c7550acbfcd",
+      "view": {
+        "file": "Chart Gallery/10 AI insights.base",
+        "viewName": "Focus rhythm"
+      }
+    },
+    {
+      "file": "11-dark.png",
+      "path": "images/11-dark.png",
+      "title": "At home after dark",
+      "description": "Chart colors and interface details adapt to Obsidian's dark theme.",
+      "size": {
+        "width": 2240,
+        "height": 1246
+      },
+      "bytes": 100925,
+      "sha256": "55360f89b9217bb618b8eb7acc9c01a0fe0080ad86f97991036ac3915b355253",
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      }
+    }
+  ]
+}

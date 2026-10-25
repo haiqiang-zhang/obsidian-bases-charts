@@ -26,6 +26,8 @@ export default tseslint.config(
 	globalIgnores([
 		"node_modules",
 		"dist",
+		"site/**",
+		"gallery/**",
 		"esbuild.config.mjs",
 		"eslint.config.js",
 		"exampleData",

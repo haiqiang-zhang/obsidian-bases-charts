@@ -1,0 +1,27 @@
+filters:
+  and: ["file.inFolder(\"Chart Gallery/Initiatives\")", "file.ext == \"md\""]
+properties:
+  note.Effort:
+    displayName: "Effort (hours)"
+  note.Impact:
+    displayName: "Impact score"
+  note.Workstream:
+    displayName: "Workstream"
+views:
+  -
+    type: "chart-scatter"
+    name: "Effort & impact"
+    x: "note.Effort"
+    y: ["note.Impact"]
+    order: ["file.name", "note.Effort", "note.Impact"]
+    color-palette: "coastal"
+    groupBy:
+      property: "note.Workstream"
+      direction: "ASC"
+    sort:
+      -
+        property: "note.Effort"
+        direction: "ASC"
+    "aggregate:note.Impact": "None"
+    min-y-override: "0"
+    max-y-override: "100"

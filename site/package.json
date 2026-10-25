@@ -1,0 +1,27 @@
+{
+  "name": "bases-chart-views-docs",
+  "version": "0.4.1",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "prepare:assets": "node scripts/prepare-assets.mjs",
+    "dev": "npm run prepare:assets && rspress dev --host 127.0.0.1",
+    "build": "npm run typecheck && npm run prepare:assets && rspress build",
+    "preview": "rspress preview --host 127.0.0.1",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rspress/core": "2.0.19",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.17",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

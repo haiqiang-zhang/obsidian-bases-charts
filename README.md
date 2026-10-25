@@ -1,96 +1,87 @@
 # Bases Chart Views
 
-**Data Charts + AI Charts for [Obsidian Bases](https://help.obsidian.md/bases)**
+Interactive charts for [Obsidian Bases](https://help.obsidian.md/bases), powered by [Apache ECharts](https://echarts.apache.org/).
 
-![Banner](images/banner.png)
+Compare categories, follow a timeline, and open the notes behind every number. Choose from six Data Chart views, or use Claudian to create a custom ECharts visualization.
 
-An [Obsidian](https://obsidian.md) plugin that adds interactive chart views to Bases, powered by [Apache ECharts 6.1](https://echarts.apache.org/). Build data-driven charts manually or generate any ECharts visualization with AI via [Claudian](https://github.com/YishenTu/claudian).
+[**Get the plugin**](https://community.obsidian.md/plugins/bases-chart-views) · [Documentation](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview) · [UI Gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots)
 
-### Design Philosophy
+![Four chart views displayed together in native Obsidian split panes, with English sample data.](gallery/images/overview.png)
 
-This plugin offers two fundamentally different approaches to charting:
+## Charts for your notes
 
-- **Data Charts** — Each supported chart type is carefully crafted with purpose-built controls for aggregation, grouping, axis configuration, and interactivity. Rather than exposing the full complexity of ECharts, we focus on polishing a curated set of chart types and gradually expanding support.
-- **AI Chart** — Fully AI-driven. You simply describe what you want in a conversation with Claudian, and it handles everything — reading your data, choosing the right chart type, and writing the complete ECharts configuration. No manual configuration needed.
+| View | Use it to… |
+| --- | --- |
+| **Line** | Follow change over time |
+| **Bar** | Compare categories and groups |
+| **Stacked Area** | See how groups contribute to a changing total |
+| **Pie** | Show the composition of a total in a centered donut |
+| **Radar** | Compare profiles across several dimensions |
+| **Scatter** | Explore relationships and individual observations |
 
-## How It Works
+Each Data Chart uses the Base's current results. Select note, file, or formula properties from the toolbar, then choose an aggregation for each measure.
 
-1. Create a [Base](https://help.obsidian.md/bases) in your vault.
-2. Add a new view and select a chart type — either a **Data Chart** (Scatter, Line, Stacked Area, Bar, Pie, Radar) or an **AI Chart**.
-3. For Data Charts, choose **X axis** and **Y axes** in the toolbar. X supports file properties (including folder), note properties, and formulas. Add, reorder, and aggregate Y properties directly in the Y menu. Pie and Radar use **Category** and **Values** for these controls.
-4. For AI Charts, install [Claudian](https://github.com/YishenTu/claudian) first. The plugin has deep integration with Claudian — you can chat with it to generate, modify, and iterate on any ECharts visualization. See [AI Chart](#ai-chart) for details.
+- **Native Bases controls.** Filter, sort, and group your notes. Use file folders, note properties, or formulas as X values.
+- **Calendar grouping.** Combine timestamps by day, week, month, or year without changing the source property.
+- **Independent measures.** Add and reorder Y properties, each with its own Sum, Average, Count, Min, or Max aggregation. Scatter also supports None.
+- **A palette for every view.** Preview Auto, Colorful, Earth, Coastal, and single-color palettes. Each has light and dark variants.
+- **Source-file inspection.** Hover for a compact, anchored summary. Click a chart mark or supported column to open a searchable table of its source files.
+- **Responsive layout.** Cartesian charts use the available width; Pie and Radar sit at the center. Multiple measures form separate charts, while Radar overlays them.
 
-## Data Charts
+![Line chart showing a rich timeline of grouped sample data in the native Bases interface.](gallery/images/01-line.png)
 
-Built-in chart views that visualize Bases data with configurable axes, aggregation, and grouping.
+## From a chart to its source
 
-![Data Charts Showcase](images/data-charts.png)
+The data dialog shows the selected category, aggregate summary, and individual file values. Search by file name or folder, load more results, and open a source note directly from its row.
 
-- **Scatter** — individual data points; click to inspect their source files
-- **Line** — connected data points, configurable gap handling (Leave gap or Fill with 0)
-- **Stacked Area** — stacked group totals over a category, number, or date axis; click anywhere in a column to inspect its files
-- **Bar** — grouped bars with optional data labels and percentage display
-- **Pie** — donut chart with optional labels, percentages, and null filtering
-- **Radar** — compare multiple value properties in one centered radar, with categories as spokes and optional groups as additional profiles
+![The chart data dialog with a category condition, search, and source-file table.](gallery/images/09-data-details.png)
 
-### Features
-
-- Multiple Y axes: each Y property produces a separate chart (Radar overlays the selected properties), with responsive columns and vertical scrolling when needed
-- Per-property aggregation: set Sum, Average, Count, Min, Max (or None for Scatter) independently for each Y axis
-- Sync Y axes and min/max override for Bar, Line, Stacked Area, and Scatter charts
-- Native Group menu: groups become colored series, respecting selected groups and manual group order
-- Per-view color palettes: Auto, Colorful, Earth, Coastal, and nine single-color palettes, each adapted for light and dark themes
-- Compact, stationary tooltips with the X property and group totals; click a chart column to explore its files in a searchable data table
-- Line and Scatter columns with one data point support hover and click across the plot height, with a dashed X guide; columns with multiple points keep individual point selection
-- X axis sorting via Bases Sort configuration
-- Date grouping for X: Exact time, Day, Week, Month, or Year
-- Native property and formula editors, available from each property row in the axis menus
-
-X, Y, and Group sit together in the toolbar. Pie and Radar show Category and Values instead of axis controls. Open **Configure view** from the view selector on the left and choose **Color palette**. The searchable dropdown previews each palette with color swatches and shows the current selection first with a checkmark. The selection is saved with that view in the `.base` file; other views keep their own colors. Auto preserves the soft default palette. Chart appearance and applicable Y scale settings remain in the view settings. Existing charts keep their previous Y property selection until you edit it in the new Y menu. The vault root appears as `/` when using folder as X.
-
-For a date or datetime X property, choose **Date grouping → Day** to combine timestamps from the same day. Week, Month, and Year are also available. Grouping uses local calendar dates, with weeks starting on Monday; only periods containing records are shown. Choose **Exact time** to retain individual timestamps. The setting belongs to the selected X property in that view.
-
-Click a property name to select it, or its right-hand arrow to open Obsidian’s native property editor. **Add formula** opens the native formula editor with completion and validation. A valid new formula is selected when you leave the editor. **Back** returns to the X or Y menu you came from, with the current selection at the top.
-
-Stacked Area fills missing group values with zero and stacks positive and negative values separately. Radar needs at least three categories with values. Its default shared scale preserves differences between categories; choose **Per category** when comparing profiles across categories with different ranges. Missing radar values are plotted at zero and shown as missing in the tooltip. Click a radar profile to inspect its files by category.
+[Explore the data →](https://haiqiang-zhang.github.io/obsidian-bases-charts/explore-data)
 
 ## AI Chart
 
-Generate any ECharts visualization using [Claudian](https://github.com/YishenTu/claudian). The AI Chart view supports the full ECharts option spec — line, bar, scatter, pie, radar, heatmap, treemap, sunburst, graph, sankey, gauge, funnel, candlestick, boxplot, parallel, and more.
+Use [Claudian](https://github.com/YishenTu/claudian) to create and refine a custom visualization: a heatmap, Sankey diagram, treemap, graph, gauge, or another Apache ECharts chart.
 
-AI Chart renders its saved ECharts configuration independently of the Bases query, so its toolbar only shows the view selector.
+Add an **AI Chart** view, choose **Set up AI Chart**, and describe the visualization to Claudian. It writes the ECharts option into the `.base` file. This view renders its saved configuration independently of the live Bases query.
 
-AI Chart options follow the [ECharts 6.1 API](https://github.com/apache/echarts/releases/tag/6.1.0). For older options that use `axis.startValue` to fix the axis minimum, also set `axis.min` to the same value; `startValue` no longer sets it implicitly.
+![The included saved ECharts heatmap rendered in the AI Chart view.](gallery/images/10-ai-chart.png)
 
-![AI Chart](images/ai-charts.png)
+[AI Chart setup and behavior →](https://haiqiang-zhang.github.io/obsidian-bases-charts/ai-charts)
 
-### Setup
+## Get started
 
-1. Add an **AI Chart** view to your Base.
-2. Click **Set up AI Chart** to install the Claudian skill (requires [Claudian](https://github.com/YishenTu/claudian)).
-3. Ask Claudian to generate a chart — it reads your data and writes the ECharts configuration directly to the `.base` file.
-4. The chart renders automatically. Edit via Claudian to iterate on the visualization.
+1. Install and enable Bases Chart Views.
+2. Create or open a Base and add a chart view.
+3. Choose **X axis** and **Y axes** in the toolbar. Pie and Radar use **Category** and **Values**.
+4. Select a measure and its aggregation. To count notes, use **file name → Count**.
+5. Open **Configure view → Color palette** to choose this view's colors.
 
-## General
-
-- Bar, line, stacked area, and scatter charts sit directly below the native toolbar with narrow chart margins; pie and radar charts sit at the center
-- Legends stay below the charts, and smaller panes scroll naturally
-- Light and dark theme support
-- Standard menus follow Obsidian's **Native menus** preference
-- Mobile-optimized layout
+[First chart guide](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview#your-first-chart) · [Axes and dates](https://haiqiang-zhang.github.io/obsidian-bases-charts/axes-and-dates) · [Groups and aggregation](https://haiqiang-zhang.github.io/obsidian-bases-charts/groups-and-aggregation)
 
 ## Installation
 
 ### Community plugins (recommended)
 
-Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-views) from the Obsidian community plugin directory, then enable it.
+Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-views) from the Obsidian community plugin directory, then enable it. Requires **Obsidian 1.12.0 or later** and the Bases core plugin.
 
 ### BRAT
 
-1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
-2. In BRAT settings, click **Add Beta Plugin**.
-3. Enter `https://github.com/haiqiang-zhang/obsidian-bases-charts` and click **Add Plugin**.
-4. Enable **Bases Chart Views** in Settings > Community plugins.
+1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat).
+2. In BRAT settings, choose **Add Beta Plugin**.
+3. Enter `https://github.com/haiqiang-zhang/obsidian-bases-charts` and choose **Add Plugin**.
+4. Enable **Bases Chart Views** in **Settings → Community plugins**.
+
+The documentation and gallery follow the current development build. Some features shown were added after **0.4.1**. Check the [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for availability in your installed version; BRAT installs published releases, not unpublished commits.
+
+## English UI gallery
+
+The screenshots use a fictional studio workspace with English properties and sample records. The overview shows four chart views in native Obsidian split panes. The AI example renders the included saved heatmap configuration. No personal vault content is included.
+
+[Browse the gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots) · [Download the PNG set](https://haiqiang-zhang.github.io/obsidian-bases-charts/gallery/bases-chart-views-gallery.zip) · [Local gallery and sample data](gallery/README.md)
+
+## Contributing
+
+Ideas, bug reports, and pull requests are welcome. Open an [issue](https://github.com/haiqiang-zhang/obsidian-bases-charts/issues) with your Obsidian version, plugin version, and steps to reproduce the behavior.
 
 ## License
 
@@ -99,7 +90,3 @@ Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-vi
 ## Acknowledgements
 
 This plugin started as a fork of [obsidian-bases-charts-plugin](https://github.com/mProjectsCode/obsidian-bases-charts-plugin) by [mProjectsCode](https://github.com/mProjectsCode), and has since been fully rewritten from scratch using native TypeScript and [Apache ECharts](https://echarts.apache.org/). AI Chart is powered by [Claudian](https://github.com/YishenTu/claudian).
-
-## Contributions
-
-Contributions are always welcome. If you have an idea, feel free to open a feature request under the issue tab or create a pull request.

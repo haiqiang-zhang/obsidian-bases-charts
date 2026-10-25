@@ -1,0 +1,31 @@
+filters:
+  and: ["file.inFolder(\"Chart Gallery/Sessions\")", "file.ext == \"md\""]
+properties:
+  note.Completed:
+    displayName: "Date"
+  note.Hours:
+    displayName: "Hours"
+  note.Deliverables:
+    displayName: "Deliverables"
+  note.Workstream:
+    displayName: "Workstream"
+  note.Project:
+    displayName: "Project"
+  formula.Week label:
+    displayName: "Week"
+views:
+  -
+    type: "chart-pie"
+    name: "Where the time goes"
+    x: "note.Workstream"
+    y: ["note.Hours"]
+    order: ["file.name", "note.Workstream", "note.Hours"]
+    color-palette: "earth"
+    sort:
+      -
+        property: "note.Workstream"
+        direction: "ASC"
+    "aggregate:note.Hours": "Sum"
+    show-labels: true
+    show-percentages: true
+    ignore-null: true

@@ -1,0 +1,172 @@
+views:
+  -
+    type: "chart-ai"
+    name: "Focus rhythm"
+    echarts-option:
+      animation: false
+      backgroundColor: "#ffffff"
+      textStyle:
+        fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        color: "#373b3b"
+      title:
+        text: "A season of focused work"
+        subtext: "Hours by day  /  July - September 2026"
+        left: 28
+        top: 24
+        textStyle:
+          fontSize: 24
+          fontWeight: 600
+          color: "#303635"
+        subtextStyle:
+          fontSize: 13
+          color: "#727b78"
+        itemGap: 12
+      grid:
+        left: 88
+        right: 40
+        top: 126
+        bottom: 96
+      tooltip:
+        position: "top"
+        confine: true
+      xAxis:
+        type: "category"
+        data: ["Jul 06", "Jul 13", "Jul 20", "Jul 27", "Aug 03", "Aug 10", "Aug 17", "Aug 24", "Aug 31", "Sep 07", "Sep 14", "Sep 21"]
+        splitArea:
+          show: false
+        axisLine:
+          show: false
+        axisTick:
+          show: false
+        axisLabel:
+          color: "#727b78"
+          margin: 14
+          fontSize: 12
+      yAxis:
+        type: "category"
+        data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        inverse: true
+        axisLine:
+          show: false
+        axisTick:
+          show: false
+        axisLabel:
+          color: "#727b78"
+          margin: 16
+          fontSize: 12
+      visualMap:
+        min: 0
+        max: 13
+        calculable: false
+        orient: "horizontal"
+        left: "center"
+        bottom: 22
+        itemWidth: 12
+        itemHeight: 200
+        text: ["More focus", "Less focus"]
+        textStyle:
+          color: "#727b78"
+          fontSize: 12
+        inRange:
+          color: ["#f0f4ef", "#d1dfd2", "#9ebeb0", "#679b90", "#3d726e"]
+      series:
+        -
+          name: "Focus hours"
+          type: "heatmap"
+          data:
+            - [0, 0, 4]
+            - [0, 1, 8]
+            - [0, 2, 5]
+            - [0, 3, 9]
+            - [0, 4, 4]
+            - [0, 5, 1]
+            - [0, 6, 0]
+            - [1, 0, 7]
+            - [1, 1, 7]
+            - [1, 2, 8]
+            - [1, 3, 8]
+            - [1, 4, 7]
+            - [1, 5, 0]
+            - [1, 6, 1]
+            - [2, 0, 6]
+            - [2, 1, 6]
+            - [2, 2, 7]
+            - [2, 3, 7]
+            - [2, 4, 6]
+            - [2, 5, 0]
+            - [2, 6, 0]
+            - [3, 0, 6]
+            - [3, 1, 10]
+            - [3, 2, 7]
+            - [3, 3, 11]
+            - [3, 4, 6]
+            - [3, 5, 3]
+            - [3, 6, 0]
+            - [4, 0, 5]
+            - [4, 1, 9]
+            - [4, 2, 6]
+            - [4, 3, 10]
+            - [4, 4, 5]
+            - [4, 5, 2]
+            - [4, 6, 0]
+            - [5, 0, 8]
+            - [5, 1, 8]
+            - [5, 2, 9]
+            - [5, 3, 9]
+            - [5, 4, 8]
+            - [5, 5, 1]
+            - [5, 6, 2]
+            - [6, 0, 8]
+            - [6, 1, 8]
+            - [6, 2, 9]
+            - [6, 3, 9]
+            - [6, 4, 8]
+            - [6, 5, 1]
+            - [6, 6, 2]
+            - [7, 0, 7]
+            - [7, 1, 11]
+            - [7, 2, 8]
+            - [7, 3, 12]
+            - [7, 4, 7]
+            - [7, 5, 4]
+            - [7, 6, 1]
+            - [8, 0, 6]
+            - [8, 1, 10]
+            - [8, 2, 7]
+            - [8, 3, 11]
+            - [8, 4, 6]
+            - [8, 5, 3]
+            - [8, 6, 0]
+            - [9, 0, 10]
+            - [9, 1, 10]
+            - [9, 2, 11]
+            - [9, 3, 11]
+            - [9, 4, 10]
+            - [9, 5, 3]
+            - [9, 6, 4]
+            - [10, 0, 9]
+            - [10, 1, 9]
+            - [10, 2, 10]
+            - [10, 3, 10]
+            - [10, 4, 9]
+            - [10, 5, 2]
+            - [10, 6, 3]
+            - [11, 0, 8]
+            - [11, 1, 12]
+            - [11, 2, 9]
+            - [11, 3, 13]
+            - [11, 4, 8]
+            - [11, 5, 5]
+            - [11, 6, 2]
+          label:
+            show: true
+            fontSize: 12
+            color: "#243e38"
+          itemStyle:
+            borderWidth: 6
+            borderColor: "#ffffff"
+            borderRadius: 5
+          emphasis:
+            itemStyle:
+              borderColor: "#e9eeea"
+              borderWidth: 3

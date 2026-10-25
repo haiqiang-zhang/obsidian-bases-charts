@@ -1,0 +1,25 @@
+filters:
+  and: ["file.inFolder(\"Chart Gallery/Capabilities\")", "file.ext == \"md\""]
+properties:
+  note.Capability:
+    displayName: "Capability"
+  note.Current:
+    displayName: "Current"
+  note.Target:
+    displayName: "Target"
+views:
+  -
+    type: "chart-radar"
+    name: "A balanced practice"
+    x: "note.Capability"
+    y: ["note.Current", "note.Target"]
+    order: ["file.name", "note.Capability", "note.Current", "note.Target"]
+    color-palette: "coastal"
+    sort:
+      -
+        property: "note.Sequence"
+        direction: "ASC"
+    "aggregate:note.Current": "Sum"
+    "aggregate:note.Target": "Sum"
+    radar-scale: "shared"
+    show-fill: true

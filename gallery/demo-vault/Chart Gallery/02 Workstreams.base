@@ -1,0 +1,48 @@
+filters:
+  and: ["file.inFolder(\"Chart Gallery/Sessions\")", "file.ext == \"md\""]
+properties:
+  note.Completed:
+    displayName: "Date"
+  note.Hours:
+    displayName: "Hours"
+  note.Deliverables:
+    displayName: "Deliverables"
+  note.Workstream:
+    displayName: "Workstream"
+  note.Project:
+    displayName: "Project"
+  formula.Week label:
+    displayName: "Week"
+views:
+  -
+    type: "chart-bar"
+    name: "Projects by workstream"
+    x: "note.Project"
+    y: ["note.Hours"]
+    order: ["file.name", "note.Project", "note.Hours"]
+    color-palette: "earth"
+    groupBy:
+      property: "note.Workstream"
+      direction: "ASC"
+    sort:
+      -
+        property: "note.Project"
+        direction: "ASC"
+    "aggregate:note.Hours": "Sum"
+    show-labels: true
+    min-y-override: "0"
+  -
+    type: "chart-bar"
+    name: "Two measures"
+    x: "note.Project"
+    y: ["note.Hours", "note.Deliverables"]
+    order: ["file.name", "note.Project", "note.Hours", "note.Deliverables"]
+    color-palette: "coastal"
+    sort:
+      -
+        property: "note.Project"
+        direction: "ASC"
+    "aggregate:note.Hours": "Sum"
+    "aggregate:note.Deliverables": "Sum"
+    show-labels: true
+    min-y-override: "0"

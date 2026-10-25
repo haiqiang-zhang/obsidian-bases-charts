@@ -1,0 +1,35 @@
+filters:
+  and: ["file.inFolder(\"Chart Gallery/Sessions\")", "file.ext == \"md\""]
+properties:
+  note.Completed:
+    displayName: "Date"
+  note.Hours:
+    displayName: "Hours"
+  note.Deliverables:
+    displayName: "Deliverables"
+  note.Workstream:
+    displayName: "Workstream"
+  note.Project:
+    displayName: "Project"
+  formula.Week label:
+    displayName: "Week"
+views:
+  -
+    type: "chart-area"
+    name: "A season of progress"
+    x: "note.Completed"
+    y: ["note.Hours"]
+    order: ["file.name", "note.Completed", "note.Hours"]
+    color-palette: "coastal"
+    groupBy:
+      property: "note.Workstream"
+      direction: "ASC"
+    sort:
+      -
+        property: "note.Completed"
+        direction: "ASC"
+    "aggregate:note.Hours": "Sum"
+    x-date-grouping:
+      property: "note.Completed"
+      unit: "week"
+    min-y-override: "0"
