@@ -430,11 +430,12 @@ body {
 .bases-chart-toolbar > .bases-toolbar-results-menu { order: 1; }
 .bases-chart-toolbar > .bases-chart-x-menu { order: 2; }
 .bases-chart-toolbar > .bases-chart-y-menu { order: 3; }
-.bases-chart-toolbar > .bases-toolbar-group-menu { order: 4; }
-.bases-chart-toolbar > .bases-toolbar-sort-menu { order: 5; }
-.bases-chart-toolbar > .bases-toolbar-filter-menu { order: 6; }
-.bases-chart-toolbar > .bases-toolbar-search { order: 7; }
-.bases-chart-toolbar > .bases-toolbar-new-item-menu { order: 8; }
+.bases-chart-toolbar > .bases-chart-color-menu { order: 4; }
+.bases-chart-toolbar > .bases-toolbar-group-menu { order: 5; }
+.bases-chart-toolbar > .bases-toolbar-sort-menu { order: 6; }
+.bases-chart-toolbar > .bases-toolbar-filter-menu { order: 7; }
+.bases-chart-toolbar > .bases-toolbar-search { order: 8; }
+.bases-chart-toolbar > .bases-toolbar-new-item-menu { order: 9; }
 .bases-chart-toolbar > .bases-toolbar-properties-menu { display: none; }
 
 .bases-chart-axis-button {
@@ -632,3 +633,73 @@ body {
 .bases-chart-toolbar button.bases-chart-axis-button { background: transparent; box-shadow: none; }
 .bases-chart-toolbar button.bases-chart-axis-button:hover,
 .bases-chart-toolbar button.bases-chart-axis-button[aria-expanded="true"] { background: var(--background-modifier-hover); }
+
+/* Per-view palette previews use the same menu tokens as native Bases controls. */
+.bases-chart-palette-panel {
+    --icon-size: var(--icon-s);
+    position: fixed;
+    z-index: var(--layer-menu, 100);
+    left: var(--chart-palette-left);
+    top: var(--chart-palette-top, auto);
+    bottom: var(--chart-palette-bottom, auto);
+    width: var(--chart-palette-width);
+    max-height: min(600px, var(--chart-palette-height));
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--menu-background, var(--background-secondary));
+    color: var(--text-normal);
+    border: var(--menu-border-width, 1px) solid var(--menu-border-color, var(--background-modifier-border));
+    border-radius: var(--menu-radius, var(--radius-m));
+    box-shadow: var(--menu-shadow, var(--shadow-s));
+    font-size: var(--font-ui-small);
+}
+.bases-chart-palette-list {
+    min-height: 0;
+    padding: 0 6px 6px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.bases-chart-palette-heading {
+    padding: 6px 8px;
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+}
+.bases-chart-palette-heading:not(:first-child) {
+    margin-top: 6px;
+    border-top: 1px solid var(--background-modifier-border);
+    padding-top: 10px;
+}
+.bases-chart-palette-panel button.bases-chart-palette-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 36px;
+    height: auto;
+    margin: 0;
+    padding: 7px 8px;
+    gap: 12px;
+    background: transparent;
+    box-shadow: none;
+    border: 0;
+    border-radius: var(--radius-s);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-normal);
+    color: var(--text-normal);
+}
+.bases-chart-palette-panel button.bases-chart-palette-option:is(:hover, :focus-visible, [aria-checked="true"]) {
+    background: var(--background-modifier-hover);
+}
+.bases-chart-palette-name {
+    flex: 1;
+    min-width: 0;
+    text-align: start;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bases-chart-palette-swatches { display: flex; gap: 3px; flex-shrink: 0; }
+.bases-chart-palette-swatch { width: 16px; height: 16px; border-radius: 3px; }
+.bases-chart-palette-check { display: flex; width: 16px; flex-shrink: 0; visibility: hidden; }
+.bases-chart-palette-option[aria-checked="true"] .bases-chart-palette-check { visibility: visible; }

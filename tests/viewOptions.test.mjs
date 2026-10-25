@@ -12,6 +12,7 @@ const result = await build({
 			export { scatterChartRegistration, ScatterChartView } from './src/dataCharts/charts/scatterChart.ts';
 			export { barChartRegistration } from './src/dataCharts/charts/barChart.ts';
 			export { lineChartRegistration } from './src/dataCharts/charts/lineChart.ts';
+			export { CHART_PALETTES, DEFAULT_CHART_PALETTE } from './src/ui/chartPalettes.ts';
 		`,
 		resolveDir: fileURLToPath(new URL('../', import.meta.url)),
 		loader: 'ts',
@@ -32,7 +33,7 @@ const result = await build({
 		},
 	}],
 });
-const { pieChartRegistration, scatterChartRegistration, ScatterChartView, barChartRegistration, lineChartRegistration } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-view-options-under-test.mjs`).toString('base64')}`);
+const { pieChartRegistration, scatterChartRegistration, ScatterChartView, barChartRegistration, lineChartRegistration, CHART_PALETTES, DEFAULT_CHART_PALETTE } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-view-options-under-test.mjs`).toString('base64')}`);
 
 function optionKeys(options) {
 	return options.flatMap(option => option.type === 'group' ? optionKeys(option.items) : [option.key]);
@@ -42,14 +43,14 @@ const scaleKeys = ['sync-y-axes', 'min-y-override', 'max-y-override'];
 
 test('pie offers its appearance controls without an unused Y-scale group', () => {
 	const options = pieChartRegistration.viewOptions();
-	assert.deepEqual(optionKeys(options), ['show-labels', 'show-percentages', 'ignore-null']);
+	assert.deepEqual(optionKeys(options), ['color-palette', 'show-labels', 'show-percentages', 'ignore-null']);
 	assert.ok(options.every(option => option.type !== 'group'));
 });
 
 test('scatter hides the unused label property while keeping every valid Y-scale control', () => {
 	const options = scatterChartRegistration.viewOptions();
-	assert.deepEqual(optionKeys(options), scaleKeys);
-	assert.equal(options[0].displayName, 'Y scale');
+	assert.deepEqual(optionKeys(options), ['color-palette', ...scaleKeys]);
+	assert.equal(options.find(option => option.type === 'group').displayName, 'Y scale');
 	const queried = [];
 	const labelProperty = ScatterChartView.prototype.getLabelProperty.call({
 		config: { getAsPropertyId: key => { queried.push(key); return 'note.legacy-label'; } },
@@ -59,6 +60,21 @@ test('scatter hides the unused label property while keeping every valid Y-scale 
 });
 
 test('bar and line keep their appearance controls and valid Y-scale settings', () => {
-	assert.deepEqual(optionKeys(barChartRegistration.viewOptions()), ['show-labels', 'show-percentages', ...scaleKeys]);
-	assert.deepEqual(optionKeys(lineChartRegistration.viewOptions()), ['null-handling', ...scaleKeys]);
+	assert.deepEqual(optionKeys(barChartRegistration.viewOptions()), ['color-palette', 'show-labels', 'show-percentages', ...scaleKeys]);
+	assert.deepEqual(optionKeys(lineChartRegistration.viewOptions()), ['color-palette', 'null-handling', ...scaleKeys]);
+});
+
+test('all four chart registrations expose the same native per-view palette dropdown', () => {
+	const registrations = [barChartRegistration, lineChartRegistration, scatterChartRegistration, pieChartRegistration];
+	const expectedOptions = Object.fromEntries(CHART_PALETTES.map(palette => [palette.id, palette.name]));
+	for (const registration of registrations) {
+		const options = registration.viewOptions();
+		const paletteOptions = options.filter(option => option.key === 'color-palette');
+		assert.equal(paletteOptions.length, 1, registration.name);
+		assert.deepEqual(paletteOptions[0], {
+			displayName: 'Color palette', type: 'dropdown', key: 'color-palette',
+			default: DEFAULT_CHART_PALETTE, options: expectedOptions,
+		});
+		assert.ok(paletteOptions[0].default in paletteOptions[0].options, 'the default must be selectable');
+	}
 });

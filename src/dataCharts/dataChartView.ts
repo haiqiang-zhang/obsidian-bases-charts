@@ -12,6 +12,7 @@ import { prepareChartGroups } from './grouping';
 import { COMMON_SETTINGS } from './types';
 import { detectXAxisType, parseValueAsNumber, parseValueAsX, toXKey } from '../utils/utils';
 import type { ResolvedColors } from '../ui/colors';
+import { CHART_PALETTES, DEFAULT_CHART_PALETTE } from '../ui/chartPalettes';
 
 export { AggregateMode, aggregateKey } from './aggregate';
 export type { YDomainOverrides } from './data';
@@ -223,7 +224,13 @@ export abstract class DataChartView extends BaseChartView {
 
 	static commonViewOptionGroups(): CommonViewOptionGroups {
 		return {
-			data: [],
+			data: [{
+				displayName: 'Color palette',
+				type: 'dropdown',
+				key: COMMON_SETTINGS.COLOR_PALETTE,
+				default: DEFAULT_CHART_PALETTE,
+				options: Object.fromEntries(CHART_PALETTES.map(palette => [palette.id, palette.name])),
+			}],
 			yAxis: [
 				{
 					displayName: 'Sync across charts',

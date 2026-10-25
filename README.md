@@ -37,10 +37,11 @@ Built-in chart views that visualize Bases data with configurable axes, aggregati
 - Per-property aggregation: set Sum, Average, Count, Min, Max (or None for Scatter) independently for each Y axis
 - Sync Y axes and min/max override for Bar, Line, and Scatter charts
 - Native Group menu: groups become colored series, respecting selected groups and manual group order
+- Per-view color palettes with swatch previews: Auto, Colorful, Earth, Coastal, and nine single-color palettes, each adapted for light and dark themes
 - Compact, stationary tooltips with the X property and group totals; click a chart column to explore its files in a searchable data table
 - X axis sorting via Bases Sort configuration
 
-X, Y, and Group sit together in the toolbar. Pie shows Category and Values instead of axis controls. Chart appearance and applicable Y scale settings remain in the view settings. Existing charts keep their previous Y property selection until you edit it in the new Y menu. The vault root appears as `/` when using folder as X.
+X, Y, Color, and Group sit together in the toolbar. Pie shows Category and Values instead of axis controls. Choose **Color** to preview and select a palette, or use **Color palette** in the native view settings. The selection is saved with that view in the `.base` file; other views keep their own colors. Auto preserves the soft default palette. Chart appearance and applicable Y scale settings remain in the view settings. Existing charts keep their previous Y property selection until you edit it in the new Y menu. The vault root appears as `/` when using folder as X.
 
 ## AI Chart
 

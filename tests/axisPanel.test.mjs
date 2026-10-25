@@ -89,6 +89,7 @@ class Element extends EventTargetFixture {
 		this.value = options.value ?? '';
 		for (const [key, value] of Object.entries(options.attr ?? {})) this.setAttribute(key, value);
 	}
+	get classList() { return { contains: name => this.classes.has(name) }; }
 	createEl(tag, options) {
 		const child = new Element(this.ownerDocument, tag, options);
 		child.parentElement = this;
@@ -284,4 +285,76 @@ test('candidate keyboard navigation supports arrows, Home, and End without losin
 	assert.equal(state.doc.activeElement, search);
 	assert.deepEqual(selectedRows(panel).map(row => row.dataset.property), ['formula.bucket']);
 	state.toolbar.onunload();
+});
+
+function paletteOptions(host) {
+	return host.doc.body.querySelector('.bases-chart-palette-panel').querySelectorAll('.bases-chart-palette-option');
+}
+
+test('palette preview saves only the current view, shows its selection, and closes on choose', () => {
+	const first = harness();
+	const second = harness();
+	first.button('color').dispatch('click');
+	let options = paletteOptions(first);
+	assert.equal(options.filter(row => row.getAttribute('aria-checked') === 'true').length, 1);
+	assert.equal(options.find(row => row.getAttribute('aria-checked') === 'true').dataset.palette, 'auto');
+	const earth = options.find(row => row.dataset.palette === 'earth');
+	assert.equal(earth.querySelectorAll('.bases-chart-palette-swatch').length, 5);
+	earth.dispatch('click');
+	assert.deepEqual(first.writes, [{ key: 'color-palette', value: 'earth' }]);
+	assert.equal(second.settings.has('color-palette'), false);
+	assert.equal(first.doc.body.querySelector('.bases-chart-palette-panel'), null);
+	assert.equal(first.doc.activeElement, first.button('color'));
+	assert.equal(first.button('color').getAttribute('aria-label'), 'Color palette: Earth');
+	first.button('color').dispatch('click');
+	options = paletteOptions(first);
+	assert.equal(options.find(row => row.getAttribute('aria-checked') === 'true').dataset.palette, 'earth');
+	assert.equal(first.doc.activeElement.dataset.palette, 'earth');
+	first.toolbar.onunload();
+	second.toolbar.onunload();
+});
+
+test('palette keyboard navigation does not save until activated and Escape cleans up listeners', () => {
+	const host = harness();
+	host.button('color').dispatch('click');
+	const options = paletteOptions(host);
+	host.doc.activeElement.dispatch('keydown', { key: 'End' });
+	assert.equal(host.doc.activeElement, options.at(-1));
+	host.doc.activeElement.dispatch('keydown', { key: 'ArrowDown' });
+	assert.equal(host.doc.activeElement, options[0]);
+	host.doc.activeElement.dispatch('keydown', { key: 'ArrowUp' });
+	assert.equal(host.doc.activeElement, options.at(-1));
+	const close = host.doc.body.querySelector('.bases-chart-palette-panel').querySelector('.clickable-icon');
+	close.focus();
+	close.dispatch('keydown', { key: 'ArrowUp' });
+	assert.equal(host.doc.activeElement, options.at(-1), 'Up from the header enters the last palette');
+	assert.deepEqual(host.writes, []);
+	host.doc.activeElement.dispatch('keydown', { key: 'Escape' });
+	assert.equal(host.doc.activeElement, host.button('color'));
+	assert.equal(host.doc.body.querySelector('.bases-chart-palette-panel'), null);
+	for (const listeners of host.doc.listeners.values()) assert.equal(listeners.size, 0);
+	for (const listeners of host.doc.defaultView.listeners.values()) assert.equal(listeners.size, 0);
+	host.toolbar.onunload();
+});
+
+test('palette follows its owner document theme and does not stack with the axis panel', () => {
+	const light = harness();
+	const dark = harness();
+	dark.doc.body.addClass('theme-dark');
+	light.button('color').dispatch('click');
+	dark.button('color').dispatch('click');
+	const swatchColor = host => paletteOptions(host)[0].querySelector('.bases-chart-palette-swatch').style.values.get('background-color');
+	assert.notEqual(swatchColor(light), swatchColor(dark));
+	light.button('x').dispatch('click');
+	assert.equal(light.doc.body.querySelector('.bases-chart-palette-panel'), null);
+	assert.ok(light.panel());
+	light.button('color').dispatch('click');
+	assert.equal(light.panel(), null);
+	assert.ok(light.doc.body.querySelector('.bases-chart-palette-panel'));
+	light.toolbar.onunload();
+	dark.toolbar.onunload();
+	for (const host of [light, dark]) {
+		assert.equal(host.doc.body.querySelector('.bases-chart-palette-panel'), null);
+		for (const listeners of host.doc.listeners.values()) assert.equal(listeners.size, 0);
+	}
 });

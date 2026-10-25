@@ -55,6 +55,7 @@ class Element {
 	removeClass(cls) { this.classes.delete(cls); }
 	setAttribute(key, value) { this.attributes.set(key, value); }
 	addEventListener() {}
+	removeEventListener() {}
 	querySelector(selector) {
 		for (const child of this.children) {
 			if (child.classes.has(selector.slice(1))) return child;
@@ -110,16 +111,17 @@ test('first data update mounts axes after config assignment and unload removes t
 	assert.equal(nativeToolbar.children.length, 0);
 
 	view.config = {
+		get: () => undefined,
 		getAsPropertyId: () => 'file.folder',
 		getOrder: () => ['note.amount', 'file.name'],
 		getDisplayName: () => 'Folder',
 	};
 	onDataUpdated();
-	assert.equal(nativeToolbar.children.length, 2);
+	assert.equal(nativeToolbar.children.length, 3);
 	assert.equal(nativeToolbar.querySelector('.bases-chart-x-menu').querySelector('.bases-chart-axis-summary').textContent, 'Folder');
 	assert.equal(nativeToolbar.querySelector('.bases-chart-y-menu').querySelector('.bases-chart-axis-summary').textContent, '2');
 	onDataUpdated();
-	assert.equal(nativeToolbar.children.length, 2, 'updates must not duplicate toolbar buttons');
+	assert.equal(nativeToolbar.children.length, 3, 'updates must not duplicate toolbar buttons');
 
 	toolbar.onunload();
 	assert.equal(nativeToolbar.children.length, 0);
@@ -133,7 +135,7 @@ test('pie exposes category/value controls instead of cartesian axis labels', () 
 	containerEl.parentElement = { querySelector: () => nativeToolbar };
 	const view = {
 		type: 'chart-pie', containerEl,
-		config: { getAsPropertyId: () => 'file.folder', getDisplayName: () => 'Folder' },
+		config: { get: () => undefined, getAsPropertyId: () => 'file.folder', getDisplayName: () => 'Folder' },
 		getYProperties: () => ['note.Amount'],
 		events: { on: () => ({}) },
 	};

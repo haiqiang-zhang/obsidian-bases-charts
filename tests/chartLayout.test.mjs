@@ -10,6 +10,7 @@ const bundle = await build({
 			export { ChartLayout } from './src/dataCharts/layout.ts';
 			export { BaseChartView } from './src/baseChartView.ts';
 			export { Events } from 'obsidian';
+			export { CHART_PALETTES, DEFAULT_CHART_PALETTE, getPaletteColors } from './src/ui/chartPalettes.ts';
 		`,
 		resolveDir: fileURLToPath(new URL('..', import.meta.url)),
 	},
@@ -71,15 +72,15 @@ function harness() {
 	const pending = new Set();
 	const runtime = {
 		pending,
-		createRenderer() {
-			const renderer = { calls: [], setOption(...args) { this.calls.push(args); }, dispose() {} };
+		createRenderer(_container, view) {
+			const renderer = { view, calls: [], setOption(...args) { this.calls.push(args); }, dispose() {} };
 			renderers.push(renderer);
 			return renderer;
 		},
 	};
 	const module = { exports: {} };
 	runInNewContext(bundle.outputFiles[0].text, { module, exports: module.exports, runtime });
-	const { ChartLayout, BaseChartView, Events } = module.exports;
+	const { ChartLayout, BaseChartView, Events, CHART_PALETTES, DEFAULT_CHART_PALETTE, getPaletteColors } = module.exports;
 	const workspace = new Events();
 	class TestView extends BaseChartView {
 		type = 'chart-bar';
@@ -101,12 +102,18 @@ function harness() {
 				getFlat: () => entries,
 			};
 		}
-		buildOption(data) { return { series: [{ data: data.getFlat(0).map(entry => entry.y) }] }; }
+		buildOption(data, _chartIndex, _xName, _yLabel, _isGrouped, colors) {
+			return { color: colors.palette, series: [{ data: data.getFlat(0).map(entry => entry.y) }] };
+		}
 	}
-	const view = new TestView({ app: { workspace } }, new Element());
-	view.onload();
+	const createView = () => {
+		const view = new TestView({ app: { workspace } }, new Element());
+		view.onload();
+		return view;
+	};
+	const view = createView();
 	return {
-		view, workspace, renderers,
+		view, workspace, renderers, createView, CHART_PALETTES, DEFAULT_CHART_PALETTE, getPaletteColors,
 		flush() {
 			const callbacks = [...pending];
 			pending.clear();
@@ -121,6 +128,54 @@ const config = {
 	get: () => false,
 };
 const data = { groupedData: [{ entries: [{ y: 42, isNumeric: true }] }] };
+
+function paletteConfig(value) {
+	return { ...config, get: key => key === 'color-palette' ? value : false };
+}
+
+test('layout delivers each view palette independently and resolves it in the owning theme', () => {
+	const host = harness();
+	const second = host.createView();
+	const [firstPalette, secondPalette] = host.CHART_PALETTES.filter(palette => palette.id !== host.DEFAULT_CHART_PALETTE);
+	assert.ok(firstPalette && secondPalette, 'palette isolation needs two selectable palettes');
+	host.view.config = paletteConfig(firstPalette.id);
+	second.config = paletteConfig(secondPalette.id);
+	host.view.data = data;
+	second.data = data;
+	second.containerEl.doc.body.classList.contains = name => name === 'theme-dark';
+
+	host.workspace.trigger('css-change');
+	host.flush();
+	const firstRenderer = host.renderers.find(renderer => renderer.view === host.view);
+	const secondRenderer = host.renderers.find(renderer => renderer.view === second);
+	assert.deepEqual(firstRenderer.calls[0][0].color, host.getPaletteColors(firstPalette.id, false));
+	assert.deepEqual(secondRenderer.calls[0][0].color, host.getPaletteColors(secondPalette.id, true));
+
+	// Editing one view must not alter another view using the same palette module.
+	host.view.config = paletteConfig(secondPalette.id);
+	host.view.onDataUpdated();
+	host.flush();
+	assert.equal(secondRenderer.calls.length, 1);
+	assert.deepEqual(firstRenderer.calls[1][0].color, host.getPaletteColors(secondPalette.id, false));
+	host.workspace.trigger('css-change');
+	host.flush();
+	assert.deepEqual(secondRenderer.calls[1][0].color, host.getPaletteColors(secondPalette.id, true));
+	host.view.onunload();
+	second.onunload();
+});
+
+test('saved views without a palette or with an unknown palette keep the Auto fallback', () => {
+	const host = harness();
+	host.view.data = data;
+	for (const savedValue of [undefined, 'removed-palette', { id: 'blue' }]) {
+		host.view.config = paletteConfig(savedValue);
+		host.view.onDataUpdated();
+		host.flush();
+		assert.deepEqual(host.renderers[0].calls.at(-1)[0].color, host.getPaletteColors(host.DEFAULT_CHART_PALETTE, false));
+		assert.equal(host.view.config.get('color-palette'), savedValue, 'fallback must not rewrite saved view settings');
+	}
+	host.view.onunload();
+});
 
 for (const missing of ['data', 'config']) {
 	test(`theme update waits for missing ${missing}, then the first query update renders normally`, () => {

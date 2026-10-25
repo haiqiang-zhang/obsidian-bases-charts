@@ -3,6 +3,7 @@ import type { DataChartView } from '../dataCharts/dataChartView';
 import { AggregateMode, aggregateKey } from '../dataCharts/aggregate';
 import { COMMON_SETTINGS } from '../dataCharts/types';
 import { parseValueAsNumber } from '../utils/utils';
+import { ChartPalettePicker } from './chartPalettePicker';
 
 type Axis = 'x' | 'y';
 
@@ -14,6 +15,7 @@ export class ChartToolbar extends Component {
 	private items: HTMLElement[] = [];
 	private panel: HTMLElement | null = null;
 	private closePanel: (() => void) | null = null;
+	private palettePicker: ChartPalettePicker | null = null;
 
 	constructor(private view: DataChartView) {
 		super();
@@ -61,12 +63,24 @@ export class ChartToolbar extends Component {
 				this.buttons.set(axis, button);
 				this.items.push(item);
 			}
+			const colorItem = toolbar.createDiv({ cls: 'bases-toolbar-item bases-chart-color-menu' });
+			const colorButton = colorItem.createEl('button', { cls: 'text-icon-button bases-chart-axis-button' });
+			this.palettePicker = new ChartPalettePicker(colorButton, {
+				getValue: () => this.view.config.get(COMMON_SETTINGS.COLOR_PALETTE),
+				onSelect: id => {
+					this.view.config.set(COMMON_SETTINGS.COLOR_PALETTE, id);
+					this.changed();
+				},
+				onOpen: () => this.closePanel?.(),
+			});
+			this.items.push(colorItem);
 		}
 		const x = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const y = this.view.getYProperties();
 		this.updateButton('x', x ? this.view.config.getDisplayName(x) : 'Choose',
 			x ? `${this.axisLabel('x')}: ${this.view.config.getDisplayName(x)}` : `Choose ${this.axisLabel('x')}`);
 		this.updateButton('y', String(y.length), `${this.axisLabel('y')}: ${y.length} selected`);
+		this.palettePicker?.update();
 	}
 
 	private updateButton(axis: Axis, summary: string, label: string): void {
@@ -78,6 +92,7 @@ export class ChartToolbar extends Component {
 	}
 
 	private openPanel(axis: Axis, button: HTMLButtonElement): void {
+		this.palettePicker?.close();
 		const alreadyOpen = button.getAttribute('aria-expanded') === 'true';
 		this.closePanel?.();
 		if (alreadyOpen) return;
@@ -311,6 +326,8 @@ export class ChartToolbar extends Component {
 	}
 
 	private detach(): void {
+		this.palettePicker?.destroy();
+		this.palettePicker = null;
 		this.closePanel?.();
 		this.items.forEach(item => item.remove());
 		this.items = [];

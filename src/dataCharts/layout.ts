@@ -48,7 +48,7 @@ export class ChartLayout {
 		const data = this.view.processData();
 		const chartIds = data.getChartIdentifiers();
 
-		const colors = resolveColors(this.containerEl);
+		const colors = resolveColors(this.containerEl, this.view.config.get(COMMON_SETTINGS.COLOR_PALETTE));
 		this.renderLegend(data, colors.palette);
 		this.reconcileRenderers(chartIds.length);
 
