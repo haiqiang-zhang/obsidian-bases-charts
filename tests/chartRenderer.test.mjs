@@ -194,6 +194,7 @@ test('popout zoom resizes the canvas even before an observer callback is deliver
 	state.container.clientWidth = 933;
 	state.container.clientHeight = 533;
 	state.window.listeners.get('resize')();
+	state.flushTimers();
 	assert.equal(state.charts[0].getWidth(), 933, 'canvas must fill the wider CSS viewport after zooming out');
 	assert.equal(state.charts[0].getHeight(), 533);
 	assert.ok(state.charts[0].actions.includes('hideTip'));
@@ -202,8 +203,33 @@ test('popout zoom resizes the canvas even before an observer callback is deliver
 	state.container.clientWidth = 700;
 	state.container.clientHeight = 400;
 	state.observers[0].callback();
+	state.flushTimers();
 	assert.equal(state.charts[0].getWidth(), 700, 'the owning-window observer must also follow pane resizes');
 	state.renderer.dispose();
+});
+
+test('observer delivery defers DOM writes, coalesces bursts, and ignores unchanged dimensions', () => {
+	const state = harness();
+	state.flushTimers();
+	const chart = state.charts[0];
+	state.container.clientWidth = 900;
+	for (let index = 0; index < 5; index++) state.observers[0].callback();
+	state.window.listeners.get('resize')();
+	assert.equal(chart.resizes, 1, 'an observer callback must not synchronously mutate chart DOM');
+	assert.equal(state.window.timers.size, 1, 'observer and window events share one pending resize');
+	state.container.clientWidth = 850;
+	state.flushTimers();
+	assert.equal(chart.getWidth(), 850, 'the scheduled resize reads the final dimensions');
+	assert.equal(chart.resizes, 2);
+	state.observers[0].callback();
+	state.flushTimers();
+	assert.equal(chart.resizes, 2, 'notifications caused by the chart itself must not cause another resize');
+	state.container.clientWidth = 800;
+	state.observers[0].callback();
+	state.renderer.dispose();
+	assert.equal(state.window.timers.size, 0, 'dispose cancels a queued observer resize');
+	state.flushTimers();
+	assert.equal(chart.resizes, 2);
 });
 
 test('dispose cancels pending resize and releases chart, observer, tooltip, and window/migration listeners', () => {
@@ -482,6 +508,7 @@ test('tooltip bounds follow the rendered Cartesian plot after resize and scrolli
 	assert.equal(chart.containCalls.length, calls, 'moving within a plotted series reuses the measured plot');
 	plot = { left: 70, top: 55, right: 600, bottom: 280 };
 	state.observers[0].callback();
+	state.flushTimers();
 	const resized = bounds();
 	assert.ok(Math.abs(resized.left - 70) < 0.25 && Math.abs(resized.top + resized.height - 280) < 0.25);
 	const actions = chart.actions.length;
@@ -725,16 +752,20 @@ test('cached projected columns refresh on resizing, option updates, and window m
 	click();
 	click();
 	assert.equal(state.chart.toPixelCalls.length, 2, 'mousemove/click reuse the projected X index');
-	state.chart.toPixel = (_finder, x) => x - 5;
-	state.observers[0].callback();
-	click();
-	assert.equal(state.tooltip.opened.at(-1).raw[0], b);
-	assert.equal(state.chart.toPixelCalls.length, 4);
 	state.flushTimers();
 	click();
-	assert.equal(state.chart.toPixelCalls.length, 6, 'first-layout resize also invalidates projections');
+	assert.equal(state.chart.toPixelCalls.length, 4, 'first-layout resize also invalidates projections');
+	state.chart.toPixel = (_finder, x) => x - 5;
+	state.container.clientWidth = 800;
+	state.observers[0].callback();
+	state.flushTimers();
+	click();
+	assert.equal(state.tooltip.opened.at(-1).raw[0], b);
+	assert.equal(state.chart.toPixelCalls.length, 6);
 	state.chart.toPixel = (_finder, x) => x + 5;
+	state.container.clientWidth = 900;
 	state.window.listeners.get('resize')();
+	state.flushTimers();
 	click();
 	assert.equal(state.tooltip.opened.at(-1).raw[0], a, 'zoom must update the clickable columns as well as the canvas');
 	assert.equal(state.chart.toPixelCalls.length, 8);

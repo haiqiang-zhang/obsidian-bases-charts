@@ -39,7 +39,7 @@ export class ChartRenderer {
 	private tooltipContext: ChartTooltipContext | undefined;
 	private unregisterMigration: () => void;
 	private removeWindowListener: (() => void) | null = null;
-	private initialResize: { window: Window; id: number } | null = null;
+	private pendingResize: { window: Window; id: number } | null = null;
 	private plotBounds: TooltipBounds | null | undefined;
 	private pointColumns: PointColumn[] | undefined;
 	private handledClicks = new WeakSet<object>();
@@ -92,21 +92,35 @@ export class ChartRenderer {
 		this.chart = echarts.init(this.containerEl, undefined, { renderer: 'canvas' });
 		this.tooltip = new ChartTooltip(this.containerEl, this.view, () => this.hideTooltip());
 		const win = this.containerEl.ownerDocument.defaultView;
+		let lastWidth: number | undefined;
+		let lastHeight: number | undefined;
 		const onResize = () => {
+			const { clientWidth, clientHeight } = this.containerEl;
+			if (clientWidth === lastWidth && clientHeight === lastHeight) return;
+			lastWidth = clientWidth;
+			lastHeight = clientHeight;
 			this.hideTooltip();
 			this.plotBounds = undefined;
 			this.pointColumns = undefined;
 			this.chart?.resize();
 		};
+		const scheduleResize = () => {
+			if (!win || this.pendingResize) return;
+			this.pendingResize = { window: win, id: win.setTimeout(() => {
+				this.pendingResize = null;
+				onResize();
+			}, 0) };
+		};
 		// A main-window observer can stop delivering while a popout stays active.
-		// Observe in the chart's own window, and also handle its zoom/resize event.
-		this.resizeObserver = new (win?.ResizeObserver ?? ResizeObserver)(onResize);
+		// ECharts changes DOM during resize, so defer it outside observer delivery.
+		// An owning-window timer also works when background animation frames pause.
+		this.resizeObserver = new (win?.ResizeObserver ?? ResizeObserver)(scheduleResize);
 		this.resizeObserver.observe(this.containerEl);
 		const onScroll = () => this.hideTooltip();
-		win?.addEventListener('resize', onResize);
+		win?.addEventListener('resize', scheduleResize);
 		win?.addEventListener('scroll', onScroll, true);
 		this.removeWindowListener = () => {
-			win?.removeEventListener('resize', onResize);
+			win?.removeEventListener('resize', scheduleResize);
 			win?.removeEventListener('scroll', onScroll, true);
 		};
 
@@ -131,15 +145,7 @@ export class ChartRenderer {
 		zr.on('globalout', () => this.hideTooltip());
 		// Resize after the host's first layout, without deferring a stale option or
 		// moving configuration errors outside the caller's try/catch.
-		if (win) {
-			this.initialResize = {
-				window: win,
-				id: win.setTimeout(() => {
-					this.initialResize = null;
-					onResize();
-				}, 0),
-			};
-		}
+		scheduleResize();
 	}
 
 	private hideTooltip(): void {
@@ -339,8 +345,8 @@ export class ChartRenderer {
 
 	private destroyChart(): void {
 		// The element may already belong to a different window during migration.
-		if (this.initialResize) this.initialResize.window.clearTimeout(this.initialResize.id);
-		this.initialResize = null;
+		if (this.pendingResize) this.pendingResize.window.clearTimeout(this.pendingResize.id);
+		this.pendingResize = null;
 		this.removeWindowListener?.();
 		this.removeWindowListener = null;
 		this.resizeObserver?.disconnect();
