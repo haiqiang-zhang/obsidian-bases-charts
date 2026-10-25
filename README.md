@@ -62,7 +62,7 @@ AI Chart options follow the [ECharts 6.1 API](https://github.com/apache/echarts/
 
 ## General
 
-- Bar, line, and scatter charts span the toolbar's padded content width; larger pie charts sit at the center
+- Bar, line, and scatter charts sit directly below the native toolbar with narrow chart margins; larger pie charts sit at the center
 - Legends stay below the charts, and smaller panes scroll naturally
 - Light and dark theme support
 - Mobile-optimized layout

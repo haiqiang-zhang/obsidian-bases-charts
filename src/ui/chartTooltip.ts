@@ -4,7 +4,8 @@ import type { ProcessedData } from '../dataCharts/data';
 import { toCompactString } from '../utils/utils';
 import { ChartFilesModal } from './chartFilesModal';
 import type { ChartFileItem } from './chartFilesModal';
-import { positionTooltip, tooltipMetrics } from './tooltipGeometry';
+import { positionTooltip, tooltipMetrics, visibleTooltipBounds } from './tooltipGeometry';
+import type { TooltipBounds } from './tooltipGeometry';
 
 export interface ChartTooltipContext {
 	xName: string;
@@ -43,7 +44,8 @@ export class ChartTooltip {
 	) {}
 
 	options(base: TooltipComponentOption, context: ChartTooltipContext,
-		anchor?: (params: unknown) => number[] | null): TooltipComponentOption {
+		anchor?: (params: unknown) => number[] | null,
+		plotBounds?: () => TooltipBounds | null): TooltipComponentOption {
 		let fixed: { key: string; point: number[] } | undefined;
 		return {
 			...base,
@@ -58,7 +60,10 @@ export class ChartTooltip {
 			borderWidth: 0,
 			backgroundColor: 'transparent',
 			extraCssText: 'box-shadow:none;z-index:var(--layer-popover,30);white-space:normal;pointer-events:none;',
-			formatter: params => this.render(params, context),
+			formatter: params => {
+				const available = this.visibleBounds(plotBounds);
+				return plotBounds && !available ? '' : this.render(params, context, available);
+			},
 			position: (point, params, _dom, rect, size) => {
 				const points = (Array.isArray(params) ? params : [params]);
 				const key = points.map(p => `${p.seriesIndex}:${p.dataIndex}`).join('|');
@@ -71,9 +76,21 @@ export class ChartTooltip {
 				return positionTooltip(fixed.point, size.contentSize, this.containerEl.getBoundingClientRect(), {
 					width: win?.innerWidth ?? size.viewSize[0],
 					height: win?.innerHeight ?? size.viewSize[1],
-				}, size.viewSize, context.chartType === 'chart-bar' ? 52 : 16);
+				}, size.viewSize, context.chartType === 'chart-bar' ? 52 : 16, this.visibleBounds(plotBounds, size.viewSize));
 			},
 		};
+	}
+
+	private visibleBounds(plotBounds?: () => TooltipBounds | null, viewSize?: number[]): TooltipBounds | null {
+		const plot = plotBounds?.();
+		if (!plot) return null;
+		const rect = this.containerEl.getBoundingClientRect();
+		const win = this.containerEl.ownerDocument.defaultView;
+		return visibleTooltipBounds(plot, rect, {
+			width: win?.innerWidth ?? rect.width,
+			height: win?.innerHeight ?? rect.height,
+		}, viewSize ?? [this.containerEl.clientWidth, this.containerEl.clientHeight],
+		this.containerEl.closest('.bases-data-chart-view')?.getBoundingClientRect());
 	}
 
 	private selection(params: unknown, context: ChartTooltipContext, includeFiles = true): Selection | null {
@@ -104,13 +121,16 @@ export class ChartTooltip {
 		return { x, summary, files, fileCount, groups };
 	}
 
-	private render(params: unknown, context: ChartTooltipContext): HTMLElement | string {
+	private render(params: unknown, context: ChartTooltipContext, available: TooltipBounds | null): HTMLElement | string {
 		const selected = this.selection(params, context, false);
 		if (!selected) return '';
+		// A mostly scrolled-out chart cannot contain a readable preview. Clicking
+		// its remaining visible marks still opens the complete data modal.
+		if (available && (available.width < 96 || available.height < 72)) return '';
 		const doc = this.containerEl.ownerDocument;
 		const win = doc.defaultView;
 		const fontSize = win ? parseFloat(win.getComputedStyle(this.containerEl).fontSize) : 13;
-		const metrics = tooltipMetrics(win?.innerWidth ?? 360, win?.innerHeight ?? 480, fontSize || 13);
+		const metrics = tooltipMetrics(win?.innerWidth ?? 360, win?.innerHeight ?? 480, fontSize || 13, available);
 		const grouped = context.groupNames.length > 1;
 		const root = doc.createDocumentFragment().createDiv({ cls: 'bases-chart-tooltip' });
 		root.style.setProperty('--chart-tooltip-width', `${metrics.width}px`);

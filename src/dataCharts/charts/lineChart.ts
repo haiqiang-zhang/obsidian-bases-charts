@@ -102,7 +102,10 @@ export function buildLineOption(
 		grid: gridOption(),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),
-		tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+		tooltip: { trigger: 'axis', axisPointer: {
+			type: 'line', axis: 'x', label: { show: false },
+			lineStyle: { color: colors.grid, type: 'dashed', width: 1 },
+		} },
 		series,
 	};
 }

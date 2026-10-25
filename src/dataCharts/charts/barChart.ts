@@ -123,7 +123,10 @@ export function buildBarOption(
 				formatter: showPercentages ? ('{value}%') : ((v: number) => toCompactString(v)),
 			},
 		},
-		tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+		tooltip: { trigger: 'axis', axisPointer: {
+			type: 'line', axis: 'x', label: { show: false },
+			lineStyle: { color: colors.grid, type: 'dashed', width: 1 },
+		} },
 		series,
 	};
 }

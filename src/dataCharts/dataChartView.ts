@@ -209,7 +209,7 @@ export abstract class DataChartView extends BaseChartView {
 
 	getYAxisLabel(chartName: string, propId?: BasesPropertyId): string {
 		const mode = propId ? this.getAggregateModeForProperty(propId) : this.getDefaultAggregateMode();
-		return mode !== AggregateMode.NONE ? `↑ ${chartName} (${mode})` : `↑ ${chartName}`;
+		return mode !== AggregateMode.NONE ? `${chartName} (${mode})` : chartName;
 	}
 
 	getYDomainOverrides(): YDomainOverrides {

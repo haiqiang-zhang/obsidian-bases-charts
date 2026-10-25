@@ -8,7 +8,7 @@ const result = await build({
 	stdin: {
 		contents: `
 			export { ChartTooltip } from './src/ui/chartTooltip.ts';
-			export { tooltipMetrics, positionTooltip } from './src/ui/tooltipGeometry.ts';
+			export { tooltipMetrics, positionTooltip, visibleTooltipBounds, findPlotBounds } from './src/ui/tooltipGeometry.ts';
 		`,
 		resolveDir: fileURLToPath(new URL('../', import.meta.url)),
 		loader: 'ts',
@@ -36,7 +36,7 @@ const result = await build({
 		},
 	}],
 });
-const { ChartTooltip, tooltipMetrics, positionTooltip } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-tooltip-under-test.mjs`).toString('base64')}`);
+const { ChartTooltip, tooltipMetrics, positionTooltip, visibleTooltipBounds, findPlotBounds } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-tooltip-under-test.mjs`).toString('base64')}`);
 
 class Element {
 	children = [];
@@ -174,7 +174,7 @@ test('positioning clamps every viewport edge in chart-local coordinates with non
 test('geometry permits zero rows and caps group previews at five without negative dimensions', () => {
 	for (const [width, height, fontSize] of [[16, 16, 13], [320, 190, 13], [320, 320, 13], [1600, 1000, 13], [1600, 1000, 30]]) {
 		const metrics = tooltipMetrics(width, height, fontSize);
-		assert.ok(metrics.width >= 0 && metrics.width <= 280);
+		assert.ok(metrics.width >= 0 && metrics.width <= 260);
 		assert.ok(metrics.maxHeight >= 0 && metrics.maxHeight <= 280);
 		assert.ok(Number.isInteger(metrics.rowLimit) && metrics.rowLimit >= 0 && metrics.rowLimit <= 5);
 	}
@@ -238,4 +238,60 @@ test('tooltip is anchored to data and does not follow cursor movement inside the
 	const fallback = tooltip.options({}, context);
 	const fallbackInitial = fallback.position([100, 100], params, null, null, size);
 	assert.deepEqual(fallback.position([500, 450], params, null, null, size), fallbackInitial);
+});
+
+test('Cartesian previews stay above the X axis and away from the legend at low-valued points', () => {
+	const rect = { left: 150, top: 180, width: 700, height: 400 };
+	const viewport = { width: 1100, height: 800 };
+	const plot = { left: 48, top: 38, width: 640, height: 282 };
+	const bounds = visibleTooltipBounds(plot, rect, viewport, [700, 400]);
+	for (const point of [[50, 310], [350, 310], [680, 310], [350, 45]]) {
+		const [x, y] = positionTooltip(point, [280, 230], rect, viewport, [700, 400], 16, bounds);
+		assert.ok(x + rect.left >= bounds.left && x + rect.left + 280 <= bounds.left + bounds.width);
+		assert.ok(y + rect.top >= bounds.top && y + rect.top + 230 <= rect.top + plot.top + plot.height - 8,
+			'the entire tooltip must stay above the X-axis boundary, including for low-valued points');
+	}
+	const [x, y] = positionTooltip([350, 310], [280, 150], rect, viewport, [700, 400], 16, bounds);
+	assert.ok(y + 150 < 310 && x <= 350 && x + 280 >= 350, 'prefer above the anchored point when it fits');
+});
+
+test('visible plot limits shrink grouped previews when a chart is clipped by its scrolling pane', () => {
+	const grouped = { ...context, chartType: 'chart-line', groupNames: Array.from({ length: 8 }, (_, i) => `Group ${i}`) };
+	const { tooltip, container } = harness(1200, 800, 13, grouped);
+	container.clientWidth = 700;
+	container.clientHeight = 400;
+	container.getBoundingClientRect = () => ({ left: 150, top: -100, width: 700, height: 400 });
+	container.closest = () => ({ getBoundingClientRect: () => ({ left: 150, top: 100, right: 850, bottom: 700 }) });
+	const options = tooltip.options({}, grouped, () => [350, 300], () => ({ left: 48, top: 38, width: 640, height: 282 }));
+	const params = grouped.groupNames.map((_, groupIndex) => ({ seriesIndex: groupIndex, dataIndex: 0, data: { _raw: rawPoint(1, { groupIndex }) } }));
+	const root = options.formatter(params);
+	const height = parseFloat(root.style.values.get('--chart-tooltip-max-height'));
+	assert.equal(height, 112, 'available height ends before the X axis and starts below the fixed header');
+	assert.equal(root.find('bases-chart-tooltip-preview').children.length, 0, 'short visible plots keep a bounded header/footer instead of overflowing rows');
+	assert.equal(root.find('bases-chart-tooltip-count').textContent, '+8 more groups');
+	const [x, y] = options.position([600, 350], params, null, null, { contentSize: [280, height], viewSize: [700, 400] });
+	assert.ok(x >= 56 && x + 280 <= 680);
+	assert.equal(y - 100, 100, 'tooltip is placed within the visible plot, not behind the pane header');
+	container.getBoundingClientRect = () => ({ left: 150, top: -200, width: 700, height: 400 });
+	assert.equal(options.formatter(params), '', 'a barely visible chart suppresses an unreadable preview; clicks still use the modal');
+	assert.equal(tooltip.options({}, grouped, undefined, () => null).formatter(params), '', 'an unavailable plot must not place a preview over the axes');
+});
+
+test('plot detection and CSS-scaled placement honor fractional chart bounds without private ECharts access', () => {
+	const actual = { left: 47.5, top: 38.25, width: 620.5, height: 281.75 };
+	const contains = ([x, y]) => x >= actual.left && x <= actual.left + actual.width && y >= actual.top && y <= actual.top + actual.height;
+	const found = findPlotBounds(700, 400, contains);
+	for (const side of ['left', 'top', 'width', 'height']) assert.ok(Math.abs(found[side] - actual[side]) < 0.5);
+	assert.equal(findPlotBounds(700, 400, () => false), null);
+	for (const scale of [0.75, 1.5]) {
+		const rect = { left: 80, top: 60, width: 700 * scale, height: 400 * scale };
+		const viewport = { width: 1400, height: 900 };
+		const bounds = visibleTooltipBounds(found, rect, viewport, [700, 400]);
+		const metrics = tooltipMetrics(viewport.width, viewport.height, 13, bounds);
+		const [x, y] = positionTooltip([350, 310], [metrics.width, metrics.maxHeight], rect, viewport, [700, 400], 16, bounds);
+		assert.ok(rect.left + x * scale >= bounds.left);
+		assert.ok(rect.top + y * scale >= bounds.top);
+		assert.ok(rect.left + x * scale + metrics.width <= bounds.left + bounds.width + 0.01);
+		assert.ok(rect.top + y * scale + metrics.maxHeight <= bounds.top + bounds.height + 0.01);
+	}
 });

@@ -51,10 +51,11 @@ export class ChartLayout {
 		const chartIds = data.getChartIdentifiers();
 
 		const colors = resolveColors(this.containerEl, this.view.config.get(COMMON_SETTINGS.COLOR_PALETTE));
+		const fontFamily = this.containerEl.win.getComputedStyle(this.containerEl).fontFamily;
 		this.renderLegend(data, colors.palette);
 		this.reconcileRenderers(chartIds.length);
 
-		const xName = xField ? `${this.view.config.getDisplayName(xField)} →` : '';
+		const xName = xField ? this.view.config.getDisplayName(xField) : '';
 
 		for (let i = 0; i < chartIds.length; i++) {
 			const renderer = this.renderers[i];
@@ -79,12 +80,12 @@ export class ChartLayout {
 
 			const hasNonNumeric = chartData.some(d => !d.isNumeric);
 			const yLabel = hasNonNumeric
-				? `↑ ${data.getChartName(i)} (Count)`
+				? `${data.getChartName(i)} (Count)`
 				: this.view.getYAxisLabel(data.getChartName(i), propId);
 			const option = this.view.buildOption(data, i, xName, yLabel, isGrouped, colors);
-			renderer.setOption(option, {
+			renderer.setOption({ ...option, textStyle: { fontFamily, ...option.textStyle } }, {
 				xName: this.view.config.getDisplayName(xField),
-				yLabel: yLabel.replace(/^↑ /, ''),
+				yLabel,
 				groupNames: data.getGroupIdentifiers().map((_, index) => data.getGroupName(index)),
 				chartType: this.view.type,
 				showPercentages: Boolean(this.view.config.get('show-percentages')),

@@ -4,6 +4,8 @@ import type { ProcessedData } from '../dataCharts/data';
 import { echarts } from '../echarts';
 import { ChartTooltip } from '../ui/chartTooltip';
 import type { ChartTooltipContext } from '../ui/chartTooltip';
+import { findPlotBounds } from '../ui/tooltipGeometry';
+import type { TooltipBounds } from '../ui/tooltipGeometry';
 
 export interface ChartViewLike {
 	app: App;
@@ -20,6 +22,7 @@ export class ChartRenderer {
 	private unregisterMigration: () => void;
 	private removeWindowListener: (() => void) | null = null;
 	private initialResize: { window: Window; id: number } | null = null;
+	private plotBounds: TooltipBounds | null | undefined;
 
 	constructor(
 		private containerEl: HTMLElement,
@@ -38,13 +41,18 @@ export class ChartRenderer {
 		this.tooltip = new ChartTooltip(this.containerEl, this.view, () => this.hideTooltip());
 		this.resizeObserver = new ResizeObserver(() => {
 			this.hideTooltip();
+			this.plotBounds = undefined;
 			this.chart?.resize();
 		});
 		this.resizeObserver.observe(this.containerEl);
 		const win = this.containerEl.ownerDocument.defaultView;
 		const onResize = () => this.hideTooltip();
 		win?.addEventListener('resize', onResize);
-		this.removeWindowListener = () => win?.removeEventListener('resize', onResize);
+		win?.addEventListener('scroll', onResize, true);
+		this.removeWindowListener = () => {
+			win?.removeEventListener('resize', onResize);
+			win?.removeEventListener('scroll', onResize, true);
+		};
 
 		this.chart.on('click', params => {
 			// Bar columns (including their empty area) are handled once by ZRender.
@@ -75,6 +83,7 @@ export class ChartRenderer {
 				window: win,
 				id: win.setTimeout(() => {
 					this.initialResize = null;
+					this.plotBounds = undefined;
 					this.chart?.resize();
 				}, 0),
 			};
@@ -122,13 +131,25 @@ export class ChartRenderer {
 		return pixels.length ? [pixels[0][0], Math.min(...pixels.map(pixel => pixel[1]))] : null;
 	}
 
+	private tooltipBounds(): TooltipBounds | null {
+		const chart = this.chart;
+		if (!chart) return null;
+		// Labels can change the final grid bounds. Query the rendered plot instead
+		// of estimating its edges from the configured padding or axis text width.
+		if (this.plotBounds === undefined) this.plotBounds = findPlotBounds(chart.getWidth(), chart.getHeight(), point =>
+			chart.containPixel({ gridIndex: 0 }, point));
+		return this.plotBounds;
+	}
+
 	setOption(option: EChartsOption, context?: ChartTooltipContext): void {
 		this.clearMessage();
 		this.hideTooltip();
 		const base = Array.isArray(option.tooltip) ? option.tooltip[0] : option.tooltip;
 		const rendered = context && this.tooltip
-			? { ...option, tooltip: this.tooltip.options(base ?? {}, context, params => this.tooltipAnchor(params)) }
+			? { ...option, tooltip: this.tooltip.options(base ?? {}, context, params => this.tooltipAnchor(params),
+				context.chartType === 'chart-pie' ? undefined : () => this.tooltipBounds()) }
 			: option;
+		this.plotBounds = undefined;
 		this.chart?.setOption(rendered, { notMerge: true });
 		this.option = option;
 		this.tooltipContext = context;
@@ -166,6 +187,7 @@ export class ChartRenderer {
 		this.tooltip = null;
 		this.chart?.dispose();
 		this.chart = null;
+		this.plotBounds = undefined;
 	}
 
 	dispose(): void {

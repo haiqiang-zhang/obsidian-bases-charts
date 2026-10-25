@@ -77,13 +77,15 @@ function harness() {
 			const chart = {
 				calls: [], actions: [], handlers: new Map(), resizes: 0, disposed: 0, current: null,
 				zr, containCalls: [], fromPixelCalls: [], toPixelCalls: [],
-				contains: true, ordinal: 0,
+				contains: true, ordinal: 0, width: 700, height: 400,
+				getWidth() { return this.width; },
+				getHeight() { return this.height; },
 				toPixel: (_finder, value) => value,
 				on(name, callback) { this.handlers.set(name, callback); },
 				getZr() { return this.zr; },
 				containPixel(finder, point) {
 					this.containCalls.push({ finder: { ...finder }, point: Array.from(point) });
-					return this.contains;
+					return typeof this.contains === 'function' ? this.contains(point) : this.contains;
 				},
 				convertFromPixel(finder, value) {
 					this.fromPixelCalls.push({ finder: { ...finder }, value });
@@ -111,8 +113,8 @@ function harness() {
 			assert.equal(host, view);
 			const tooltip = {
 				calls: [], opened: [], disposed: 0, hide,
-				options(base, context, anchor) {
-					this.calls.push({ base, context, anchor });
+				options(base, context, anchor, bounds) {
+					this.calls.push({ base, context, anchor, bounds });
 					return { ...base, testContext: context, tooltipIndex: tooltips.indexOf(this) };
 				},
 				openFiles(raw, context) { this.opened.push({ raw, context }); },
@@ -178,7 +180,7 @@ test('deferred first resize cannot overwrite a newer synchronous option', () => 
 test('dispose cancels pending resize and releases chart, observer, tooltip, and window/migration listeners', () => {
 	const state = harness();
 	assert.equal(state.window.timers.size, 1);
-	assert.equal(state.window.listeners.size, 1);
+	assert.equal(state.window.listeners.size, 2);
 	state.renderer.dispose();
 	assert.equal(state.window.timers.size, 0);
 	assert.deepEqual(state.window.cancelledTimers, [1]);
@@ -210,7 +212,7 @@ test('window migration rebuilds in the new window and reapplies the latest optio
 	assert.equal(state.observers[0].disconnected, 1);
 	assert.equal(state.tooltips[0].disposed, 1);
 	assert.equal(state.window.listeners.size, 0);
-	assert.equal(nextWindow.listeners.size, 1);
+	assert.equal(nextWindow.listeners.size, 2);
 	assert.deepEqual(state.window.cancelledTimers, [1]);
 	assert.equal(state.window.timers.size, 0, 'the previous window must not retain a stale resize');
 	assert.equal(nextWindow.timers.size, 2, 'the new resize must coexist with the unrelated timer');
@@ -432,5 +434,29 @@ test('options without a built-in tooltip context retain their original tooltip a
 	assert.equal(state.charts[0].containCalls.length, 0);
 	assert.equal(state.charts[0].zr.cursorStyles.length, 0);
 	assert.equal(state.tooltips[0].opened.length, 0);
+	state.renderer.dispose();
+});
+
+test('tooltip bounds follow the rendered Cartesian plot after resize and scrolling hides the old body tooltip', () => {
+	const state = barFixture();
+	const chart = state.chart;
+	let plot = { left: 50, top: 40, right: 680, bottom: 320 };
+	chart.contains = ([x, y]) => x >= plot.left && x <= plot.right && y >= plot.top && y <= plot.bottom;
+	const bounds = state.tooltip.calls[0].bounds;
+	const first = bounds();
+	assert.ok(Math.abs(first.left - 50) < 0.25 && Math.abs(first.top + first.height - 320) < 0.25);
+	const calls = chart.containCalls.length;
+	bounds();
+	assert.equal(chart.containCalls.length, calls, 'moving within a plotted series reuses the measured plot');
+	plot = { left: 70, top: 55, right: 600, bottom: 280 };
+	state.observers[0].callback();
+	const resized = bounds();
+	assert.ok(Math.abs(resized.left - 70) < 0.25 && Math.abs(resized.top + resized.height - 280) < 0.25);
+	const actions = chart.actions.length;
+	state.window.listeners.get('scroll')();
+	assert.equal(chart.actions.length, actions + 1);
+	assert.equal(chart.actions.at(-1), 'hideTip');
+	state.renderer.setOption({ series: [{ type: 'pie' }] }, { ...state.context, chartType: 'chart-pie' });
+	assert.equal(state.tooltip.calls.at(-1).bounds, undefined, 'pie keeps its separate viewport placement');
 	state.renderer.dispose();
 });
