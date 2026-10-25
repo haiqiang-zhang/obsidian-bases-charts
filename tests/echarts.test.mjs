@@ -56,8 +56,8 @@ function makeData(axisType, grouped = false, xValues = values[axisType]) {
 		{ min: null, max: null, synced: false }, ['note.amount'], new Map([['note.amount', 'Amount']]));
 }
 
-function buildOption(type, data) {
-	const args = [data, 0, 'Folder / size / time →', '↑ Amount (Sum)', data.hasMultipleGroups(), colors];
+function buildOption(type, data, xName = 'Folder / size / time →', yName = '↑ Amount (Sum)') {
+	const args = [data, 0, xName, yName, data.hasMultipleGroups(), colors];
 	if (type === 'bar') return buildBarOption(...args, true, false, false);
 	if (type === 'line') return buildLineOption(...args, false);
 	if (type === 'scatter') return buildScatterOption(...args, false);
@@ -70,6 +70,124 @@ function assertValidSvg(chart) {
 	assert.match(svg, /<path\b/);
 	assert.doesNotMatch(svg, /NaN|Infinity/);
 	return svg;
+}
+
+function assertTextFitsCanvas(chart) {
+	const textSpans = chart.getZr().storage.getDisplayList(true).filter(element =>
+		element.type === 'tspan' && !element.ignore && !element.invisible,
+	);
+	assert.ok(textSpans.length > 2, 'axis names and tick labels must remain rendered');
+	for (const element of textSpans) {
+		const bounds = element.getBoundingRect().clone();
+		const transform = element.getComputedTransform();
+		if (transform) bounds.applyTransform(transform);
+		const description = `text ${JSON.stringify(element.style.text)} must fit ${chart.getWidth()}×${chart.getHeight()} canvas: ${JSON.stringify(bounds)}`;
+		// Allow subpixel rasterization at the edge, while catching clipped names
+		// and the full rotated bounds of long category labels.
+		assert.ok(bounds.x >= -1 && bounds.y >= -1, description);
+		assert.ok(bounds.x + bounds.width <= chart.getWidth() + 1, description);
+		assert.ok(bounds.y + bounds.height <= chart.getHeight() + 1, description);
+	}
+	return textSpans.map(element => String(element.style.text));
+}
+
+function visibleBarLabelBounds(chart) {
+	const labels = [];
+	for (const series of chart.getModel().getSeries()) {
+		chart.getViewOfSeriesModel(series).group.traverse(element => {
+			const label = element.getTextContent?.();
+			if (!label || element.ignore || element.invisible || label.ignore || label.invisible) return;
+			const bounds = label.getBoundingRect().clone();
+			const transform = label.getComputedTransform();
+			if (transform) bounds.applyTransform(transform);
+			labels.push({ text: String(label.style.text), bounds });
+		});
+	}
+	return labels;
+}
+
+function overlappingLabelPairs(labels) {
+	const pairs = [];
+	for (let first = 0; first < labels.length; first++) {
+		for (let second = first + 1; second < labels.length; second++) {
+			const a = labels[first].bounds;
+			const b = labels[second].bounds;
+			const width = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+			const height = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+			if (width > 0 && height > 0) pairs.push([labels[first], labels[second]]);
+		}
+	}
+	return pairs;
+}
+
+test('grouped bars hide colliding near-equal value labels without removing values or source files', () => {
+	const categories = Array.from({ length: 8 }, (_, index) => `Project ${index + 1}`);
+	const points = categories.flatMap((x, index) => [79, 80, 80].map((y, groupIndex) => ({
+		x, y, groupIndex, chartIndex: 0, isNumeric: true,
+		files: [`group-${groupIndex}/source-${index}.md`], fileValues: [y],
+	})));
+	const data = new PropertySeparatedData(points, ['First', 'Second', 'Third'], categories, 'category',
+		{ min: null, max: null, synced: false }, ['note.amount'], new Map([['note.amount', 'Amount']]));
+	const expectedValues = points.map(point => ({ value: point.y, raw: point }))
+		.sort((a, b) => a.raw.files[0].localeCompare(b.raw.files[0]));
+	const option = buildOption('bar', data);
+	for (const width of [320, 586]) {
+		const chart = echarts.init(null, null, { renderer: 'svg', ssr: true, width, height: 300 });
+		try {
+			// Demonstrate that this fixture actually triggers the original bug.
+			const withoutOverlapHandling = {
+				...option,
+				animation: false,
+				series: option.series.map(series => ({ ...series, labelLayout: { hideOverlap: false } })),
+			};
+			chart.setOption(withoutOverlapHandling, { notMerge: true });
+			assertValidSvg(chart);
+			assert.ok(overlappingLabelPairs(visibleBarLabelBounds(chart)).length > 0, `the ${width}px fixture must detect collisions when overlap handling is disabled`);
+
+			chart.setOption({ ...option, animation: false }, { notMerge: true });
+			assertValidSvg(chart);
+			const labels = visibleBarLabelBounds(chart);
+			assert.ok(labels.length > 0 && labels.length < points.length, 'only conflicting labels should be suppressed');
+			assert.deepEqual(overlappingLabelPairs(labels), [], `visible data labels must not intersect at ${width}px`);
+			const plottedValues = chart.getOption().series.flatMap(series => series.data)
+				.map(point => ({ value: point.value, raw: point._raw }))
+				.sort((a, b) => a.raw.files[0].localeCompare(b.raw.files[0]));
+			assert.deepEqual(plottedValues, expectedValues, 'hiding labels must retain every plotted value and complete source-file metadata');
+		} finally {
+			chart.dispose();
+		}
+	}
+});
+
+for (const type of ['bar', 'line', 'scatter']) {
+	for (const categoryCount of [8, 24]) {
+		test(`${type} retains a usable plot and unclipped long labels and names through narrow/wide resize (${categoryCount} categories)`, () => {
+			const xValues = Array.from({ length: categoryCount }, (_, index) => `Project ${index + 1} / Research / Distributed systems / A very long nested folder`);
+			const data = makeData('category', true, xValues);
+			const xName = 'Collection folder with a very long name covering research projects and nested folders →';
+			const yName = '↑ Estimated duration of completed work across every research project and collection (Sum)';
+			const chart = echarts.init(null, null, { renderer: 'svg', ssr: true, width: 320, height: 300 });
+			try {
+				chart.setOption({ ...buildOption(type, data, xName, yName), animation: false }, { notMerge: true });
+				for (const [width, height] of [[320, 300], [1000, 400], [320, 300]]) {
+					chart.resize({ width, height });
+					assertValidSvg(chart);
+					const visibleText = assertTextFitsCanvas(chart);
+					assert.ok(visibleText.some(text => text.startsWith('Collection folder')), 'the X name must remain visible');
+					assert.ok(visibleText.some(text => text.startsWith('↑ Estimated duration')), 'the Y name must remain visible');
+					assert.ok(visibleText.filter(text => text.startsWith('Project ')).length >= 2, 'long folder names must not suppress all but one category label');
+					const grid = chart.getModel().getComponent('grid').coordinateSystem.getRect();
+					assert.ok(grid.width > width / 2, 'long names must not crush the horizontal plot area');
+					assert.ok(grid.height > height / 2, 'labels and names must leave useful vertical plot space');
+					assert.equal(chart.getOption().xAxis[0].name, xName, 'visual truncation must preserve the complete X name');
+					assert.equal(chart.getOption().yAxis[0].name, yName, 'visual truncation must preserve the complete Y name');
+					assert.deepEqual(chart.getOption().xAxis[0].data, data.sortedXOrder, 'visual truncation must preserve category identity');
+				}
+			} finally {
+				chart.dispose();
+			}
+		});
+	}
 }
 
 for (const [type, axisType] of [

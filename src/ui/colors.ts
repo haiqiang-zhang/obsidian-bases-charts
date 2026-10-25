@@ -4,6 +4,7 @@ import { getPaletteColors } from './chartPalettes';
 export interface ResolvedColors {
 	palette: string[];
 	text: string;
+	mutedText?: string;
 	grid: string;
 	accent: string;
 	background: string;
@@ -16,22 +17,22 @@ export function resolveColors(containerEl: HTMLElement, paletteId?: unknown): Re
 	return {
 		palette,
 		text: style.getPropertyValue('--text-normal').trim() || '#333',
+		mutedText: style.getPropertyValue('--text-muted').trim() || style.getPropertyValue('--text-normal').trim() || '#666',
 		grid: style.getPropertyValue('--background-modifier-border').trim() || '#ddd',
 		accent: palette[0],
 		background: style.getPropertyValue('--background-primary').trim() || '#fff',
 	};
 }
 
-export function gridOption(extraBottom = 0): GridComponentOption {
+export function gridOption(): GridComponentOption {
 	return {
-		left: 0,
-		right: 0,
-		top: 30,
-		bottom: 20 + extraBottom,
-		// ECharts 6 replaces containLabel with precise outer-bounds layout.
-		// Keep the existing label containment and spacing for axis names.
+		left: 8,
+		right: 12,
+		top: 12,
+		bottom: 12,
+		// Let ECharts 6 contain both labels and titles once, including on resize.
 		outerBoundsMode: 'same',
-		outerBoundsContain: 'axisLabel',
+		outerBoundsContain: 'all',
 	};
 }
 

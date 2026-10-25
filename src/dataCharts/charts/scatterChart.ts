@@ -58,7 +58,7 @@ export function buildScatterOption(
 	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
-	const { xAxis, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors);
+	const { xAxis, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
@@ -70,6 +70,7 @@ export function buildScatterOption(
 	const series = Array.from(seriesMap.entries()).sort(([a], [b]) => a - b).map(([groupIdx, points]) => ({
 		type: 'scatter' as const,
 		name: isGrouped ? data.getGroupName(groupIdx) : undefined,
+		symbolSize: 7,
 		data: points.map(p => ({
 			value: [mapXValue(p, xAxisType), p.y],
 			name: p.files.length > 0 ? getFileDisplayName(p.files[0]) : undefined,
@@ -84,7 +85,7 @@ export function buildScatterOption(
 	}));
 
 	return {
-		grid: gridOption(extraBottom),
+		grid: gridOption(),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),
 		tooltip: { trigger: 'item', axisPointer: { type: 'cross' } },

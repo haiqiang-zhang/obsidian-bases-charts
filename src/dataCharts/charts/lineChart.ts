@@ -63,7 +63,7 @@ export function buildLineOption(
 	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
-	const { xAxis, xCategories, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors);
+	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
 		const arr = seriesMap.get(dp.groupIndex) ?? [];
@@ -88,17 +88,18 @@ export function buildLineOption(
 		},
 		lineStyle: {
 			color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
+			width: 2,
 		},
 		connectNulls: !treatNullAsZero,
 		showSymbol: true,
-		symbolSize: 6,
+		symbolSize: 4,
 		emphasis: {
 			focus: 'series' as const,
 		},
 	}));
 
 	return {
-		grid: gridOption(extraBottom),
+		grid: gridOption(),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),
 		tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },

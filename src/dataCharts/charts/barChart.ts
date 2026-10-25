@@ -66,7 +66,7 @@ export function buildBarOption(
 	const domain = hasDomainOverride ? data.getYDomainForChart(chartIndex) : undefined;
 
 	// Bar always uses category axis regardless of detected type
-	const { xAxis, xCategories, xAxisType, extraBottom } = buildXAxisConfig(data, chartIndex, xName, colors, 'category');
+	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors, 'category');
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of flatData) {
@@ -85,7 +85,10 @@ export function buildBarOption(
 			type: 'bar',
 			name: data.getGroupName(groupIdx),
 			data: categoryData,
-			barMaxWidth: 80,
+			barMaxWidth: 22,
+			barCategoryGap: '50%',
+			barGap: '30%',
+			labelLayout: { hideOverlap: true },
 			itemStyle: {
 				color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
 			},
@@ -99,6 +102,7 @@ export function buildBarOption(
 			config['label'] = {
 				show: true,
 				position: 'top',
+				color: colors.mutedText ?? colors.text,
 				formatter: (params: { value: unknown }) => {
 					const val = params.value as number;
 					return showPercentages ? `${val.toFixed(1)}%` : toCompactString(val);
@@ -110,12 +114,12 @@ export function buildBarOption(
 	});
 
 	return {
-		grid: gridOption(extraBottom),
+		grid: gridOption(),
 		xAxis,
 		yAxis: {
 			...buildYAxisConfig(yLabel, colors, domain),
 			axisLabel: {
-				color: colors.text,
+				color: colors.mutedText ?? colors.text,
 				formatter: showPercentages ? ('{value}%') : ((v: number) => toCompactString(v)),
 			},
 		},

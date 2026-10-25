@@ -18,47 +18,48 @@ export function buildXAxisConfig(
 	xAxis: XAXisComponentOption;
 	xCategories: string[];
 	xAxisType: XAxisType;
-	extraBottom: number;
 } {
 	const flatData = data.getFlat(chartIndex);
 	const flatXSet = new Set(flatData.map(d => toXKey(d.x)));
 	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
+	const labelColor = colors.mutedText ?? colors.text;
 
 	const xAxis: XAXisComponentOption = {
 		type: xAxisType,
 		name: xName,
 		nameLocation: 'middle',
-		nameGap: 25,
-		nameTextStyle: { color: colors.text },
-		axisLabel: { color: colors.text, hideOverlap: true },
+		nameGap: 32,
+		nameTruncate: { maxWidth: 180, ellipsis: '…' },
+		nameTextStyle: { color: labelColor, fontSize: 12 },
+		axisLabel: { color: labelColor, hideOverlap: true, fontSize: 12 },
 		axisLine: { lineStyle: { color: colors.grid } },
-		splitLine: { lineStyle: { color: colors.grid } },
+		axisTick: { show: false },
+		splitLine: { show: false },
 	};
-
-	const MAX_LABEL_WIDTH = 80;
-	const ROTATE_DEG = 45;
-	const rotatedHeight = Math.round(MAX_LABEL_WIDTH * Math.sin(ROTATE_DEG * Math.PI / 180));
 
 	if (xAxis.type === 'category') {
 		xAxis.data = xCategories;
 		xAxis.boundaryGap = true;
-		const count = xCategories.length;
-		const step = Math.max(1, Math.floor(count / 20));
-		const last = count - 1;
+		const crowded = xCategories.length > 10;
+		const labelWidth = crowded ? 80 : 110;
+		const rotation = crowded ? 35 : 0;
+		const step = Math.max(1, Math.ceil(xCategories.length / 20));
 		xAxis.axisLabel = {
 			...xAxis.axisLabel,
 			// Bar charts use categorical positions even for timestamps. Format only
 			// the visible label; keep the full timestamp as the category identity.
 			formatter: data.xAxisType === 'time' ? value => new Date(value).toLocaleString() : undefined,
 			overflow: 'truncate',
-			width: MAX_LABEL_WIDTH,
-			rotate: ROTATE_DEG,
-			interval: (index: number) => index === 0 || index === last || index % step === 0,
+			width: labelWidth,
+			rotate: rotation,
+			// Auto interval measures the full original text before truncation.
+			// Bound the candidates, then let hideOverlap fit the visible labels.
+			interval: (index: number) => index === 0 || index === xCategories.length - 1 || index % step === 0,
 		};
-		xAxis.nameGap = rotatedHeight + 15;
+		xAxis.nameGap = crowded ? Math.ceil(labelWidth * Math.sin(rotation * Math.PI / 180)) + 22 : 36;
 	}
 
-	return { xAxis, xCategories, xAxisType, extraBottom: xAxisType === 'category' ? rotatedHeight : 0 };
+	return { xAxis, xCategories, xAxisType };
 }
 
 /**
@@ -69,15 +70,20 @@ export function buildYAxisConfig(
 	colors: ResolvedColors,
 	domain?: [number, number],
 ): YAXisComponentOption & { type: 'value' } {
+	const labelColor = colors.mutedText ?? colors.text;
 	return {
 		type: 'value',
 		name: yLabel,
 		nameLocation: 'end',
-		nameGap: 15,
-		nameTextStyle: { align: 'left', color: colors.text },
-		axisLabel: { color: colors.text },
-		axisLine: { lineStyle: { color: colors.grid } },
-		splitLine: { lineStyle: { color: colors.grid } },
+		nameGap: 18,
+		nameTruncate: { maxWidth: 180, ellipsis: '…' },
+		nameTextStyle: { align: 'left', color: labelColor, fontSize: 12 },
+		axisLabel: { color: labelColor, fontSize: 12 },
+		axisLine: { show: false },
+		axisTick: { show: false },
+		splitNumber: 4,
+		boundaryGap: ['0%', '10%'],
+		splitLine: { lineStyle: { color: colors.grid, type: 'dotted', opacity: 0.7 } },
 		min: domain ? domain[0] : undefined,
 		max: domain ? domain[1] : undefined,
 	};

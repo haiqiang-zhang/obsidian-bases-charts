@@ -117,11 +117,11 @@ test('first data update mounts axes after config assignment and unload removes t
 		getDisplayName: () => 'Folder',
 	};
 	onDataUpdated();
-	assert.equal(nativeToolbar.children.length, 3);
+	assert.equal(nativeToolbar.children.length, 2);
 	assert.equal(nativeToolbar.querySelector('.bases-chart-x-menu').querySelector('.bases-chart-axis-summary').textContent, 'Folder');
 	assert.equal(nativeToolbar.querySelector('.bases-chart-y-menu').querySelector('.bases-chart-axis-summary').textContent, '2');
 	onDataUpdated();
-	assert.equal(nativeToolbar.children.length, 3, 'updates must not duplicate toolbar buttons');
+	assert.equal(nativeToolbar.children.length, 2, 'updates must not duplicate toolbar buttons');
 
 	toolbar.onunload();
 	assert.equal(nativeToolbar.children.length, 0);

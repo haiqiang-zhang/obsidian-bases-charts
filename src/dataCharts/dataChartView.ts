@@ -56,6 +56,7 @@ export abstract class DataChartView extends BaseChartView {
 	): EChartsOption;
 
 	protected onChartLoad(): void {
+		this.containerEl.addClass('bases-data-chart-view');
 		this.layout = new ChartLayout(this, this.containerEl);
 		this.toolbar = this.addChild(new ChartToolbar(this));
 	}
@@ -65,6 +66,7 @@ export abstract class DataChartView extends BaseChartView {
 		this.layout = null;
 		if (this.toolbar) this.removeChild(this.toolbar);
 		this.toolbar = null;
+		this.containerEl.removeClass('bases-data-chart-view');
 	}
 
 	openAxisSettings(axis: 'x' | 'y'): void {
