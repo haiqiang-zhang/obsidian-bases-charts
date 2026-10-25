@@ -91,20 +91,23 @@ export class ChartRenderer {
 	private initialize(): void {
 		this.chart = echarts.init(this.containerEl, undefined, { renderer: 'canvas' });
 		this.tooltip = new ChartTooltip(this.containerEl, this.view, () => this.hideTooltip());
-		this.resizeObserver = new ResizeObserver(() => {
+		const win = this.containerEl.ownerDocument.defaultView;
+		const onResize = () => {
 			this.hideTooltip();
 			this.plotBounds = undefined;
 			this.pointColumns = undefined;
 			this.chart?.resize();
-		});
+		};
+		// A main-window observer can stop delivering while a popout stays active.
+		// Observe in the chart's own window, and also handle its zoom/resize event.
+		this.resizeObserver = new (win?.ResizeObserver ?? ResizeObserver)(onResize);
 		this.resizeObserver.observe(this.containerEl);
-		const win = this.containerEl.ownerDocument.defaultView;
-		const onResize = () => this.hideTooltip();
+		const onScroll = () => this.hideTooltip();
 		win?.addEventListener('resize', onResize);
-		win?.addEventListener('scroll', onResize, true);
+		win?.addEventListener('scroll', onScroll, true);
 		this.removeWindowListener = () => {
 			win?.removeEventListener('resize', onResize);
-			win?.removeEventListener('scroll', onResize, true);
+			win?.removeEventListener('scroll', onScroll, true);
 		};
 
 		this.chart.on('click', params => {
@@ -133,9 +136,7 @@ export class ChartRenderer {
 				window: win,
 				id: win.setTimeout(() => {
 					this.initialResize = null;
-					this.plotBounds = undefined;
-					this.pointColumns = undefined;
-					this.chart?.resize();
+					onResize();
 				}, 0),
 			};
 		}

@@ -27,9 +27,15 @@ function createWindow() {
 	const listeners = new Map();
 	const timers = new Map();
 	const cancelledTimers = [];
+	const observers = [];
 	let timerId = 0;
 	return {
-		listeners, timers, cancelledTimers,
+		listeners, timers, cancelledTimers, observers,
+		ResizeObserver: class {
+			constructor(callback) { this.callback = callback; this.disconnected = 0; observers.push(this); }
+			observe(element) { this.observed = element; }
+			disconnect() { this.disconnected++; }
+		},
 		setTimeout(callback) {
 			const id = ++timerId;
 			timers.set(id, callback);
@@ -52,12 +58,12 @@ function createWindow() {
 function harness() {
 	const charts = [];
 	const tooltips = [];
-	const observers = [];
 	const openedFiles = [];
 	let migration;
 	let removedMigrations = 0;
 	const window = createWindow();
 	const container = {
+		clientWidth: 700, clientHeight: 400,
 		ownerDocument: { defaultView: window },
 		onWindowMigrated(callback) {
 			migration = callback;
@@ -103,7 +109,11 @@ function harness() {
 					this.current = option;
 				},
 				dispatchAction(action) { this.actions.push(action.type); this.actionPayloads.push({ ...action }); },
-				resize() { this.resizes++; },
+				resize() {
+					this.resizes++;
+					this.width = container.clientWidth;
+					this.height = container.clientHeight;
+				},
 				clear() { this.current = null; },
 				dispose() { this.disposed++; },
 			};
@@ -134,14 +144,12 @@ function harness() {
 		setTimeout() { assert.fail('renderer timers must be created in the owning window'); },
 		clearTimeout() { assert.fail('renderer timers must be cancelled in their original window'); },
 		ResizeObserver: class {
-			constructor(callback) { this.callback = callback; this.disconnected = 0; observers.push(this); }
-			observe(element) { this.observed = element; }
-			disconnect() { this.disconnected++; }
+			constructor() { assert.fail('resize observers must be created in the owning window'); }
 		},
 	}, { filename: 'chart-renderer-under-test.cjs' });
 	const renderer = new module.exports.ChartRenderer(container, view);
 	return {
-		renderer, charts, tooltips, observers, window, openedFiles,
+		renderer, charts, tooltips, observers: window.observers, window, container, openedFiles,
 		get removedMigrations() { return removedMigrations; },
 		flushTimers() {
 			container.ownerDocument.defaultView.flushTimers();
@@ -176,6 +184,25 @@ test('deferred first resize cannot overwrite a newer synchronous option', () => 
 	assert.equal(state.charts[0].calls.length, 2);
 	assert.equal(state.charts[0].current, latest);
 	assert.ok(state.charts[0].calls.every(call => call.flags.notMerge === true));
+	state.renderer.dispose();
+});
+
+test('popout zoom resizes the canvas even before an observer callback is delivered', () => {
+	const state = harness();
+	state.flushTimers();
+	assert.equal(state.charts[0].getWidth(), 700);
+	state.container.clientWidth = 933;
+	state.container.clientHeight = 533;
+	state.window.listeners.get('resize')();
+	assert.equal(state.charts[0].getWidth(), 933, 'canvas must fill the wider CSS viewport after zooming out');
+	assert.equal(state.charts[0].getHeight(), 533);
+	assert.ok(state.charts[0].actions.includes('hideTip'));
+	assert.ok(state.observers[0] instanceof state.window.ResizeObserver);
+	assert.equal(state.observers[0].observed, state.container);
+	state.container.clientWidth = 700;
+	state.container.clientHeight = 400;
+	state.observers[0].callback();
+	assert.equal(state.charts[0].getWidth(), 700, 'the owning-window observer must also follow pane resizes');
 	state.renderer.dispose();
 });
 
@@ -215,6 +242,9 @@ test('window migration rebuilds in the new window and reapplies the latest optio
 	assert.equal(state.tooltips[0].disposed, 1);
 	assert.equal(state.window.listeners.size, 0);
 	assert.equal(nextWindow.listeners.size, 2);
+	assert.equal(nextWindow.observers.length, 1);
+	assert.ok(nextWindow.observers[0] instanceof nextWindow.ResizeObserver, 'migration must use the destination observer constructor');
+	assert.equal(nextWindow.observers[0].observed, state.container);
 	assert.deepEqual(state.window.cancelledTimers, [1]);
 	assert.equal(state.window.timers.size, 0, 'the previous window must not retain a stale resize');
 	assert.equal(nextWindow.timers.size, 2, 'the new resize must coexist with the unrelated timer');
@@ -703,6 +733,11 @@ test('cached projected columns refresh on resizing, option updates, and window m
 	state.flushTimers();
 	click();
 	assert.equal(state.chart.toPixelCalls.length, 6, 'first-layout resize also invalidates projections');
+	state.chart.toPixel = (_finder, x) => x + 5;
+	state.window.listeners.get('resize')();
+	click();
+	assert.equal(state.tooltip.opened.at(-1).raw[0], a, 'zoom must update the clickable columns as well as the canvas');
+	assert.equal(state.chart.toPixelCalls.length, 8);
 	const c = rawPoint(15, 3);
 	state.renderer.setOption({ ...state.option, series: [{ data: [pairedPoint(c)] }] }, state.context);
 	click();
