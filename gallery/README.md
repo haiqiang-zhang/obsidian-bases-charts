@@ -4,7 +4,7 @@ Full-resolution screenshots of **Bases Chart Views** in Obsidian, with an Englis
 
 Open [index.html](index.html) for an offline gallery, or use the files in [images](images) directly. The ZIP also contains this offline page and the sample data.
 
-The gallery is captured from the current development build. Some features shown are newer than release 0.4.1.
+The gallery shows features included in **0.5.0**. These screenshots were captured before the release from [source commit `2233296`](https://github.com/haiqiang-zhang/obsidian-bases-charts/commit/223329651371a6618b6fcaa9b85a3f10e72f7456), which is included in 0.5.0. The capture source and original image hashes remain recorded in [capture-manifest.json](capture-manifest.json).
 
 ## Files
 
@@ -41,7 +41,7 @@ Upload the original PNGs instead of taking screenshots of the website. Their ful
 - **Six capability records** with current and target values for Radar.
 - **32 initiative records** with effort and impact values for Scatter.
 
-Copy the whole **Chart Gallery** folder into a separate test vault and keep its folder name, since the Bases filters refer to that path. Open `Welcome.md` for the view descriptions. Use the current development build to reproduce every view shown in this gallery.
+Copy the whole **Chart Gallery** folder into a separate test vault and keep its folder name, since the Bases filters refer to that path. Open `Welcome.md` for the view descriptions. Use version 0.5.0 or later to reproduce every view shown in this gallery.
 
 The AI Chart example renders the included saved ECharts heatmap option. It does not query its source notes live. The capture demonstrates saved-option rendering; it does not show a Claudian generation session. Reproducing the normal AI Chart workflow requires its Claudian setup.
 

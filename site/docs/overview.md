@@ -50,5 +50,5 @@ Add several views to one Base: a line for change over time, bars for category co
 Start with [Chart types](./chart-types), then explore [Axes and dates](./axes-and-dates) and [Groups and aggregation](./groups-and-aggregation).
 
 :::info Documentation version
-These docs and gallery describe the current development branch. The latest published release may not include every feature shown here. Check the [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) when comparing your installed version.
+These docs and gallery cover **0.5.0**. Update to 0.5.0 or later to use all features shown. Check the [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) when comparing your installed version.
 :::

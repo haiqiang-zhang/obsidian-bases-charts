@@ -60,6 +60,6 @@ ECharts options are stored as YAML data. JavaScript functions, such as function-
 
 ## ECharts version
 
-The current development build uses **ECharts 6.1**. When adapting older options, use `axis.min` to set an explicit axis minimum. In ECharts 6.1, `axis.startValue` does not implicitly set that minimum.
+Version **0.5.0** uses **ECharts 6.1**. When adapting older options, use `axis.min` to set an explicit axis minimum. In ECharts 6.1, `axis.startValue` does not implicitly set that minimum.
 
 For a chart that updates directly with Bases properties and includes source-file inspection, choose a [Data Chart](./chart-types).

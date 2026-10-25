@@ -10,7 +10,7 @@ Real chart views in Obsidian, using a fictional studio workspace: 96 work sessio
 
 <a href="/obsidian-bases-charts/gallery/bases-chart-views-gallery.zip" download>Download the full PNG gallery</a> · [Read the documentation](./overview)
 
-<p className="gallery-note">Captured from the current development build. Some features shown here are newer than release 0.4.1. Every screenshot and its sample data is in English.</p>
+<p className="gallery-note">These screenshots were captured before the 0.5.0 release and show features included in it. Every screenshot and its sample data is in English.</p>
 
 <figure className="gallery-card">
 

@@ -5,7 +5,7 @@
   "language": "en",
   "image_format": "PNG",
   "capture_count": 12,
-  "release_note": "Captured from the development build; some features are newer than release 0.4.1.",
+  "release_note": "These pre-release screenshots show features included in 0.5.0. The original capture source is recorded in plugin_commit.",
   "overview_note": "A single capture of four live chart views arranged with native Obsidian split panes.",
   "ai_chart_note": "The AI Chart image demonstrates rendering a saved Apache ECharts heatmap option. It does not show a Claudian generation session or a live query of the sample notes.",
   "captures": [

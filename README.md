@@ -71,7 +71,7 @@ Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-vi
 3. Enter `https://github.com/haiqiang-zhang/obsidian-bases-charts` and choose **Add Plugin**.
 4. Enable **Bases Chart Views** in **Settings → Community plugins**.
 
-The documentation and gallery follow the current development build. Some features shown were added after **0.4.1**. Check the [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for availability in your installed version; BRAT installs published releases, not unpublished commits.
+The documentation and gallery cover **0.5.0**. Update the plugin to use all features shown here, and check the [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for changes between versions.
 
 ## English UI gallery
 

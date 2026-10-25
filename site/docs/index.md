@@ -58,4 +58,4 @@ Use the built-in views for your Bases data. For custom visualizations such as he
 
 </div>
 
-<p className="gallery-note">The gallery uses fictional English sample data and the current development build. See the installation guide for release availability.</p>
+<p className="gallery-note">The gallery uses fictional English sample data and shows features available in 0.5.0.</p>

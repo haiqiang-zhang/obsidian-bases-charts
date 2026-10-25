@@ -70,7 +70,7 @@ def make_index(captures):
 <section class="grid" aria-label="Chart and control screenshots">
 ''' + "\n".join(cards) + '''
 </section>
-<section class="note" aria-label="About these screenshots"><div><h2>Ready for community posts</h2><p>Use the original PNGs when uploading to the Obsidian community. All text and sample data are in English. The gallery contains fictional data, with no private notes or account details.</p></div><div><h2>Captured from the development build</h2><p>Some features shown are newer than release 0.4.1. The AI Chart example displays a saved ECharts heatmap option; it does not show a Claudian generation session or a live query of the sample notes.</p></div></section>
+<section class="note" aria-label="About these screenshots"><div><h2>Ready for community posts</h2><p>Use the original PNGs when uploading to the Obsidian community. All text and sample data are in English. The gallery contains fictional data, with no private notes or account details.</p></div><div><h2>Features included in 0.5.0</h2><p>Captured before the release from source commit 2233296, which is included in 0.5.0. The AI Chart example displays a saved ECharts heatmap option; it does not show a Claudian generation session or a live query of the sample notes.</p></div></section>
 </main>
 <footer><span>Bases Chart Views &middot; English UI Gallery</span><a href="https://github.com/haiqiang-zhang/obsidian-bases-charts">Source and documentation</a></footer>
 </body>
@@ -95,7 +95,7 @@ def main():
         captures.append(item)
     manifest = {"schema_version": 1, "source": "Real Obsidian Sandbox UI with synthetic English-only data",
                 "plugin_commit": SOURCE_COMMIT, "language": "en", "image_format": "PNG", "capture_count": len(captures),
-                "release_note": "Captured from the development build; some features are newer than release 0.4.1.",
+                "release_note": "These pre-release screenshots show features included in 0.5.0. The original capture source is recorded in plugin_commit.",
                 "overview_note": "A single capture of four live chart views arranged with native Obsidian split panes.",
                 "ai_chart_note": "The AI Chart image demonstrates rendering a saved Apache ECharts heatmap option. It does not show a Claudian generation session or a live query of the sample notes.",
                 "captures": captures}
