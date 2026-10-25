@@ -99,7 +99,8 @@ test('search reaches unrendered files by full path and resets pagination', () =>
 	search.value = 'STUDY/NOTE-204.MD';
 	search.dispatch('input');
 	assert.equal(list.children.length, 1);
-	assert.equal(list.children[0].attributes.get('title'), 'Study/note-204.md');
+	assert.equal(list.children[0].find('bases-chart-file-name').textContent, 'note-204');
+	assert.equal(list.children[0].find('bases-chart-file-folder').textContent, 'Study');
 	assert.equal(modal.contentEl.find('bases-chart-files-count').textContent, '1 of 1 files shown (205 total)');
 	search.value = '';
 	search.dispatch('input');

@@ -15,6 +15,7 @@ export interface ChartFileDetails {
 }
 
 const PAGE_SIZE = 100;
+let nextAccessibleLabelId = 0;
 
 interface IndexedFile {
 	file: ChartFileItem;
@@ -53,10 +54,10 @@ export class ChartFilesModal extends Modal {
 		const conditions = this.contentEl.createDiv({ cls: 'bases-chart-files-conditions' });
 		if (this.details) {
 			const chip = conditions.createDiv({ cls: 'bases-chart-files-condition' });
-			chip.createSpan({ cls: 'bases-chart-files-condition-property', text: this.details.xName }).title = this.details.xName;
+			chip.createSpan({ cls: 'bases-chart-files-condition-property', text: this.details.xName });
 			const match = chip.createSpan({ cls: 'bases-chart-files-condition-match' });
 			match.createSpan({ cls: 'bases-chart-files-condition-operator', text: 'is' });
-			match.createSpan({ cls: 'bases-chart-files-condition-value', text: this.details.xValue }).title = this.details.xValue;
+			match.createSpan({ cls: 'bases-chart-files-condition-value', text: this.details.xValue });
 		}
 		conditions.createDiv({ cls: 'bases-chart-files-summary', text: this.summary });
 		const tools = this.contentEl.createDiv({ cls: 'bases-chart-files-tools' });
@@ -67,10 +68,10 @@ export class ChartFilesModal extends Modal {
 			type: 'search',
 			placeholder: 'Find a file or folder…',
 		});
-		search.setAttribute('aria-label', 'Find a file by name or path');
+		this.setAccessibleLabel(search, 'Find a file by name or path');
 		this.listEl = this.contentEl.createDiv({ cls: 'bases-chart-files-list' });
 		const table = this.listEl.createEl('table', { cls: 'bases-chart-files-table' });
-		table.setAttribute('aria-label', `Files for ${this.details?.xValue ?? this.heading}`);
+		this.setAccessibleLabel(table, `Files for ${this.details?.xValue ?? this.heading}`);
 		if (this.hasGroups) table.addClass('bases-chart-files-table-grouped');
 		const header = table.createEl('thead').createEl('tr');
 		header.createEl('th', { cls: 'bases-chart-files-file-heading', text: 'File' }).setAttribute('scope', 'col');
@@ -84,6 +85,15 @@ export class ChartFilesModal extends Modal {
 		search.addEventListener('input', () => this.filter(search.value));
 		this.filter('');
 		search.focus();
+	}
+
+	private setAccessibleLabel(element: HTMLElement, text: string): void {
+		// Obsidian also uses aria-label for hover tooltips. Referenced text keeps
+		// the accessible name without showing a redundant hint over the modal.
+		const label = this.contentEl.createSpan({ text });
+		label.id = `bases-chart-files-label-${++nextAccessibleLabelId}`;
+		label.hidden = true;
+		element.setAttribute('aria-labelledby', label.id);
 	}
 
 	private filter(query: string): void {
@@ -107,12 +117,10 @@ export class ChartFilesModal extends Modal {
 		for (let index = this.shown; index < end; index++) {
 			const { file } = this.matches[index];
 			const row = this.rowsEl.createEl('tr', { cls: 'bases-chart-file-row' });
-			row.setAttribute('title', file.path);
 			const fileCell = row.createEl('td', { cls: 'bases-chart-file-cell' });
 			const button = fileCell.createEl('button', { cls: 'bases-chart-file-open' });
 			firstRow ??= button;
 			button.type = 'button';
-			button.setAttribute('aria-label', `Open ${file.path}`);
 			const separator = file.path.lastIndexOf('/');
 			const name = file.path.slice(separator + 1).replace(/\.[^.]+$/, '');
 			const folder = separator >= 0 ? file.path.slice(0, separator) : '/';
