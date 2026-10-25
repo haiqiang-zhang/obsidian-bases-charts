@@ -2,6 +2,7 @@
 Workstream: "Engineering"
 Project: "Atlas"
 Completed: "2026-09-22T11:00"
+WeekStart: "2026-09-21"
 Hours: 26.0
 Deliverables: 8
 Week: 12

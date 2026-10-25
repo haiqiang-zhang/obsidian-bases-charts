@@ -2,6 +2,7 @@
 Workstream: "Research"
 Project: "Launchpad"
 Completed: "2026-07-21T13:00"
+WeekStart: "2026-07-20"
 Hours: 13.0
 Deliverables: 4
 Week: 3

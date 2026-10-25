@@ -19,7 +19,7 @@ hero:
 
 <div className="home-showcase">
 
-![Four chart views shown together in native Obsidian split panes with English sample data.](/gallery/overview.png)
+![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](/gallery/overview.png)
 
 </div>
 

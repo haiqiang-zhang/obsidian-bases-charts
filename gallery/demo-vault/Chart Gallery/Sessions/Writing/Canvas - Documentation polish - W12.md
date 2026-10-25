@@ -2,6 +2,7 @@
 Workstream: "Writing"
 Project: "Canvas"
 Completed: "2026-09-22T15:00"
+WeekStart: "2026-09-21"
 Hours: 13.5
 Deliverables: 3
 Week: 12

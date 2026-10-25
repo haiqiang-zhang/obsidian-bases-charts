@@ -2,6 +2,7 @@
 Workstream: "Engineering"
 Project: "Beacon"
 Completed: "2026-08-18T11:00"
+WeekStart: "2026-08-17"
 Hours: 16.5
 Deliverables: 5
 Week: 7

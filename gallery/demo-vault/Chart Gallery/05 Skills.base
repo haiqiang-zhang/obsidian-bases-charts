@@ -14,7 +14,7 @@ views:
     x: "note.Capability"
     y: ["note.Current", "note.Target"]
     order: ["file.name", "note.Capability", "note.Current", "note.Target"]
-    color-palette: "coastal"
+    color-palette: "colorful"
     sort:
       -
         property: "note.Sequence"

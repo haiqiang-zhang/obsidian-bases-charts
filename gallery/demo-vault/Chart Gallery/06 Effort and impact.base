@@ -14,7 +14,7 @@ views:
     x: "note.Effort"
     y: ["note.Impact"]
     order: ["file.name", "note.Effort", "note.Impact"]
-    color-palette: "coastal"
+    color-palette: "colorful"
     groupBy:
       property: "note.Workstream"
       direction: "ASC"

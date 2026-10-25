@@ -1,5 +1,7 @@
 filters:
   and: ["file.inFolder(\"Chart Gallery/Sessions\")", "file.ext == \"md\""]
+formulas:
+  Week label: "date(WeekStart)\n  .format(\"MMM D\")"
 properties:
   note.Completed:
     displayName: "Date"
@@ -17,19 +19,20 @@ views:
   -
     type: "chart-area"
     name: "A season of progress"
-    x: "note.Completed"
+    x: "formula.Week label"
     y: ["note.Hours"]
     order: ["file.name", "note.Completed", "note.Hours"]
-    color-palette: "coastal"
+    color-palette: "colorful"
     groupBy:
       property: "note.Workstream"
       direction: "ASC"
     sort:
       -
-        property: "note.Completed"
+        property: "note.Week"
         direction: "ASC"
     "aggregate:note.Hours": "Sum"
     x-date-grouping:
       property: "note.Completed"
       unit: "week"
     min-y-override: "0"
+    filters: "note.Week >= 5"

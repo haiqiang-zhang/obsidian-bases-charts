@@ -20,7 +20,7 @@ views:
     x: "note.Workstream"
     y: ["note.Hours"]
     order: ["file.name", "note.Workstream", "note.Hours"]
-    color-palette: "earth"
+    color-palette: "colorful"
     sort:
       -
         property: "note.Workstream"

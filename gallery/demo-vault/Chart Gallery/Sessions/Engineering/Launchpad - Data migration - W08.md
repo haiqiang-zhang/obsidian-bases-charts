@@ -2,6 +2,7 @@
 Workstream: "Engineering"
 Project: "Launchpad"
 Completed: "2026-08-27T12:00"
+WeekStart: "2026-08-24"
 Hours: 15.0
 Deliverables: 5
 Week: 8

@@ -9,9 +9,9 @@ AI Chart renders a saved [Apache ECharts](https://echarts.apache.org/) configura
 
 [Claudian](https://github.com/YishenTu/claudian) can read your data and write the configuration into the selected view in your `.base` file.
 
-![The included saved ECharts heatmap rendered in an AI Chart view.](/gallery/10-ai-chart.png)
+![A saved ECharts timeline comparing six research collections, with smooth curves and an overview zoom slider.](/gallery/10-ai-chart.png)
 
-The gallery example uses a saved heatmap configuration supplied with the sample data. It illustrates rendering an option, rather than a Claudian generation session.
+The gallery's **Reference library** example compares 619 fictional papers across six research collections from 2014 to 2026. Its saved configuration includes smooth lines, subtle area fills, and an overview zoom slider. It illustrates saved-option rendering; it does not show a Claudian generation session or query source notes live.
 
 ## Set up
 

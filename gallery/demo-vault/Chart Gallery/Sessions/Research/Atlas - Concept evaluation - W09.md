@@ -2,6 +2,7 @@
 Workstream: "Research"
 Project: "Atlas"
 Completed: "2026-09-03T14:00"
+WeekStart: "2026-08-31"
 Hours: 9.0
 Deliverables: 3
 Week: 9

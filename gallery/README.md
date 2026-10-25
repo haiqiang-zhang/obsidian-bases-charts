@@ -1,62 +1,70 @@
 # English UI Gallery
 
-Full-resolution screenshots of **Bases Chart Views** in Obsidian, with an English-only fictional studio workspace. Use the PNG files for Obsidian community posts, documentation, and plugin presentations.
+15 full-resolution screenshots of **Bases Chart Views** running in Obsidian. All interface labels and fictional sample data are in English. Use the original PNGs for Obsidian community posts, documentation, and plugin presentations.
 
-Open [index.html](index.html) for an offline gallery, or use the files in [images](images) directly. The ZIP also contains this offline page and the sample data.
+Open [index.html](index.html) for the offline gallery, or use [images](images) directly. The ZIP also contains the offline page and portable sample data.
 
-The gallery shows features included in **0.5.0**. These screenshots were captured before the release from [source commit `2233296`](https://github.com/haiqiang-zhang/obsidian-bases-charts/commit/223329651371a6618b6fcaa9b85a3f10e72f7456), which is included in 0.5.0. The capture source and original image hashes remain recorded in [capture-manifest.json](capture-manifest.json).
+The gallery covers the **0.5.0** feature set. [capture-manifest.json](capture-manifest.json) records the plugin source commit, image dimensions, and SHA-256 hash for every capture.
 
 ## Files
 
 | Image | What it shows |
 | --- | --- |
-| [overview.png](images/overview.png) | Four chart views in native Obsidian split panes |
-| [01-line.png](images/01-line.png) | A grouped timeline with native Bases controls |
-| [02-bar.png](images/02-bar.png) | Category comparisons with grouped bars |
-| [03-area.png](images/03-area.png) | Group contributions over time |
-| [04-pie.png](images/04-pie.png) | A centered donut with category shares |
-| [05-radar.png](images/05-radar.png) | Current and target profiles across capabilities |
-| [06-scatter.png](images/06-scatter.png) | Effort and impact across individual initiatives |
+| [overview.png](images/overview.png) | Eight weeks of stacked workstream data with an anchored weekly summary |
+| [01-line.png](images/01-line.png) | A grouped timeline with compact date labels and native Bases controls |
+| [02-bar.png](images/02-bar.png) | Six projects compared using grouped bars and value labels |
+| [03-area.png](images/03-area.png) | Four workstreams contributing to the weekly total |
+| [04-pie.png](images/04-pie.png) | A centered donut with percentage shares |
+| [05-radar.png](images/05-radar.png) | Current and target profiles across six capabilities |
+| [06-scatter.png](images/06-scatter.png) | Effort and impact across 32 individual initiatives |
 | [07-color-palettes.png](images/07-color-palettes.png) | The per-view palette picker with color swatches |
-| [08-date-grouping.png](images/08-date-grouping.png) | Date-property selection and calendar grouping |
+| [08-date-grouping.png](images/08-date-grouping.png) | The original datetime property grouped into calendar weeks |
 | [09-data-details.png](images/09-data-details.png) | Searchable source files behind a chart value |
-| [10-ai-chart.png](images/10-ai-chart.png) | A custom ECharts heatmap in AI Chart |
-| [11-dark.png](images/11-dark.png) | The chart interface and palette in dark mode |
+| [10-ai-chart.png](images/10-ai-chart.png) | A custom reference-library timeline with an ECharts zoom slider |
+| [11-dark.png](images/11-dark.png) | Chart colors and native controls in dark mode |
+| [12-multiple-measures.png](images/12-multiple-measures.png) | Hours and deliverables in one view, with separate aggregations |
+| [13-formula-editor.png](images/13-formula-editor.png) | The native Bases formula editor opened from the X-axis picker |
+| [14-column-hover.png](images/14-column-hover.png) | A dashed guide and anchored summary for a single-point column |
 
-[Download all gallery PNGs](bases-chart-views-gallery.zip) · [View the website gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots)
+[Download all 15 PNGs](bases-chart-views-gallery.zip) · [View the website gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots)
 
 ## Suggested community post selection
 
-Use **overview.png** as the main image, then **01-line.png**, **07-color-palettes.png**, and **09-data-details.png** to explain the timeline, appearance controls, and source-file workflow. Add another chart image when discussing that specific chart type.
+Use **overview.png** as the main image. Add **12-multiple-measures.png**, **08-date-grouping.png**, **07-color-palettes.png**, and **09-data-details.png** to show the main configuration and source-file workflows. Use **13-formula-editor.png** or **14-column-hover.png** when explaining those interactions.
 
-Upload the original PNGs instead of taking screenshots of the website. Their full resolution keeps labels readable. The images contain synthetic data and no personal notes, account details, or private workspace content.
+Upload the original PNGs instead of taking screenshots of the website. They contain fictional data, with no personal notes, account details, or private workspace content.
 
 ## Sample data
 
-[demo-vault/Chart Gallery](demo-vault/Chart%20Gallery) contains the portable example notes and `.base` files used for capture:
+[demo-vault/Chart Gallery](demo-vault/Chart%20Gallery) contains the portable notes and `.base` files used for capture:
 
-- **96 work sessions** across twelve weeks in Q3 2026.
+- **96 work sessions** across twelve weeks in Q3 2026; timeline views focus on **64 sessions across the last eight weeks**.
 - **Four workstreams:** Design, Engineering, Research, and Writing.
 - **Six projects:** Atlas, Beacon, Canvas, Field Notes, Launchpad, and Signal.
 - **Six capability records** with current and target values for Radar.
 - **32 initiative records** with effort and impact values for Scatter.
+- A saved **Reference library** ECharts option with **619 fictional papers** across six research collections from 2014 to 2026.
 
-Copy the whole **Chart Gallery** folder into a separate test vault and keep its folder name, since the Bases filters refer to that path. Open `Welcome.md` for the view descriptions. Use version 0.5.0 or later to reproduce every view shown in this gallery.
+Copy the whole **Chart Gallery** folder into a separate test vault and keep its folder name, since the Bases filters refer to that path. Open `Welcome.md` for the view descriptions. Use version 0.5.0 or later to reproduce the feature set.
 
-The AI Chart example renders the included saved ECharts heatmap option. It does not query its source notes live. The capture demonstrates saved-option rendering; it does not show a Claudian generation session. Reproducing the normal AI Chart workflow requires its Claudian setup.
+The AI Chart example renders its saved configuration. It does not query source notes live or demonstrate a Claudian generation session. Creating or updating configurations through Claudian requires its setup.
 
-To regenerate the deterministic sample data from the repository root:
+## Reproduce the gallery
+
+Regenerate the deterministic sample data from the repository root:
 
 ```sh
 python3 scripts/gallery/generate-fixtures.py
 ```
 
-`scripts/gallery/capture.py` captures the six built-in chart views in a dedicated **Obsidian Sandbox** popout. Copy the sample folder into that test vault first and enable the development plugin. Supplemental images capture the real open settings, data dialog, saved AI example, and dark-theme view. The overview is one native four-pane window captured at 75% zoom. No screenshot pixels are retouched.
+Copy the sample folder into **Obsidian Sandbox** and enable the development plugin. Run `python3 scripts/gallery/capture-showcase.py` to capture all 15 images in a dedicated popout, leaving the personal vault untouched. It opens the real settings, formula editor, hover state, data dialog, saved AI example, and dark-theme view, then closes its window.
 
-After updating screenshots, rebuild the offline gallery, image manifest, and download package:
+Most captures use an **860 × 520** window at **100% zoom**. Radar uses a taller **860 × 660** window; the two-measure view uses **1040 × 520**. The capture includes the native Bases toolbar and crops away the window frame. The data dialog is captured separately. No screenshot pixels are retouched.
+
+After replacing the screenshots, rebuild the offline gallery, manifest, and archive. Pass the commit containing the plugin code that was actually running during capture:
 
 ```sh
-python3 scripts/gallery/package-gallery.py
+python3 scripts/gallery/package-gallery.py --source-commit <capture-source-commit>
 ```
 
-The UI screenshots come from the plugin running in Obsidian. The overview is one capture of four live chart views arranged with native Obsidian splits in a separate window.
+The packager reads the original PNGs, records their dimensions and hashes, and verifies every archived image. It requires an explicit source commit so a refreshed gallery cannot silently retain an older capture's provenance.

@@ -2,6 +2,7 @@
 Workstream: "Research"
 Project: "Beacon"
 Completed: "2026-08-11T13:00"
+WeekStart: "2026-08-10"
 Hours: 13.5
 Deliverables: 4
 Week: 6

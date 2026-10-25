@@ -2,6 +2,7 @@
 Workstream: "Research"
 Project: "Canvas"
 Completed: "2026-08-18T13:00"
+WeekStart: "2026-08-17"
 Hours: 9.5
 Deliverables: 3
 Week: 7

@@ -6,7 +6,7 @@ Compare categories, follow a timeline, and open the notes behind every number. C
 
 [**Get the plugin**](https://community.obsidian.md/plugins/bases-chart-views) · [Documentation](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview) · [UI Gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots)
 
-![Four chart views displayed together in native Obsidian split panes, with English sample data.](gallery/images/overview.png)
+![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](gallery/images/overview.png)
 
 ## Charts for your notes
 
@@ -28,7 +28,7 @@ Each Data Chart uses the Base's current results. Select note, file, or formula p
 - **Source-file inspection.** Hover for a compact, anchored summary. Click a chart mark or supported column to open a searchable table of its source files.
 - **Responsive layout.** Cartesian charts use the available width; Pie and Radar sit at the center. Multiple measures form separate charts, while Radar overlays them.
 
-![Line chart showing a rich timeline of grouped sample data in the native Bases interface.](gallery/images/01-line.png)
+![Hours and deliverables displayed as two charts in one Base view, each with its own measure and aggregation.](gallery/images/12-multiple-measures.png)
 
 ## From a chart to its source
 
@@ -44,7 +44,9 @@ Use [Claudian](https://github.com/YishenTu/claudian) to create and refine a cust
 
 Add an **AI Chart** view, choose **Set up AI Chart**, and describe the visualization to Claudian. It writes the ECharts option into the `.base` file. This view renders its saved configuration independently of the live Bases query.
 
-![The included saved ECharts heatmap rendered in the AI Chart view.](gallery/images/10-ai-chart.png)
+![A saved ECharts timeline comparing six research collections, with smooth curves and an overview zoom slider.](gallery/images/10-ai-chart.png)
+
+The gallery example uses a saved configuration with fictional reference-library data. It demonstrates rendering a custom option; it does not show a Claudian generation session.
 
 [AI Chart setup and behavior →](https://haiqiang-zhang.github.io/obsidian-bases-charts/ai-charts)
 
@@ -75,7 +77,7 @@ The documentation and gallery cover **0.5.0**. Update the plugin to use all feat
 
 ## English UI gallery
 
-The screenshots use a fictional studio workspace with English properties and sample records. The overview shows four chart views in native Obsidian split panes. The AI example renders the included saved heatmap configuration. No personal vault content is included.
+The 15 screenshots cover all six chart types, multiple measures, calendar grouping, the native formula editor, per-view palettes, column interactions, source files, and dark mode. The overview follows eight weeks of a fictional studio's work; the AI example shows a custom reference-library timeline. All labels and sample data are in English, with no personal vault content.
 
 [Browse the gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots) · [Download the PNG set](https://haiqiang-zhang.github.io/obsidian-bases-charts/gallery/bases-chart-views-gallery.zip) · [Local gallery and sample data](gallery/README.md)
 

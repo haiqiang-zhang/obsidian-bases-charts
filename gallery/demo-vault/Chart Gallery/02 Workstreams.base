@@ -20,7 +20,7 @@ views:
     x: "note.Project"
     y: ["note.Hours"]
     order: ["file.name", "note.Project", "note.Hours"]
-    color-palette: "earth"
+    color-palette: "colorful"
     groupBy:
       property: "note.Workstream"
       direction: "ASC"
@@ -37,7 +37,7 @@ views:
     x: "note.Project"
     y: ["note.Hours", "note.Deliverables"]
     order: ["file.name", "note.Project", "note.Hours", "note.Deliverables"]
-    color-palette: "coastal"
+    color-palette: "colorful"
     sort:
       -
         property: "note.Project"

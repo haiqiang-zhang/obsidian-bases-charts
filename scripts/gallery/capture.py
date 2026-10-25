@@ -39,7 +39,8 @@ def prepare():
         if(app.vault.getName()!=='Obsidian Sandbox')throw new Error('Sandbox required');
         for(const [name,type] of Object.entries(''' + json.dumps(types) + '''))await app.metadataTypeManager.setType(name,type);
         if(!window.galleryLeaf){window.galleryOriginal=app.workspace.activeLeaf?.id;window.galleryLeaf=app.workspace.getLeaf('window');}
-        window.galleryLeaf.view.containerEl.win.resizeTo(1120,700);
+        window.galleryLeaf.view.containerEl.win.resizeTo(860,520);
+        window.galleryLeaf.view.containerEl.win.electronWindow.webContents.setBackgroundThrottling(false);
         return JSON.stringify({leaf:window.galleryLeaf.id});
     })()''')
 
@@ -51,7 +52,7 @@ def open_view(file, name):
     time.sleep(1.2)
 
 
-def capture(name, modal=False):
+def capture(name, modal=False, hover=None):
     target = OUTPUT / (name + '.png')
     result = ev('''(async()=>{const leaf=window.galleryLeaf,w=leaf.view.containerEl.win;
         if(app.vault.getName()!=='Obsidian Sandbox'||w===window)throw new Error('Dedicated Sandbox popout required');
@@ -65,14 +66,30 @@ def capture(name, modal=False):
             const option=renderer.chart.getOption();option.animation=false;
             renderer.chart.setOption(option,{notMerge:true});renderer.chart.getZr().flush();
         }
+        ''' + ('''
+        const hovered=view.layout.renderers[0],c=hovered.chart;
+        const si=''' + str(hover[0]) + ''',di=''' + str(hover[1]) + ''';
+        const o=c.getOption(), datum=o.series[si].data[di];
+        const point=c.convertToPixel({seriesIndex:si},o.xAxis[0].type==='category'?[di,datum.value]:datum.value);
+        const box=hovered.containerEl.getBoundingClientRect();
+        w.electronWindow.webContents.sendInputEvent({type:'mouseMove',x:Math.round(box.x+point[0]),y:Math.round(box.y+point[1])});
+        ''' if hover is not None else '') + '''
         await new Promise(resolve=>w.setTimeout(resolve,180));
         const el=''' + ("w.document.querySelector('.bases-chart-files-modal')" if modal else "leaf.view.containerEl.querySelector('.view-content')") + ''';
         const r=el.getBoundingClientRect();
         const rect={x:Math.floor(r.x),y:Math.floor(r.y),width:Math.ceil(r.width),height:Math.ceil(r.height)};
         const img=await w.electronWindow.capturePage(rect);
         require('fs').writeFileSync(''' + json.dumps(str(target)) + ''',img.toPNG());
-        return JSON.stringify({file:''' + json.dumps(target.name) + ''',size:img.getSize(),viewport:[w.innerWidth,w.innerHeight],view:leaf.view.getState()});
+        return JSON.stringify({file:''' + json.dumps(target.name) + ''',size:img.getSize(),viewport:[w.innerWidth,w.innerHeight],zoom:w.electronWindow.webContents.getZoomFactor(),view:leaf.view.getState()});
     })()''')
+    metadata_path = REPO / 'gallery' / 'capture-manifest.json'
+    metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {"captures": []}
+    prior = next((x for x in metadata['captures'] if x['file'] == result['file']), None)
+    if prior is None:
+        prior = {"file": result['file']}
+        metadata['captures'].append(prior)
+    prior.update({key: result[key] for key in ['viewport', 'zoom', 'view']})
+    metadata_path.write_text(json.dumps(metadata, indent=2) + '\n')
     print(json.dumps(result))
     return result
 

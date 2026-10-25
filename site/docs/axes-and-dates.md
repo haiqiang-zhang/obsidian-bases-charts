@@ -56,6 +56,10 @@ Click a property's name to select it. Use the arrow at the right of its row to o
 
 For ordinary daily, weekly, monthly, or yearly grouping, use **Date grouping** directly. A formula is useful when you want a different calculation or label, such as an amount converted to another unit.
 
+![Obsidian's native formula editor displaying the Week label formula from the chart's X-axis picker.](/gallery/13-formula-editor.png)
+
+The gallery uses `date(note.WeekStart).format("MMM D")` to give an existing week-start property a compact label. A formatted label is text: keep the Base sorted by `WeekStart` to preserve chronological order. Use native date grouping when the original timestamps need to be combined into periods.
+
 ## Sorting
 
 Use the native **Sort** menu to arrange category values through the Base's result order. Calendar buckets are sorted chronologically. A descending sort on the selected date property reverses that timeline.

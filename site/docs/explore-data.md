@@ -11,6 +11,8 @@ Tooltips show the X property, the selected value, and group totals. They stay an
 
 The preview is intentionally compact. It does not contain a long file list or require moving the cursor into the tooltip.
 
+![A single-point chart column with a dashed vertical guide and a compact summary anchored to its data.](/gallery/14-column-hover.png)
+
 ## Click to view files
 
 Click the chart itself to open its data table:

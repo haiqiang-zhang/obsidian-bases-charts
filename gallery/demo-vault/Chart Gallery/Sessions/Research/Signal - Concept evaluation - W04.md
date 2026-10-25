@@ -2,6 +2,7 @@
 Workstream: "Research"
 Project: "Signal"
 Completed: "2026-07-28T13:00"
+WeekStart: "2026-07-27"
 Hours: 12.0
 Deliverables: 3
 Week: 4

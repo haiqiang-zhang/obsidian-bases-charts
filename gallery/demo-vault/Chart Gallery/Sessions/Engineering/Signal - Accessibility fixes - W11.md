@@ -2,6 +2,7 @@
 Workstream: "Engineering"
 Project: "Signal"
 Completed: "2026-09-15T11:00"
+WeekStart: "2026-09-14"
 Hours: 22.5
 Deliverables: 7
 Week: 11

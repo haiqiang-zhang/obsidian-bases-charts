@@ -8,6 +8,7 @@ No real personal or customer data is used. This script uses only the standard li
 from __future__ import annotations
 
 import argparse
+from ai_showcase import build_reference_library_option
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
@@ -56,7 +57,7 @@ def yaml_text(value, indent=0):
     if isinstance(value, list):
         lines = []
         for item in value:
-            if isinstance(item, (dict, list)):
+            if isinstance(item, (dict, list)) and item:
                 if isinstance(item, list) and all(not isinstance(x, (dict, list)) for x in item):
                     lines.append(f"{pad}- {json.dumps(item)}")
                 else:
@@ -86,7 +87,7 @@ def write_base(root, filename, folder, views, properties=None, formulas=None):
     (root / filename).write_text(yaml_text(doc) + "\n", encoding="utf-8")
 
 
-def chart_view(kind, name, x, y, palette="coastal", group=None, **extra):
+def chart_view(kind, name, x, y, palette="colorful", group=None, **extra):
     view = {"type": f"chart-{kind}", "name": name, "x": f"note.{x}", "y": [f"note.{value}" for value in y],
             "order": ["file.name", f"note.{x}"] + [f"note.{value}" for value in y], "color-palette": palette}
     if group:
@@ -119,6 +120,7 @@ def main():
                 write_note(root, f"Sessions/{stream}/{name}.md", {
                     "Workstream": stream, "Project": project,
                     "Completed": completed.isoformat(timespec="minutes"),
+                    "WeekStart": (monday + timedelta(weeks=week)).strftime("%Y-%m-%d"),
                     "Hours": hours, "Deliverables": deliverables,
                     "Week": week + 1, "Status": "Complete", "Quarter": "Q3 2026",
                     "tags": ["chart-gallery", "sample-data"],
@@ -130,15 +132,26 @@ def main():
     common_properties = {"note.Completed": "Date", "note.Hours": "Hours", "note.Deliverables": "Deliverables", "note.Workstream": "Workstream", "note.Project": "Project", "formula.Week label": "Week"}
     weekly = {"x-date-grouping": {"property": "note.Completed", "unit": "week"}, "min-y-override": "0"}
     trend = chart_view("line", "Weekly momentum", "Completed", ["Hours"], group="Workstream", **weekly)
-    metrics = chart_view("line", "Hours & deliverables", "Completed", ["Hours", "Deliverables"], group="Workstream", **weekly)
-    write_base(root, "01 Trend.base", "Sessions", [trend, metrics], common_properties,
-               {"Week label": 'date(note.Completed).format("MMM D")'})
-    bar = chart_view("bar", "Projects by workstream", "Project", ["Hours"], palette="earth", group="Workstream", **{"show-labels": True, "min-y-override": "0"})
-    comparison = chart_view("bar", "Two measures", "Project", ["Hours", "Deliverables"], palette="coastal", **{"show-labels": True, "min-y-override": "0"})
+    trend["filters"] = 'note.Week >= 5'
+    trend["x"] = "formula.Week label"
+    trend["sort"] = [{"property": "note.Week", "direction": "ASC"}]
+    dates = chart_view("line", "Calendar weeks", "Completed", ["Hours"], group="Workstream", **weekly)
+    dates["filters"] = 'note.Week >= 5'
+    metrics = chart_view("line", "Hours & deliverables", "Completed", ["Hours", "Deliverables"], palette="blue", **weekly)
+    metrics["filters"] = 'note.Week >= 5'
+    metrics["x"] = "formula.Week label"
+    metrics["sort"] = [{"property": "note.Week", "direction": "ASC"}]
+    write_base(root, "01 Trend.base", "Sessions", [trend, metrics, dates], common_properties,
+               {"Week label": 'date(WeekStart)\n  .format("MMM D")'})
+    bar = chart_view("bar", "Projects by workstream", "Project", ["Hours"], palette="colorful", group="Workstream", **{"show-labels": True, "min-y-override": "0"})
+    comparison = chart_view("bar", "Two measures", "Project", ["Hours", "Deliverables"], palette="colorful", **{"show-labels": True, "min-y-override": "0"})
     write_base(root, "02 Workstreams.base", "Sessions", [bar, comparison], common_properties)
     area = chart_view("area", "A season of progress", "Completed", ["Hours"], group="Workstream", **weekly)
-    write_base(root, "03 Capacity.base", "Sessions", [area], common_properties)
-    pie = chart_view("pie", "Where the time goes", "Workstream", ["Hours"], palette="earth", **{"show-labels": True, "show-percentages": True, "ignore-null": True})
+    area["filters"] = 'note.Week >= 5'
+    area["x"] = "formula.Week label"
+    area["sort"] = [{"property": "note.Week", "direction": "ASC"}]
+    write_base(root, "03 Capacity.base", "Sessions", [area], common_properties, {"Week label": 'date(WeekStart)\n  .format("MMM D")'})
+    pie = chart_view("pie", "Where the time goes", "Workstream", ["Hours"], palette="colorful", **{"show-labels": True, "show-percentages": True, "ignore-null": True})
     write_base(root, "04 Focus mix.base", "Sessions", [pie], common_properties)
 
     capabilities = [
@@ -148,7 +161,7 @@ def main():
     for index, (capability, current, target) in enumerate(capabilities):
         write_note(root, f"Capabilities/{capability}.md", {"Capability": capability, "Current": current, "Target": target, "Sequence": index + 1, "tags": ["chart-gallery", "sample-data"]},
                    f"# {capability}\n\nAn illustrative comparison of current and target scores on a 0-100 scale.\n\nThis is fictional sample data.")
-    radar = chart_view("radar", "A balanced practice", "Capability", ["Current", "Target"], palette="coastal", **{"radar-scale": "shared", "show-fill": True})
+    radar = chart_view("radar", "A balanced practice", "Capability", ["Current", "Target"], palette="colorful", **{"radar-scale": "shared", "show-fill": True})
     radar["sort"] = [{"property": "note.Sequence", "direction": "ASC"}]
     write_base(root, "05 Skills.base", "Capabilities", [radar], {"note.Capability": "Capability", "note.Current": "Current", "note.Target": "Target"})
 
@@ -169,51 +182,31 @@ def main():
 
     # An explicitly saved ECharts option demonstrates the AI Chart renderer.
     # Opening this view still requires the normal Claudian setup in Obsidian.
-    heatmap = []
-    for week in range(12):
-        for day in range(7):
-            value = [5, 7, 6, 8, 5, 2, 1][day] + (week // 3) + ((week * 3 + day * 2) % 4) - 1
-            if day > 4:
-                value = max(0, value - 2)
-            heatmap.append([week, day, value])
-    option = {
-        "animation": False,
-        "backgroundColor": "#ffffff",
-        "textStyle": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", "color": "#373b3b"},
-        "title": {"text": "A season of focused work", "subtext": "Hours by day  /  July - September 2026", "left": 28, "top": 24,
-                  "textStyle": {"fontSize": 24, "fontWeight": 600, "color": "#303635"},
-                  "subtextStyle": {"fontSize": 13, "color": "#727b78"}, "itemGap": 12},
-        "grid": {"left": 88, "right": 40, "top": 126, "bottom": 96},
-        "tooltip": {"position": "top", "confine": True},
-        "xAxis": {"type": "category", "data": [(monday + timedelta(weeks=i)).strftime("%b %d") for i in range(12)], "splitArea": {"show": False}, "axisLine": {"show": False}, "axisTick": {"show": False}, "axisLabel": {"color": "#727b78", "margin": 14, "fontSize": 12}},
-        "yAxis": {"type": "category", "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "inverse": True, "axisLine": {"show": False}, "axisTick": {"show": False}, "axisLabel": {"color": "#727b78", "margin": 16, "fontSize": 12}},
-        "visualMap": {"min": 0, "max": 13, "calculable": False, "orient": "horizontal", "left": "center", "bottom": 22, "itemWidth": 12, "itemHeight": 200, "text": ["More focus", "Less focus"], "textStyle": {"color": "#727b78", "fontSize": 12}, "inRange": {"color": ["#f0f4ef", "#d1dfd2", "#9ebeb0", "#679b90", "#3d726e"]}},
-        "series": [{"name": "Focus hours", "type": "heatmap", "data": heatmap, "label": {"show": True, "fontSize": 12, "color": "#243e38"}, "itemStyle": {"borderWidth": 6, "borderColor": "#ffffff", "borderRadius": 5}, "emphasis": {"itemStyle": {"borderColor": "#e9eeea", "borderWidth": 3}}}],
-    }
-    write_base(root, "10 AI insights.base", None, [{"type": "chart-ai", "name": "Focus rhythm", "echarts-option": option}])
+    option = build_reference_library_option()
+    write_base(root, "10 AI insights.base", None, [{"type": "chart-ai", "name": "Reference library", "echarts-option": option}])
     (root / "Welcome.md").write_text(
         "# Chart Gallery\n\n"
         "A fictional studio's quarter, designed to show how Bases Chart Views works with ordinary Markdown properties. All data is synthetic.\n\n"
         "## Explore the views\n\n"
-        "- [[01 Trend.base|Weekly momentum]] - date grouping and colored workstreams.\n"
+        "- [[01 Trend.base|Weekly momentum]] - short formula labels and colored workstreams. Switch to Calendar weeks for native date grouping.\n"
         "- [[02 Workstreams.base|Projects by workstream]] - grouped bars and multiple measures.\n"
         "- [[03 Capacity.base|A season of progress]] - stacked area totals.\n"
         "- [[04 Focus mix.base|Where the time goes]] - a proportional overview.\n"
         "- [[05 Skills.base|A balanced practice]] - two radar profiles across six capabilities.\n"
         "- [[06 Effort and impact.base|Effort & impact]] - 32 individual initiatives.\n"
-        "- [[10 AI insights.base|Focus rhythm]] - a saved ECharts heatmap in an AI Chart view.\n\n"
+        "- [[10 AI insights.base|Reference library]] - a saved ECharts research timeline in an AI Chart view.\n\n"
         "## First-time setup\n\n"
         "Install and enable Bases Chart Views. Copy this entire Chart Gallery folder into a vault. Keep its folder name so the Base filters continue to find the sample notes.\n\n"
         "Set the Completed property type to Date & time and Effort to Number in Obsidian if these types are not detected automatically. Hours, Deliverables, Impact, Current, Target, Week, and Sequence are Number properties. No vault settings are included or overwritten.\n\n"
         "The AI Chart example also requires the plugin's normal Claudian skill setup. It renders a saved configuration; it does not query the session notes live.\n\n"
-        "These examples use the current development version of Bases Chart Views. Some controls and chart types may not be available in an older community release.\n",
+        "These examples require Bases Chart Views 0.5.0 or later.\n",
         encoding="utf-8")
     manifest = {
         "description": "Synthetic English-only data for Bases Chart Views UI gallery",
         "period": "2026-07-06 through 2026-09-25", "sessions": activity_count, "capabilities": len(capabilities),
         "initiatives": sum(map(len, effort_impact.values())), "total_hours": sum(sum(values) for values in WEEKLY_HOURS.values()),
-        "property_types": {"Completed": "datetime", "Effort": "number", "Hours": "number", "Deliverables": "number", "Impact": "number", "Current": "number", "Target": "number", "Week": "number", "Sequence": "number"},
-        "views": [{"file": path.name, "name": name} for path, name in zip(sorted(root.glob("*.base")), ["Weekly momentum", "Projects by workstream", "A season of progress", "Where the time goes", "A balanced practice", "Effort & impact", "Focus rhythm"])],
+        "property_types": {"Completed": "datetime", "WeekStart": "date", "Effort": "number", "Hours": "number", "Deliverables": "number", "Impact": "number", "Current": "number", "Target": "number", "Week": "number", "Sequence": "number"},
+        "views": [{"file": path.name, "name": name} for path, name in zip(sorted(root.glob("*.base")), ["Weekly momentum", "Projects by workstream", "A season of progress", "Where the time goes", "A balanced practice", "Effort & impact", "Reference library"])],
     }
     (root / "fixture-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(root), **manifest}, indent=2))

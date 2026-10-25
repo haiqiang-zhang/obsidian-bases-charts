@@ -7,6 +7,7 @@
   "total_hours": 1132,
   "property_types": {
     "Completed": "datetime",
+    "WeekStart": "date",
     "Effort": "number",
     "Hours": "number",
     "Deliverables": "number",
@@ -43,7 +44,7 @@
     },
     {
       "file": "10 AI insights.base",
-      "name": "Focus rhythm"
+      "name": "Reference library"
     }
   ]
 }

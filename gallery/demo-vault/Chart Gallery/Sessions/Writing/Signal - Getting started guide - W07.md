@@ -2,6 +2,7 @@
 Workstream: "Writing"
 Project: "Signal"
 Completed: "2026-08-20T16:00"
+WeekStart: "2026-08-17"
 Hours: 7.5
 Deliverables: 2
 Week: 7

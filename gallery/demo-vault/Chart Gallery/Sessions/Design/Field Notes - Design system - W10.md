@@ -2,6 +2,7 @@
 Workstream: "Design"
 Project: "Field Notes"
 Completed: "2026-09-08T09:00"
+WeekStart: "2026-09-07"
 Hours: 15.0
 Deliverables: 5
 Week: 10

@@ -7,7 +7,7 @@ description: Turn Obsidian Bases properties into interactive charts, with native
 
 Bases Chart Views adds interactive chart views to [Obsidian Bases](https://help.obsidian.md/bases), powered by [Apache ECharts](https://echarts.apache.org/). Your notes remain the source data. A Base chooses the files; each chart view chooses how to present them.
 
-![Four chart views in native Obsidian split panes using English demonstration data.](/gallery/overview.png)
+![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](/gallery/overview.png)
 
 ## Two ways to make a chart
 
