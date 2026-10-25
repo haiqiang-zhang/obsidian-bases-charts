@@ -42,6 +42,16 @@ function pieViewOptions(): BasesAllOptions[] {
 export class PieChartView extends DataChartView {
 	readonly type = PIE_CHART_VIEW_TYPE;
 
+	protected onChartLoad(): void {
+		this.containerEl.addClass('bases-pie-chart-view');
+		super.onChartLoad();
+	}
+
+	protected onChartUnload(): void {
+		super.onChartUnload();
+		this.containerEl.removeClass('bases-pie-chart-view');
+	}
+
 	buildOption(data: DataWrapper, chartIndex: number, _xName: string, _yLabel: string, _isGrouped: boolean, colors: ResolvedColors): EChartsOption {
 		const showLabels = Boolean(this.config.get(PIE_SETTINGS.SHOW_LABELS) ?? true);
 		const showPercentages = Boolean(this.config.get(PIE_SETTINGS.SHOW_PERCENTAGES) ?? false);
@@ -95,8 +105,9 @@ export function buildPieOption(
 		series: [
 			{
 				type: 'pie',
-				radius: ['40%', '70%'],
-				avoidLabelOverlap: false,
+				center: ['50%', '50%'],
+				radius: ['44%', '76%'],
+				avoidLabelOverlap: true,
 				itemStyle: {
 					borderRadius: 10,
 					borderColor: colors.background,
@@ -106,6 +117,8 @@ export function buildPieOption(
 					? {
 							show: true,
 							color: colors.text,
+							bleedMargin: 8,
+							overflow: 'truncate',
 							formatter: showPercentages
 								? '{b}: {d}%'
 								: '{b}',
@@ -124,6 +137,8 @@ export function buildPieOption(
 				},
 				labelLine: {
 					show: showLabels,
+					length: 15,
+					length2: 15,
 					lineStyle: { color: colors.grid },
 				},
 				labelLayout: {
@@ -133,5 +148,16 @@ export function buildPieOption(
 				cursor: 'pointer',
 			},
 		],
+		// Leave room for outside labels in a narrow split. The default media
+		// option restores the larger ring when the same view grows again.
+		media: showLabels ? [
+			{
+				query: { maxWidth: 519 },
+				option: { series: [{ radius: ['36%', '62%'], labelLine: { length: 10, length2: 10 } }] },
+			},
+			{
+				option: { series: [{ radius: ['44%', '76%'], labelLine: { length: 15, length2: 15 } }] },
+			},
+		] : [],
 	};
 }

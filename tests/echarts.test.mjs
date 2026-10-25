@@ -190,6 +190,36 @@ for (const type of ['bar', 'line', 'scatter']) {
 	}
 }
 
+test('pie stays centered and restores its larger desktop ring after repeated narrow resizes', () => {
+	const xValues = ['数据库系统', '计算机网络', '计算机组成原理', '信息新技术', '软件工程', '操作系统', '数据结构与算法', '行测']
+		.map(name => `Knowledge base / Computer science / Exam preparation / ${name}`);
+	const data = makeData('category', false, xValues);
+	const expectedPoints = data.getFlat(0).map(point => ({ name: point.x, value: point.y, raw: point }));
+	const chart = echarts.init(null, null, { renderer: 'svg', ssr: true, width: 320, height: 360 });
+	try {
+		chart.setOption({ ...buildOption('pie', data), animation: false }, { notMerge: true });
+		for (const [width, height, diameter] of [[320, 360, 198.4], [1200, 500, 380], [320, 360, 198.4], [1200, 500, 380]]) {
+			chart.resize({ width, height });
+			assertValidSvg(chart);
+			const labels = assertTextFitsCanvas(chart).filter(text => text.length > 0);
+			assert.ok(labels.length >= 3, 'narrow layouts must retain readable category labels');
+			const slices = chart.getModel().getSeriesByIndex(0).getData();
+			assert.equal(slices.count(), expectedPoints.length);
+			for (let index = 0; index < slices.count(); index++) {
+				const geometry = slices.getItemLayout(index);
+				assert.equal(geometry.cx, width / 2, 'every slice must share the horizontal canvas center');
+				assert.equal(geometry.cy, height / 2, 'every slice must share the vertical canvas center');
+				assert.ok(Math.abs(geometry.r * 2 - diameter) < 0.01, `the ring must restore its intended ${diameter}px diameter at ${width}px`);
+				assert.ok(geometry.r0 > 0 && geometry.r0 < geometry.r, 'the chart must retain its donut hole');
+			}
+			assert.deepEqual(chart.getOption().series[0].data.map(point => ({ name: point.name, value: point.value, raw: point._raw })), expectedPoints,
+				'visual truncation and resizing must preserve full category names, values, and source-file metadata');
+		}
+	} finally {
+		chart.dispose();
+	}
+});
+
 for (const [type, axisType] of [
 	['bar', 'category'], ['line', 'category'], ['scatter', 'category'], ['pie', 'category'],
 	['bar', 'value'], ['bar', 'time'], ['line', 'value'], ['line', 'time'], ['scatter', 'value'], ['scatter', 'time'],

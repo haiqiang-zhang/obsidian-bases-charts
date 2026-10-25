@@ -37,6 +37,10 @@ body {
 
 /* Data charts have a reading-friendly height instead of stretching with the
    pane. The width of each grid cell determines its aspect ratio, even in splits. */
+:has(> .bases-data-chart-view) {
+	--bases-header-padding-start: var(--size-4-4);
+	--bases-header-padding-end: var(--size-4-4);
+}
 .bases-data-chart-view {
 	--bases-charts-min-width: 480px;
 	--bases-charts-min-height: 300px;
@@ -51,7 +55,7 @@ body {
 .bases-data-chart-view:has(> .bases-charts-plot-grid:not(.bases-charts-hidden))::after {
 	content: '';
 	min-height: 0;
-	flex: 3 0 0;
+	flex: var(--bases-charts-top-space, 3) 0 0;
 }
 .bases-data-chart-view:has(> .bases-charts-plot-grid:not(.bases-charts-hidden))::after {
 	flex-grow: 2;
@@ -66,7 +70,6 @@ body {
 }
 .bases-data-chart-view > .bases-charts-plot-grid {
 	flex: 0 0 auto;
-	max-width: 1280px;
 	align-self: center;
 	align-content: start;
 	align-items: start;
@@ -78,6 +81,19 @@ body {
 	min-height: var(--bases-charts-min-height);
 	max-height: 420px;
 	aspect-ratio: 2.8;
+}
+/* A radial chart reads as a centered object, with room for its outside labels.
+   Cartesian plots instead span the native header's padded content width. */
+.bases-data-chart-view.bases-pie-chart-view {
+	--bases-charts-top-space: 2;
+	--bases-charts-min-height: 360px;
+}
+.bases-data-chart-view.bases-pie-chart-view > .bases-charts-plot-grid {
+	max-width: 1280px;
+}
+.bases-data-chart-view.bases-pie-chart-view > .bases-charts-plot-grid > .bases-charts-plot-grid-item {
+	max-height: 500px;
+	aspect-ratio: 2.4;
 }
 
 .bases-charts-plot-legend {
