@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bases Chart Views · Mobile UI gallery</title>
+<style>
+:root{color-scheme:light;--paper:#f8f8f5;--ink:#283330;--muted:#66716c;--line:#dedfd8;--accent:#376e62}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}header,main,footer{max-width:1080px;margin:auto;padding-inline:24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-block:24px;border-bottom:1px solid var(--line)}header>a{font-weight:650;text-decoration:none;color:var(--ink)}nav{display:flex;gap:20px;font-size:14px}nav a{text-decoration:none}.intro{max-width:740px;margin:48px 0 32px}h1{font-size:clamp(28px,4vw,40px);line-height:1.15;letter-spacing:-.025em;margin:0 0 16px;font-weight:600}.intro p{color:var(--muted);margin:8px 0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:24px}.card{margin:0;min-width:0;background:white;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgb(28 44 34 / 4%)}.card.is-landscape{grid-column:1/-1}.card>a{display:block;cursor:zoom-in}.card img{display:block;width:100%;height:auto}.card figcaption{padding:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:5px}.card strong{font-weight:600;font-size:15px}.card span{font-size:13px;color:var(--muted)}footer{padding-block:36px;font-size:13px;color:var(--muted)}@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){header{align-items:flex-start;flex-direction:column;gap:12px}.intro{margin-top:32px}.grid{grid-template-columns:minmax(0,1fr);max-width:390px;margin-inline:auto}}
+</style></head><body>
+<header><a href="index.html">Bases Chart Views</a><nav aria-label="Gallery navigation"><a href="../index.html">Desktop gallery</a><a href="https://haiqiang-zhang.github.io/obsidian-bases-charts/mobile-gallery">Documentation</a></nav></header>
+<main><div class="intro"><h1>Mobile UI gallery</h1><p>Chart views, touch inspection, axis settings, palettes, and source-file details.</p><p>In portrait, tap or slide across the chart to update the fixed preview. The selection stays after you lift your finger. View data opens its source files. Landscape and tablet layouts use the full chart area without this panel.</p><p>Captured in Obsidian’s official mobile emulation at a 390 × 844 portrait phone viewport and a 1024 × 768 large landscape viewport, with 2× pixel density. Unused status-bar space is excluded. These are desktop emulator captures, not physical-device screenshots. Sample data is fictional and in English.</p></div>
+<section class="grid" aria-label="Mobile screenshots">
+<figure class="card">
+<a href="images/01-line.png" aria-label="Enlarge: Weekly hours across four workstreams."><img src="images/01-line.png" width="780" height="1586" loading="lazy" alt="Weekly hours across four workstreams."></a>
+<figcaption><strong>Line</strong><span>Weekly hours across four workstreams.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/02-bar.png" aria-label="Enlarge: Hours by project and workstream."><img src="images/02-bar.png" width="780" height="1586" loading="lazy" alt="Hours by project and workstream."></a>
+<figcaption><strong>Bar</strong><span>Hours by project and workstream.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/03-area.png" aria-label="Enlarge: Workstream contributions to weekly hours."><img src="images/03-area.png" width="780" height="1586" loading="lazy" alt="Workstream contributions to weekly hours."></a>
+<figcaption><strong>Stacked Area</strong><span>Workstream contributions to weekly hours.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/04-pie.png" aria-label="Enlarge: Each workstream’s share of the total hours."><img src="images/04-pie.png" width="780" height="1586" loading="lazy" alt="Each workstream’s share of the total hours."></a>
+<figcaption><strong>Pie</strong><span>Each workstream’s share of the total hours.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/05-radar.png" aria-label="Enlarge: Current and target values across six capabilities."><img src="images/05-radar.png" width="780" height="1586" loading="lazy" alt="Current and target values across six capabilities."></a>
+<figcaption><strong>Radar</strong><span>Current and target values across six capabilities.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/06-scatter.png" aria-label="Enlarge: Effort and impact across individual initiatives."><img src="images/06-scatter.png" width="780" height="1586" loading="lazy" alt="Effort and impact across individual initiatives."></a>
+<figcaption><strong>Scatter</strong><span>Effort and impact across individual initiatives.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/07-date-grouping.png" aria-label="Enlarge: The X-axis sheet with calendar-week grouping selected."><img src="images/07-date-grouping.png" width="780" height="1586" loading="lazy" alt="The X-axis sheet with calendar-week grouping selected."></a>
+<figcaption><strong>Date grouping</strong><span>The X-axis sheet with calendar-week grouping selected.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/08-y-properties.png" aria-label="Enlarge: Selected measures and their independent aggregations."><img src="images/08-y-properties.png" width="780" height="1586" loading="lazy" alt="Selected measures and their independent aggregations."></a>
+<figcaption><strong>Y properties</strong><span>Selected measures and their independent aggregations.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/09-color-palettes.png" aria-label="Enlarge: The view’s palette picker with color previews."><img src="images/09-color-palettes.png" width="780" height="1586" loading="lazy" alt="The view’s palette picker with color previews."></a>
+<figcaption><strong>Color palettes</strong><span>The view’s palette picker with color previews.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/10-data-drawer.png" aria-label="Enlarge: View data opens the source-file drawer above the selected chart."><img src="images/10-data-drawer.png" width="780" height="1586" loading="lazy" alt="View data opens the source-file drawer above the selected chart."></a>
+<figcaption><strong>Source files</strong><span>View data opens the source-file drawer above the selected chart.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/11-multiple-measures.png" aria-label="Enlarge: Scroll through vertically stacked measures while the selected values stay below the charts."><img src="images/11-multiple-measures.png" width="780" height="1586" loading="lazy" alt="Scroll through vertically stacked measures while the selected values stay below the charts."></a>
+<figcaption><strong>Multiple measures</strong><span>Scroll through vertically stacked measures while the selected values stay below the charts.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/12-dark.png" aria-label="Enlarge: Chart colors and native controls in Obsidian’s dark theme."><img src="images/12-dark.png" width="780" height="1586" loading="lazy" alt="Chart colors and native controls in Obsidian’s dark theme."></a>
+<figcaption><strong>Dark theme</strong><span>Chart colors and native controls in Obsidian’s dark theme.</span></figcaption>
+</figure>
+<figure class="card">
+<a href="images/13-touch-preview.png" aria-label="Enlarge: Before a selection, the fixed preview shows a touch instruction. Tap or slide across the chart to inspect values."><img src="images/13-touch-preview.png" width="780" height="1586" loading="lazy" alt="Before a selection, the fixed preview shows a touch instruction. Tap or slide across the chart to inspect values."></a>
+<figcaption><strong>Touch preview</strong><span>Before a selection, the fixed preview shows a touch instruction. Tap or slide across the chart to inspect values.</span></figcaption>
+</figure>
+<figure class="card is-landscape">
+<a href="images/14-landscape.png" aria-label="Enlarge: At 1024 × 768, the chart uses the available height without a bottom preview panel."><img src="images/14-landscape.png" width="2048" height="1434" loading="lazy" alt="At 1024 × 768, the chart uses the available height without a bottom preview panel."></a>
+<figcaption><strong>Large landscape viewport</strong><span>At 1024 × 768, the chart uses the available height without a bottom preview panel.</span></figcaption>
+</figure>
+</section></main><footer>Obsidian mobile emulation · English sample data · Select an image to view it at full resolution.</footer>
+</body></html>

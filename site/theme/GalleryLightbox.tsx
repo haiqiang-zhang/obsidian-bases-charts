@@ -29,7 +29,8 @@ export default function GalleryLightbox() {
     const observer = new MutationObserver(decorate);
     observer.observe(document.body, { childList: true, subtree: true });
     const open = (target: EventTarget | null) => {
-      if (!(target instanceof HTMLImageElement) || !target.matches(imageSelector)) return false;
+      if (!(target instanceof HTMLImageElement) || !target.matches(imageSelector)
+        || target.closest('[inert]')) return false;
       source.current = target;
       setPreview({ src: target.currentSrc || target.src, alt: target.alt });
       return true;

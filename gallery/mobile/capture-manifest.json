@@ -1,0 +1,446 @@
+{
+  "schema_version": 1,
+  "source": "Real Obsidian UI in official desktop mobile emulation, with synthetic English-only data",
+  "device_validation": "Desktop mobile emulation; not a physical iOS or Android device test",
+  "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+  "language": "en",
+  "image_format": "PNG",
+  "capture_count": 14,
+  "capture_note": "Native UI captures may exclude unused emulator status space at capture time. No screenshot pixels are retouched.",
+  "captures": [
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Weekly momentum"
+      },
+      "theme": "light",
+      "file": "01-line.png",
+      "captured_at": "2026-10-26T03:39:40Z",
+      "path": "images/01-line.png",
+      "title": "Line",
+      "description": "Weekly hours across four workstreams.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 90691,
+      "sha256": "0b6fb7a228c95332330dd52b114e2f3a02c46f7c058e0a2be82af32d757138ec"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/02 Workstreams.base",
+        "viewName": "Projects by workstream"
+      },
+      "theme": "light",
+      "file": "02-bar.png",
+      "captured_at": "2026-10-26T03:39:43Z",
+      "path": "images/02-bar.png",
+      "title": "Bar",
+      "description": "Hours by project and workstream.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 102667,
+      "sha256": "8a5ebe3457f897bac080db79104ec2d1ed311f4e5d07720386d1a8c43057ca8d"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "light",
+      "file": "03-area.png",
+      "captured_at": "2026-10-26T03:39:46Z",
+      "path": "images/03-area.png",
+      "title": "Stacked Area",
+      "description": "Workstream contributions to weekly hours.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 90154,
+      "sha256": "32e448ece6b492723a91a2631da0e5512ad6000df88596d80822c737d08d02ce"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/04 Focus mix.base",
+        "viewName": "Where the time goes"
+      },
+      "theme": "light",
+      "file": "04-pie.png",
+      "captured_at": "2026-10-26T03:39:49Z",
+      "path": "images/04-pie.png",
+      "title": "Pie",
+      "description": "Each workstream\u2019s share of the total hours.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 77020,
+      "sha256": "0e3dde644cd1110dfa02bff9c5e6bfb1b33777014241a8f2342b27b578ad46f5"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/05 Skills.base",
+        "viewName": "A balanced practice"
+      },
+      "theme": "light",
+      "file": "05-radar.png",
+      "captured_at": "2026-10-26T03:39:53Z",
+      "path": "images/05-radar.png",
+      "title": "Radar",
+      "description": "Current and target values across six capabilities.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 97897,
+      "sha256": "b62fabe296b11a3eb6b445cf54f102b665fa0b8fd07435a049730e2f8d0278a3"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/06 Effort and impact.base",
+        "viewName": "Effort & impact"
+      },
+      "theme": "light",
+      "file": "06-scatter.png",
+      "captured_at": "2026-10-26T03:39:56Z",
+      "path": "images/06-scatter.png",
+      "title": "Scatter",
+      "description": "Effort and impact across individual initiatives.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 75561,
+      "sha256": "c6289d113b420ae14d8d0a3bded9999d49ba2624d5baa95ed0cc79e21b2377c4"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Calendar weeks"
+      },
+      "theme": "light",
+      "file": "07-date-grouping.png",
+      "captured_at": "2026-10-26T03:39:59Z",
+      "path": "images/07-date-grouping.png",
+      "title": "Date grouping",
+      "description": "The X-axis sheet with calendar-week grouping selected.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 73493,
+      "sha256": "0b4d72796f0aa403660e83e9b4f7898249f097a3af747f64c7ce5f337148eb77"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Hours & deliverables"
+      },
+      "theme": "light",
+      "file": "08-y-properties.png",
+      "captured_at": "2026-10-26T03:40:02Z",
+      "path": "images/08-y-properties.png",
+      "title": "Y properties",
+      "description": "Selected measures and their independent aggregations.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 74274,
+      "sha256": "bb4dbe8afe9b8f1e268fdb0469afc863ec70d4528f768a2bfe03199e88fc6452"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "light",
+      "file": "09-color-palettes.png",
+      "captured_at": "2026-10-26T03:40:08Z",
+      "path": "images/09-color-palettes.png",
+      "title": "Color palettes",
+      "description": "The view\u2019s palette picker with color previews.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 90173,
+      "sha256": "84d0648831ca7d0239dbb84e20a7c630bf5b2141bf357bced9e4ff46895a7efe"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "light",
+      "file": "10-data-drawer.png",
+      "captured_at": "2026-10-26T03:40:12Z",
+      "path": "images/10-data-drawer.png",
+      "title": "Source files",
+      "description": "View data opens the source-file drawer above the selected chart.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 132293,
+      "sha256": "7652fc6781b53283a5030c8d5f0e8f9d6802d4185d249c6845aa1d9694172e41"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Hours & deliverables"
+      },
+      "theme": "light",
+      "file": "11-multiple-measures.png",
+      "captured_at": "2026-10-26T03:40:15Z",
+      "path": "images/11-multiple-measures.png",
+      "title": "Multiple measures",
+      "description": "Scroll through vertically stacked measures while the selected values stay below the charts.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 91664,
+      "sha256": "3826bdc12391239f6e345d968dd3dc973858abfe90adebb6f3d9512c54e31752"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "dark",
+      "file": "12-dark.png",
+      "captured_at": "2026-10-26T03:40:19Z",
+      "path": "images/12-dark.png",
+      "title": "Dark theme",
+      "description": "Chart colors and native controls in Obsidian\u2019s dark theme.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 88148,
+      "sha256": "d30da0fffa91a3edc9a0e41c6a653969b73ab68b452bc83a2ca4297e4fb4bdbe"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Weekly momentum"
+      },
+      "theme": "light",
+      "file": "13-touch-preview.png",
+      "captured_at": "2026-10-26T03:40:22Z",
+      "path": "images/13-touch-preview.png",
+      "title": "Touch preview",
+      "description": "Before a selection, the fixed preview shows a touch instruction. Tap or slide across the chart to inspect values.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 780,
+        "height": 1586
+      },
+      "bytes": 74180,
+      "sha256": "e0eae34f6d911d014794934458e56e02f6b32cd5bfeae300e9083640faae7689"
+    },
+    {
+      "viewport": [
+        1024,
+        768
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 1024,
+        "height": 717
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "light",
+      "file": "14-landscape.png",
+      "captured_at": "2026-10-26T03:40:24Z",
+      "path": "images/14-landscape.png",
+      "title": "Large landscape viewport",
+      "description": "At 1024 \u00d7 768, the chart uses the available height without a bottom preview panel.",
+      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
+      "size": {
+        "width": 2048,
+        "height": 1434
+      },
+      "bytes": 87831,
+      "sha256": "319427dee36996ac42686e9db2b3ea02b27f755eb18bc611f63535be4e9a1ab9"
+    }
+  ]
+}

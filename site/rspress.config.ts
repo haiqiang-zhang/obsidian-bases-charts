@@ -26,6 +26,7 @@ export default defineConfig({
     nav: [
       { text: 'Docs', link: '/overview' },
       { text: 'UI Gallery', link: '/screenshots' },
+      { text: 'Mobile UI', link: '/mobile-gallery' },
       { text: 'GitHub', link: repository },
     ],
     sidebar: {
@@ -34,6 +35,7 @@ export default defineConfig({
           { text: 'Overview', link: '/overview' },
           { text: 'Installation', link: '/installation' },
           { text: 'UI Gallery', link: '/screenshots' },
+          { text: 'Mobile UI gallery', link: '/mobile-gallery' },
         ] },
         { text: 'Build a chart', items: [
           { text: 'Chart types', link: '/chart-types' },
@@ -51,6 +53,6 @@ export default defineConfig({
     lastUpdated: true,
     search: true,
     socialLinks: [{ icon: 'github', mode: 'link', content: repository }],
-    footer: { message: 'Bases Chart Views · GPL-3.0' },
+    footer: { message: '© 2026 Haiqiang Zhang · Bases Chart Views · GPL-3.0' },
   },
 });

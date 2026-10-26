@@ -4,7 +4,7 @@ Interactive charts for [Obsidian Bases](https://help.obsidian.md/bases), powered
 
 Six chart types display a Base's filtered results. AI Chart renders saved ECharts configurations created with Claudian.
 
-[Install](https://community.obsidian.md/plugins/bases-chart-views) · [Documentation](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview) · [UI gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots)
+[Install](https://community.obsidian.md/plugins/bases-chart-views) · [Documentation](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview) · [UI gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots) · [Mobile gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/mobile-gallery)
 
 ![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](gallery/images/overview.png)
 
@@ -33,6 +33,8 @@ Each Data Chart uses the Base's current results. Select note, file, or formula p
 ## Source files
 
 The data dialog shows the selected category, aggregate summary, and individual file values. Search by file name or folder, load more results, and open a source note directly from its row.
+
+On portrait phones, touch the chart to select data in a fixed preview below it. The preview stays after you lift your finger. **View data** opens the source-file drawer. Landscape phones and tablets use the chart area without the bottom preview.
 
 ![A Bases chart with its data dialog open, showing the selected category, search field, and source-file table.](gallery/images/09-data-details.png)
 
@@ -73,11 +75,11 @@ Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-vi
 3. Enter `https://github.com/haiqiang-zhang/obsidian-bases-charts` and choose **Add Plugin**.
 4. Enable **Bases Chart Views** in **Settings → Community plugins**.
 
-These docs cover the **0.5.0** feature set. See [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for subsequent changes.
+See [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for published versions.
 
 ## UI gallery
 
-The [gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots) shows chart types and controls with fictional English sample data. [Sample files and capture instructions](gallery/README.md) are included in the repository.
+The [desktop gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots) and [mobile gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/mobile-gallery) show chart types and controls with fictional English sample data. Mobile images use Obsidian’s official desktop emulation. [Sample files and capture instructions](gallery/README.md) are included in the repository.
 
 ## Contributing
 

@@ -1,0 +1,298 @@
+{
+  "captures": [
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Weekly momentum"
+      },
+      "theme": "light",
+      "file": "01-line.png",
+      "captured_at": "2026-10-26T03:39:40Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/02 Workstreams.base",
+        "viewName": "Projects by workstream"
+      },
+      "theme": "light",
+      "file": "02-bar.png",
+      "captured_at": "2026-10-26T03:39:43Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "light",
+      "file": "03-area.png",
+      "captured_at": "2026-10-26T03:39:46Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/04 Focus mix.base",
+        "viewName": "Where the time goes"
+      },
+      "theme": "light",
+      "file": "04-pie.png",
+      "captured_at": "2026-10-26T03:39:49Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/05 Skills.base",
+        "viewName": "A balanced practice"
+      },
+      "theme": "light",
+      "file": "05-radar.png",
+      "captured_at": "2026-10-26T03:39:53Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/06 Effort and impact.base",
+        "viewName": "Effort & impact"
+      },
+      "theme": "light",
+      "file": "06-scatter.png",
+      "captured_at": "2026-10-26T03:39:56Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Calendar weeks"
+      },
+      "theme": "light",
+      "file": "07-date-grouping.png",
+      "captured_at": "2026-10-26T03:39:59Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Hours & deliverables"
+      },
+      "theme": "light",
+      "file": "08-y-properties.png",
+      "captured_at": "2026-10-26T03:40:02Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "light",
+      "file": "09-color-palettes.png",
+      "captured_at": "2026-10-26T03:40:08Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "light",
+      "file": "10-data-drawer.png",
+      "captured_at": "2026-10-26T03:40:12Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Hours & deliverables"
+      },
+      "theme": "light",
+      "file": "11-multiple-measures.png",
+      "captured_at": "2026-10-26T03:40:15Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "dark",
+      "file": "12-dark.png",
+      "captured_at": "2026-10-26T03:40:19Z"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 390,
+        "height": 793
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/01 Trend.base",
+        "viewName": "Weekly momentum"
+      },
+      "theme": "light",
+      "file": "13-touch-preview.png",
+      "captured_at": "2026-10-26T03:40:22Z"
+    },
+    {
+      "viewport": [
+        1024,
+        768
+      ],
+      "crop": {
+        "x": 0,
+        "y": 51,
+        "width": 1024,
+        "height": 717
+      },
+      "device_scale_factor": 2,
+      "zoom": 1,
+      "view": {
+        "file": "Chart Gallery/03 Capacity.base",
+        "viewName": "A season of progress"
+      },
+      "theme": "light",
+      "file": "14-landscape.png",
+      "captured_at": "2026-10-26T03:40:24Z"
+    }
+  ]
+}

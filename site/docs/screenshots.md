@@ -6,7 +6,7 @@ outline: false
 
 # UI gallery
 
-Chart views, configuration controls, and a Claudian example. Select an image to enlarge it.
+Chart views, configuration controls, and a Claudian example. Select an image to enlarge it. See the [mobile UI gallery](./mobile-gallery) for phone layouts.
 
 <figure className="gallery-card">
 
