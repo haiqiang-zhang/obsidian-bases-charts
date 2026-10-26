@@ -6,7 +6,7 @@ import { DataChartView } from '../dataChartView';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 import { toXKey } from '../../utils/utils';
 import type { ResolvedColors } from '../../ui/colors';
-import { getResolvedColor, gridOption } from '../../ui/colors';
+import { getGroupColor, gridOption } from '../../ui/colors';
 import { getStackedDomain } from '../stacking';
 
 export { getStackedDomain as getStackedAreaDomain } from '../stacking';
@@ -63,7 +63,7 @@ export function buildAreaOption(
 	const stackTotals = new Map<string, [number, number]>();
 	const previousStack = new Map<string, number>();
 	const series = [...groups.entries()].sort(([a], [b]) => a - b).map(([groupIndex, group]) => {
-		const color = getResolvedColor(colors.palette, colors.accent, groupIndex, isGrouped);
+		const color = getGroupColor(colors, groupIndex, isGrouped);
 		return {
 			type: 'line' as const,
 			name: data.getGroupName(groupIndex),

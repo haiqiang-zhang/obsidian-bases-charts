@@ -64,6 +64,7 @@ class Element {
 	createSpan(options) { return this.createEl('span', options); }
 	empty() { for (const child of this.children) child.parentElement = null; this.children = []; }
 	addClass(cls) { if (!this.className.split(' ').includes(cls)) this.className = `${this.className} ${cls}`.trim(); }
+	removeClass(cls) { this.className = this.className.split(' ').filter(name => name !== cls).join(' '); }
 	setAttribute(name, value) { this.attributes.set(name, value); }
 	addEventListener(name, callback) { this.listeners.set(name, callback); }
 	dispatch(name, event = {}) { if (name !== 'click' || !this.disabled) return this.listeners.get(name)?.(event); }
@@ -110,6 +111,47 @@ function harness(width = 1280, height = 900, fontSize = 13, tooltipContext = con
 }
 
 function previewButton(previewEl) { return previewEl.find('bases-chart-touch-preview-footer').children.find(child => child.tag === 'button'); }
+
+test('single native groups keep their name and chosen color in tooltips, touch previews, and file details', () => {
+	const raw = rawPoint(2);
+	const color = '#9467BD';
+	for (const chartType of ['chart-bar', 'chart-line', 'chart-area', 'chart-scatter', 'chart-pie']) {
+		const grouped = { ...context, chartType, groupNames: ['Reading'], isGrouped: true };
+		const h = harness(390, 844, 13, grouped, true);
+		const params = { color, data: { _raw: raw } };
+		const root = h.options.formatter(params);
+		assert.equal(root.find('bases-chart-tooltip-file-name').textContent, 'Reading');
+		assert.equal(root.find('bases-chart-tooltip-swatch').style.values.get('background-color'), color);
+		h.tooltip.openFiles(raw, grouped);
+		assert.ok(h.app.modals.at(-1).files.every(file => file.group === 'Reading'));
+		assert.equal(h.app.modals.at(-1).summary, 'Reading · File count: 2');
+		Platform.isPhone = Platform.isMobile = true;
+		try {
+			assert.equal(h.tooltip.preview(params, grouped), true);
+			assert.equal(h.previewEl.find('bases-chart-touch-preview-name').textContent, 'Reading');
+			assert.equal(h.previewEl.find('bases-chart-touch-preview-swatch').style.values.get('background-color'), color);
+			previewButton(h.previewEl).dispatch('click');
+			assert.ok(h.app.modals.at(-1).files.every(file => file.group === 'Reading'));
+		} finally {
+			h.tooltip.dispose();
+			Platform.isPhone = Platform.isMobile = false;
+		}
+	}
+});
+
+test('ungrouped charts retain their measure name and omit synthetic group details', () => {
+	for (const isGrouped of [undefined, false]) {
+		const ungrouped = { ...context, groupNames: ['All files'], isGrouped };
+		const h = harness(1280, 900, 13, ungrouped);
+		const raw = rawPoint(2);
+		const root = h.options.formatter({ data: { _raw: raw } });
+		assert.equal(root.find('bases-chart-tooltip-file-name').textContent, context.yLabel);
+		h.tooltip.openFiles(raw, ungrouped);
+		assert.ok(h.app.modals[0].files.every(file => file.group === undefined));
+		assert.equal(h.app.modals[0].summary, 'File count: 2');
+		h.tooltip.dispose();
+	}
+});
 
 test('100% bar tooltips display original contributions and shares, while details retain source values', () => {
 	const normalized = { ...context, barLayout: 'percent', groupNames: ['Database', 'Networks', 'OS'], aggregateMode: 'Sum', showPercentages: true };
@@ -177,17 +219,34 @@ test('fixed touch previews activate only for portrait phones with a shared previ
 	}
 });
 
-test('resetting the shared preview shows an accessible instruction without opening data', () => {
+test('the shared preview remains empty and hidden until a valid touch selection', () => {
 	const { tooltip, previewEl, app } = harness(390, 844, 13, context, true);
 	tooltip.resetTouchPreview();
-	const empty = previewEl.find('bases-chart-touch-preview-empty');
 	assert.equal(previewEl.attributes.get('role'), 'region');
 	assert.equal(previewEl.attributes.get('aria-label'), 'Chart selection');
-	assert.equal(empty.children[0].icon, 'touchpad');
-	assert.equal(empty.children[0].attributes.get('aria-hidden'), 'true');
-	assert.equal(empty.children[1].textContent, 'Touch the chart to inspect data.');
+	assert.equal(previewEl.children.length, 0);
+	assert.ok(previewEl.className.split(' ').includes('bases-charts-hidden'));
 	assert.equal(previewEl.find('bases-chart-touch-preview-footer'), null);
 	assert.deepEqual(app.modals, []);
+	Platform.isPhone = Platform.isMobile = true;
+	try {
+		assert.equal(tooltip.preview({ data: { _raw: null } }, context), false);
+		assert.equal(previewEl.children.length, 0);
+		assert.ok(previewEl.className.split(' ').includes('bases-charts-hidden'));
+		assert.equal(tooltip.preview({ data: { _raw: rawPoint(2) } }, context), true);
+		assert.ok(!previewEl.className.split(' ').includes('bases-charts-hidden'));
+		const header = previewEl.find('bases-chart-touch-preview-header');
+		assert.ok(header);
+		assert.equal(tooltip.preview({ data: { _raw: null } }, context), false);
+		assert.equal(previewEl.find('bases-chart-touch-preview-header'), header, 'selection persists when the finger leaves the data');
+		assert.ok(!previewEl.className.split(' ').includes('bases-charts-hidden'));
+		tooltip.resetTouchPreview();
+		assert.equal(previewEl.children.length, 0);
+		assert.ok(previewEl.className.split(' ').includes('bases-charts-hidden'));
+	} finally {
+		tooltip.dispose();
+		Platform.isPhone = Platform.isMobile = false;
+	}
 });
 
 test('portrait preview caps groups and lazily opens all source files without replacing the selection', () => {

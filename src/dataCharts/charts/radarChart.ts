@@ -3,7 +3,9 @@ import type { EChartsOption } from 'echarts';
 import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
+import type { ChartLegendEntry } from '../dataChartView';
 import type { ResolvedColors } from '../../ui/colors';
+import { getGroupColor } from '../../ui/colors';
 import { toXKey } from '../../utils/utils';
 
 export const RADAR_CHART_VIEW_TYPE = 'chart-radar';
@@ -26,6 +28,13 @@ export interface RadarSeries {
 	points: ProcessedData[];
 }
 
+function radarMeasureStyle(chartIndex: number): Required<Pick<ChartLegendEntry, 'lineStyle' | 'symbol'>> {
+	return {
+		lineStyle: (['solid', 'dashed', 'dotted'] as const)[chartIndex % 3],
+		symbol: (['circle', 'rect', 'diamond', 'triangle'] as const)[chartIndex % 4],
+	};
+}
+
 function radarViewOptions(): BasesAllOptions[] {
 	return [
 		...DataChartView.commonViewOptionGroups().data,
@@ -46,7 +55,7 @@ export function getRadarCategories(data: DataWrapper): string[] {
 /** All selected measures share one radar; native groups create further profiles. */
 export function getRadarSeries(data: DataWrapper): RadarSeries[] {
 	const multipleProperties = data.getChartIdentifiers().length > 1;
-	const multipleGroups = data.hasMultipleGroups();
+	const isGrouped = data.isGrouped;
 	const groupCount = Math.max(1, data.getGroupIdentifiers().length);
 	return data.getChartIdentifiers().flatMap((_, chartIndex) => {
 		const groups = new Map<number, ProcessedData[]>();
@@ -58,7 +67,7 @@ export function getRadarSeries(data: DataWrapper): RadarSeries[] {
 		}
 		const property = data.getChartName(chartIndex);
 		return [...groups.entries()].sort(([a], [b]) => a - b).map(([groupIndex, points]) => ({
-			name: multipleGroups
+			name: isGrouped
 				? multipleProperties ? `${property} · ${data.getGroupName(groupIndex)}` : data.getGroupName(groupIndex)
 				: property,
 			property, chartIndex, groupIndex,
@@ -83,7 +92,11 @@ export class RadarChartView extends DataChartView {
 
 	getChartCount(_data: DataWrapper): number { return 1; }
 	getChartData(data: DataWrapper, _chartIndex: number): ProcessedData[] { return data.data; }
-	getChartLegend(data: DataWrapper): { name: string; colorIndex: number }[] { return getRadarSeries(data); }
+	getChartLegend(data: DataWrapper, colors?: ResolvedColors): ChartLegendEntry[] {
+		return getRadarSeries(data).map(profile => ({ ...profile,
+			...(data.hasMultipleCharts() && colors?.groupColors?.has(profile.groupIndex) ? radarMeasureStyle(profile.chartIndex) : {}),
+		}));
+	}
 	getChartLabel(_data: DataWrapper, _chartIndex: number): string { return 'Values'; }
 	getChartMessage(data: DataWrapper, _chartIndex: number): string | null {
 		return getRadarCategories(data).length < 3 ? 'Radar charts need at least three categories with values.' : null;
@@ -171,7 +184,11 @@ export function buildRadarOption(data: DataWrapper, colors: ResolvedColors, opti
 			const point = byCategory.get(key) ?? null;
 			return { category: categoryLabel(key), value: point?.y ?? null, point };
 		});
-		const color = colors.palette[profile.colorIndex % colors.palette.length] ?? colors.accent;
+		const color = getGroupColor(colors, profile.groupIndex, data.hasMultipleGroups(), profile.colorIndex);
+		// One explicit group hue applies to every measure. Keep those profiles
+		// distinguishable without changing automatic palette-based charts.
+		const distinguishMeasure = data.hasMultipleCharts() && colors.groupColors?.has(profile.groupIndex);
+		const style = distinguishMeasure ? radarMeasureStyle(profile.chartIndex) : undefined;
 		const raw: ProcessedData = {
 			x: profile.name, y: 0, chartIndex: profile.chartIndex, groupIndex: profile.groupIndex,
 			isNumeric: profile.points.every(point => point.isNumeric),
@@ -183,8 +200,8 @@ export function buildRadarOption(data: DataWrapper, colors: ResolvedColors, opti
 			type: 'radar' as const,
 			name: profile.name,
 			data: [{ name: profile.name, value: values.map(value => value.value ?? 0), _raw: raw }],
-			symbol: 'circle', symbolSize: 4,
-			lineStyle: { width: 2, color },
+			symbol: style?.symbol ?? 'circle', symbolSize: 4,
+			lineStyle: { width: 2, color, ...(style ? { type: style.lineStyle } : {}) },
 			itemStyle: { color },
 			areaStyle: { color, opacity: options.showFill ? 0.08 : 0 },
 			emphasis: { focus: 'series' as const, lineStyle: { width: 2.5 }, areaStyle: { opacity: options.showFill ? 0.14 : 0 } },

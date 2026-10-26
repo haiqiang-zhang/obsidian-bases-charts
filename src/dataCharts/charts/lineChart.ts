@@ -5,7 +5,7 @@ import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
 import type { ResolvedColors } from '../../ui/colors';
-import { getResolvedColor, gridOption } from '../../ui/colors';
+import { getGroupColor, gridOption } from '../../ui/colors';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 
 export enum NullHandling {
@@ -90,10 +90,10 @@ export function buildLineOption(
 						_raw: p,
 					})),
 			itemStyle: {
-				color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
+				color: getGroupColor(colors, groupIdx, isGrouped),
 			},
 			lineStyle: {
-				color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
+				color: getGroupColor(colors, groupIdx, isGrouped),
 				width: 2,
 			},
 			connectNulls: data.dateTimeline ? false : !treatNullAsZero,

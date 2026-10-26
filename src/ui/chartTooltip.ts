@@ -1,4 +1,4 @@
-import { Platform, setIcon } from 'obsidian';
+import { Platform } from 'obsidian';
 import type { App } from 'obsidian';
 import type { TooltipComponentOption } from 'echarts';
 import type { ProcessedData } from '../dataCharts/data';
@@ -15,6 +15,7 @@ export interface ChartTooltipContext {
 	xName: string;
 	yLabel: string;
 	groupNames: string[];
+	isGrouped?: boolean;
 	chartType: string;
 	showPercentages: boolean;
 	barLayout?: BarLayout;
@@ -70,17 +71,16 @@ export class ChartTooltip {
 		if (!this.previewEl) return;
 		this.previewEl.empty();
 		this.previewEl.addClass('bases-chart-touch-preview');
+		this.previewEl.addClass('bases-charts-hidden');
 		this.previewEl.setAttribute('role', 'region');
 		this.previewEl.setAttribute('aria-label', 'Chart selection');
-		const empty = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-empty' });
-		setIcon(empty.createSpan({ attr: { 'aria-hidden': 'true' } }), 'touchpad');
-		empty.createSpan({ text: 'Touch the chart to inspect data.' });
 	}
 
 	preview(params: unknown, context: ChartTooltipContext): boolean {
 		if (!this.usesTouchPreview() || !this.previewEl) return false;
 		const selected = this.selection(params, context, false);
 		if (!selected) return false;
+		this.previewEl.removeClass('bases-charts-hidden');
 		this.touchSelection = { params, context };
 		const visibleGroups = selected.groups.slice(0, 6);
 		const hiddenGroups = selected.groups.length - visibleGroups.length;
@@ -203,6 +203,7 @@ export class ChartTooltip {
 			};
 		}
 		const x = first.x instanceof Date ? first.x.toLocaleString() : String(first.x);
+		const isGrouped = context.isGrouped ?? context.groupNames.length > 1;
 		const stacked = context.chartType === 'chart-bar' && (context.barLayout === 'stacked' || context.barLayout === 'percent');
 		const normalized = stacked && context.barLayout === 'percent';
 		const total = valid.reduce((sum, point) => sum + point.data!._raw!.y, 0);
@@ -217,14 +218,14 @@ export class ChartTooltip {
 		let fileCount = 0;
 		const groups = valid.map(point => {
 			const raw = point.data!._raw!;
-			const group = context.groupNames.length > 1 ? context.groupNames[raw.groupIndex] : undefined;
+			const group = isGrouped ? context.groupNames[raw.groupIndex] : undefined;
 			fileCount += raw.files.length;
 			if (includeFiles) for (let i = 0; i < raw.files.length; i++) files.push({ path: raw.files[i], value: raw.fileValues[i], group });
 			return { name: group ?? context.yLabel, value: formatValue(raw.y, point.percent),
 				color: typeof point.color === 'string' ? point.color : undefined };
 		});
 		const summary = valid.length === 1
-			? `${context.groupNames.length > 1 ? `${groups[0].name} · ` : ''}${context.yLabel}: ${formatValue(first.y, valid[0].percent)}`
+			? `${isGrouped ? `${groups[0].name} · ` : ''}${context.yLabel}: ${formatValue(first.y, valid[0].percent)}`
 			: `${context.yLabel} · ${valid.length} groups`;
 		return { x, summary, files, fileCount, groups, total: stacked ? {
 			name: context.aggregateMode && [AggregateMode.AVERAGE, AggregateMode.MIN, AggregateMode.MAX].includes(context.aggregateMode)

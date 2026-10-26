@@ -60,12 +60,6 @@ Tap a chart mark or a supported column to inspect it. Slide across the chart to 
 <div className="mobile-gallery-grid">
 <figure className="gallery-card mobile-gallery-card">
 
-![A portrait chart with a touch icon and an instruction in the fixed preview before any data is selected.](/mobile-gallery/13-touch-preview.png)
-
-<figcaption><strong>Before selection</strong>The preview shows where to start</figcaption>
-</figure>
-<figure className="gallery-card mobile-gallery-card">
-
 ![The source-file drawer opened from View data, rising above the selected chart and showing file names, groups, and values.](/mobile-gallery/10-data-drawer.png)
 
 <figcaption><strong>Source files</strong>View data opens a drawer above the chart</figcaption>

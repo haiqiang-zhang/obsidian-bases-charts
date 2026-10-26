@@ -32,7 +32,6 @@ CATALOG = [
     ('10-data-drawer.png', 'Source files', 'View data opens the source-file drawer above the selected chart.'),
     ('11-multiple-measures.png', 'Multiple measures', 'Scroll through vertically stacked measures while the selected values stay below the charts.'),
     ('12-dark.png', 'Dark theme', 'Chart colors and native controls in Obsidian’s dark theme.'),
-    ('13-touch-preview.png', 'Touch preview', 'Before a selection, the fixed preview shows a touch instruction. Tap or slide across the chart to inspect values.'),
     ('14-landscape.png', 'Large landscape viewport', 'At 1024 × 768, the chart uses the available height without a bottom preview panel.'),
 ]
 

@@ -5,6 +5,7 @@ import type { BasesAllOptions } from 'obsidian';
 import type { DataWrapper } from '../data';
 import { DataChartView } from '../dataChartView';
 import type { ResolvedColors } from '../../ui/colors';
+import { getGroupColor } from '../../ui/colors';
 import { mapXValue } from '../axis';
 
 export const PIE_SETTINGS = {
@@ -82,7 +83,7 @@ export function buildPieOption(
 		const name = String(mapXValue(d, xAxisType));
 		return name !== '' && name !== 'null' && name !== 'undefined';
 	}) : rawData;
-	const isGrouped = data.hasMultipleGroups();
+	const isGrouped = data.isGrouped;
 	// Group indices follow Bases' configured order. Keep each group's slices
 	// together, without mutating the shared data cache or changing the X order.
 	const orderedData = isGrouped
@@ -96,7 +97,7 @@ export function buildPieOption(
 			: String(mapXValue(d, xAxisType)),
 		_raw: d,
 		itemStyle: {
-			color: colors.palette[(isGrouped ? d.groupIndex : i) % colors.palette.length],
+			color: getGroupColor(colors, d.groupIndex, isGrouped, isGrouped ? d.groupIndex : i),
 		},
 	}));
 	const labelFormatter = showPercentages ? '{b}: {d}%' : '{b}';

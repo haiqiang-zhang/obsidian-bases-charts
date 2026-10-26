@@ -1,6 +1,6 @@
 import type { BasesEntry, BasesOptions, QueryController } from 'obsidian';
 import type { BasesPropertyId, BasesAllOptions } from 'obsidian';
-import { NullValue } from 'obsidian';
+import { Menu, NullValue } from 'obsidian';
 import type { EChartsOption } from 'echarts';
 import type { DataWrapper, ProcessedData, YDomainOverrides } from './data';
 import { emptyDataWrapper, PropertySeparatedData } from './data';
@@ -16,6 +16,11 @@ import type { DateGrouping } from './dateBuckets';
 import { detectXAxisType, parseValueAsNumber, parseValueAsX, toXKey } from '../utils/utils';
 import type { ResolvedColors } from '../ui/colors';
 import { CHART_PALETTES, DEFAULT_CHART_PALETTE } from '../ui/chartPalettes';
+import { getResolvedColor, resolveColors } from '../ui/colors';
+import { GroupColorCustomModal } from '../ui/groupColorsModal';
+import type { GroupColorEntry } from '../ui/groupColorsModal';
+import { GROUP_COLOR_PRESETS, getGroupColorIconId, getGroupColorKeys, normalizeGroupColorChoice, readGroupColorConfig, resolveGroupColorChoice, withGroupColor } from './groupColors';
+import type { GroupColorChoice } from './groupColors';
 
 export { AggregateMode, aggregateKey } from './aggregate';
 export type { YDomainOverrides } from './data';
@@ -23,6 +28,14 @@ export type { YDomainOverrides } from './data';
 export interface CommonViewOptionGroups {
 	data: BasesOptions[];
 	yAxis: BasesOptions[];
+}
+
+export interface ChartLegendEntry {
+	name: string;
+	colorIndex: number;
+	groupIndex?: number;
+	lineStyle?: 'solid' | 'dashed' | 'dotted';
+	symbol?: 'circle' | 'rect' | 'diamond' | 'triangle';
 }
 
 function parseConfigAsNumber(value: unknown): number | null {
@@ -45,6 +58,8 @@ export abstract class DataChartView extends BaseChartView {
 	private layout: ChartLayout | null = null;
 	private toolbar: ChartToolbar | null = null;
 	private formulaEditor: ChartFormulaEditor | null = null;
+	private groupColorsModal: GroupColorCustomModal | null = null;
+	private groupColorMenu: Menu | null = null;
 
 	constructor(private readonly chartController: QueryController, containerEl: HTMLElement) {
 		super(chartController, containerEl);
@@ -67,6 +82,10 @@ export abstract class DataChartView extends BaseChartView {
 	}
 
 	protected onChartUnload(): void {
+		this.groupColorMenu?.hide();
+		this.groupColorMenu = null;
+		this.groupColorsModal?.close();
+		this.groupColorsModal = null;
 		this.layout?.destroy();
 		this.layout = null;
 		if (this.toolbar) this.removeChild(this.toolbar);
@@ -78,6 +97,91 @@ export abstract class DataChartView extends BaseChartView {
 
 	openAxisSettings(axis: 'x' | 'y'): void {
 		this.toolbar?.openAxis(axis);
+	}
+
+	openGroupColors(key: string, anchor: HTMLElement): void {
+		const group = this.getGroupColorEntries().find(group => group.key === key);
+		if (!group) return;
+		this.groupColorMenu?.hide();
+		const menu = new Menu();
+		this.groupColorMenu = menu;
+		menu.addItem(item => item.setTitle(group.name).setDisabled(true));
+		menu.addSeparator();
+		menu.addItem(item => item.setTitle('Automatic').setIcon('rotate-ccw')
+			.setChecked(group.choice === null).onClick(() => this.setGroupColor(key, null)));
+		const isDark = this.containerEl.doc.body.classList.contains('theme-dark');
+		for (const preset of GROUP_COLOR_PRESETS) {
+			menu.addItem(item => item.setTitle(preset.name).setIcon(getGroupColorIconId(preset.id, isDark))
+				.setChecked(group.choice?.type === 'preset' && group.choice.value === preset.id)
+				.onClick(() => this.setGroupColor(key, { type: 'preset', value: preset.id })));
+		}
+		menu.addSeparator();
+		menu.addItem(item => item.setTitle('Custom color…').setIcon('palette')
+			.setChecked(group.choice?.type === 'custom').onClick(() => {
+				if (!this.getGroupColorEntries().some(group => group.key === key)) return;
+				menu.hide();
+				this.groupColorsModal?.close();
+				this.groupColorsModal = new GroupColorCustomModal(this, key);
+				this.groupColorsModal.open();
+			}));
+		if (this.hasGroupColors()) {
+			menu.addSeparator();
+			menu.addItem(item => item.setTitle('Reset all group colors').setIcon('rotate-ccw').onClick(() => this.resetGroupColors()));
+		}
+		anchor.setAttribute('aria-expanded', 'true');
+		menu.onHide(() => {
+			anchor.setAttribute('aria-expanded', 'false');
+			if (this.groupColorMenu === menu) this.groupColorMenu = null;
+		});
+		const rect = anchor.getBoundingClientRect();
+		menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 }, anchor.ownerDocument);
+	}
+
+	getGroupColorEntries(): GroupColorEntry[] {
+		const nativeGroups = this.data?.groupedData ?? [];
+		const keys = getGroupColorKeys(nativeGroups);
+		if (!keys.some(key => key !== null)) return [];
+		const groups = prepareChartGroups(nativeGroups);
+		const colors = resolveColors(this.containerEl, this.config.get(COMMON_SETTINGS.COLOR_PALETTE));
+		const isDark = this.containerEl.doc.body.classList.contains('theme-dark');
+		const { overrides } = readGroupColorConfig(this.config.get(COMMON_SETTINGS.GROUP_COLORS));
+		return groups.flatMap(group => {
+			const key = keys[group.groupIndex];
+			if (key === null) return [];
+			const automaticColor = getResolvedColor(colors.palette, colors.accent, group.groupIndex, groups.length > 1);
+			const choice = overrides[key] ?? null;
+			return [{ key, name: group.label, groupIndex: group.groupIndex, choice, automaticColor,
+				color: resolveGroupColorChoice(choice, isDark) ?? automaticColor }];
+		});
+	}
+
+	getResolvedGroupColors(): ReadonlyMap<number, string> {
+		const { overrides } = readGroupColorConfig(this.config.get(COMMON_SETTINGS.GROUP_COLORS));
+		if (!Object.keys(overrides).length) return new Map();
+		const isDark = this.containerEl.doc.body.classList.contains('theme-dark');
+		const keys = getGroupColorKeys(this.data?.groupedData ?? []);
+		const colors = new Map<number, string>();
+		keys.forEach((key, index) => {
+			const color = key === null ? undefined : resolveGroupColorChoice(overrides[key], isDark);
+			if (color) colors.set(index, color);
+		});
+		return colors;
+	}
+
+	setGroupColor(key: string, choice: GroupColorChoice | null): void {
+		if (!getGroupColorKeys(this.data?.groupedData ?? []).includes(key)) return;
+		if (choice !== null && !normalizeGroupColorChoice(choice)) return;
+		this.config.set(COMMON_SETTINGS.GROUP_COLORS, withGroupColor(this.config.get(COMMON_SETTINGS.GROUP_COLORS), key, choice));
+		this.events.trigger('data-updated');
+	}
+
+	hasGroupColors(): boolean {
+		return Object.keys(readGroupColorConfig(this.config.get(COMMON_SETTINGS.GROUP_COLORS)).overrides).length > 0;
+	}
+
+	resetGroupColors(): void {
+		this.config.set(COMMON_SETTINGS.GROUP_COLORS, null);
+		this.events.trigger('data-updated');
 	}
 
 	canEditFormulas(): boolean {
@@ -200,6 +304,7 @@ export abstract class DataChartView extends BaseChartView {
 			yDomain, chartIds, chartNameMap,
 			dateGrouping !== 'exact' && this.getShowMissingDates()
 				? buildDateTimeline(sortedXValues.map(String), dateGrouping) : null,
+			this.data.groupedData.some(group => group.key !== undefined),
 		);
 
 		// For synced Y axes, backfill global min/max into the domain
@@ -285,9 +390,9 @@ export abstract class DataChartView extends BaseChartView {
 		return data.getFlat(chartIndex);
 	}
 
-	getChartLegend(data: DataWrapper): { name: string; colorIndex: number }[] {
-		return data.hasMultipleGroups()
-			? data.getGroupIdentifiers().map((_, index) => ({ name: data.getGroupName(index), colorIndex: index }))
+	getChartLegend(data: DataWrapper, _colors?: ResolvedColors): ChartLegendEntry[] {
+		return data.hasMultipleGroups() || this.data?.groupedData.some(group => group.key !== undefined)
+			? data.getGroupIdentifiers().map((_, index) => ({ name: data.getGroupName(index), colorIndex: index, groupIndex: index }))
 			: [];
 	}
 

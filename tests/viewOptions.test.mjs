@@ -26,11 +26,11 @@ const result = await build({
 	plugins: [{
 		name: 'view-lifecycle-boundaries',
 		setup(builder) {
-			builder.onResolve({ filter: /^(obsidian|\.\/layout|\.\.\/ui\/chartToolbar|\.\.\/ui\/chartFormulaEditor)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
+			builder.onResolve({ filter: /^(obsidian|\.\/layout|\.\.\/ui\/chartToolbar|\.\.\/ui\/chartFormulaEditor|\.\.\/ui\/groupColorsModal)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
 			builder.onLoad({ filter: /.*/, namespace: 'host-stub' }, args => ({
 				contents: args.path === 'obsidian'
-					? 'export class BasesView {} export class Events {} export class NullValue {} export class DateValue {} export class ListValue {} export class NumberValue {} export class StringValue {}'
-					: 'export class ChartLayout {} export class ChartToolbar {} export class ChartFormulaEditor {}',
+					? 'export class BasesView {} export class Menu {} export class Events {} export class NullValue {} export class DateValue {} export class ListValue {} export class NumberValue {} export class StringValue {}'
+					: 'export class ChartLayout {} export class ChartToolbar {} export class ChartFormulaEditor {} export class GroupColorCustomModal {}',
 			}));
 		},
 	}],

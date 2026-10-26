@@ -7,7 +7,7 @@ import { AggregateMode } from '../aggregate';
 import { DataChartView } from '../dataChartView';
 import { getFileDisplayName } from '../../utils/utils';
 import type { ResolvedColors } from '../../ui/colors';
-import { getResolvedColor, gridOption } from '../../ui/colors';
+import { getGroupColor, gridOption } from '../../ui/colors';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 
 const SCATTER_SETTINGS = {
@@ -77,7 +77,7 @@ export function buildScatterOption(
 			_raw: p,
 		})),
 		itemStyle: {
-			color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
+			color: getGroupColor(colors, groupIdx, isGrouped),
 		},
 		emphasis: {
 			itemStyle: { borderColor: colors.text, borderWidth: 2 },

@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { addIcon, Plugin, removeIcon } from 'obsidian';
 import type { BasesView } from 'obsidian';
 import type { QueryController } from 'obsidian';
 import { aiChartRegistration } from './aiCharts/aiChart';
@@ -9,6 +9,7 @@ import { scatterChartRegistration } from './dataCharts/charts/scatterChart';
 import { ChartPaletteSettings } from './ui/chartPaletteSettings';
 import { areaChartRegistration } from './dataCharts/charts/areaChart';
 import { radarChartRegistration } from './dataCharts/charts/radarChart';
+import { GROUP_COLOR_PRESETS, getGroupColorIconId, resolveGroupColorChoice } from './dataCharts/groupColors';
 
 interface ChartRegistration {
 	viewType: string;
@@ -30,6 +31,14 @@ const chartRegistrations: ChartRegistration[] = [
 
 export default class BasesChartsPlugin extends Plugin {
 	onload(): void {
+		for (const preset of GROUP_COLOR_PRESETS) {
+			for (const isDark of [false, true]) {
+				const id = getGroupColorIconId(preset.id, isDark);
+				const color = resolveGroupColorChoice({ type: 'preset', value: preset.id }, isDark);
+				addIcon(id, `<circle cx="50" cy="50" r="34" fill="${color}" stroke="none"/>`);
+				this.register(() => removeIcon(id));
+			}
+		}
 		this.addChild(new ChartPaletteSettings(this.app));
 		for (const reg of chartRegistrations) {
 			this.registerBasesView(reg.viewType, {

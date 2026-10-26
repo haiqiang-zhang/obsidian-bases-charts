@@ -37,6 +37,7 @@ function point(x, y, groupIndex = 0) {
 function wrapper(points, groups) {
 	return {
 		xAxisType: 'category',
+		isGrouped: groups.length > 1,
 		getFlat: () => points,
 		hasMultipleGroups: () => groups.length > 1,
 		getGroupName: index => groups[index],

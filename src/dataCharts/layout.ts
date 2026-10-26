@@ -5,7 +5,8 @@ import type { DataChartView } from './dataChartView';
 import { AggregateMode, aggregateKey } from './aggregate';
 import { COMMON_SETTINGS } from './types';
 import { ChartRenderer } from '../utils/renderer';
-import { resolveColors } from '../ui/colors';
+import { getGroupColor, resolveColors } from '../ui/colors';
+import type { ResolvedColors } from '../ui/colors';
 import { getChartStyle } from '../ui/chartStyle';
 import { BAR_LAYOUT_KEY, normalizeBarLayout } from './stacking';
 
@@ -61,9 +62,10 @@ export class ChartLayout {
 		const data = this.view.processData();
 		const chartCount = this.view.getChartCount(data);
 
-		const colors = resolveColors(this.containerEl, this.view.config.get(COMMON_SETTINGS.COLOR_PALETTE));
+		const colors = { ...resolveColors(this.containerEl, this.view.config.get(COMMON_SETTINGS.COLOR_PALETTE)),
+			groupColors: this.view.getResolvedGroupColors() };
 		const fontFamily = getChartStyle(this.containerEl).fontFamily;
-		this.renderLegend(data, colors.palette);
+		this.renderLegend(data, colors);
 		this.reconcileRenderers(chartCount);
 
 		const xName = xField ? this.view.config.getDisplayName(xField) : '';
@@ -96,10 +98,31 @@ export class ChartLayout {
 			}
 			const yLabel = this.view.getChartLabel(data, i);
 			const option = this.view.buildOption(data, i, xName, yLabel, isGrouped, colors);
+			if (this.containerEl.doc.body.classList.contains('is-phone') && option.grid
+				&& ['chart-line', 'chart-area', 'chart-bar', 'chart-scatter'].includes(this.view.type)) {
+				// Avoid double insets on phones while retaining ECharts' label containment.
+				const grids = Array.isArray(option.grid) ? option.grid : [option.grid];
+				option.grid = grids.map(grid => ({ ...grid, left: 0, right: 4 }));
+				if (this.view.type === 'chart-line' || this.view.type === 'chart-area') {
+					const axes = Array.isArray(option.xAxis) ? option.xAxis : option.xAxis ? [option.xAxis] : [];
+					for (const axis of axes) {
+						if (axis.type !== 'category' || (axis.data?.length ?? 0) < 2) continue;
+						axis.boundaryGap = false;
+						axis.axisLabel = { ...axis.axisLabel, alignMinLabel: 'left', alignMaxLabel: 'right' };
+						if ((axis.data?.length ?? 0) > 8) {
+							// Rotated endpoint labels consume the width we just recovered.
+							// Let ECharts sample horizontal labels without changing X values.
+							axis.axisLabel = { ...axis.axisLabel, rotate: 0, interval: 'auto', showMinLabel: true, showMaxLabel: true };
+							axis.nameGap = 36;
+						}
+					}
+				}
+			}
 			renderer.setOption({ ...option, textStyle: { fontFamily, ...option.textStyle } }, {
 				xName: this.view.config.getDisplayName(xField),
 				yLabel,
 				groupNames: data.getGroupIdentifiers().map((_, index) => data.getGroupName(index)),
+				isGrouped: data.isGrouped,
 				chartType: this.view.type,
 				showPercentages: Boolean(this.view.config.get('show-percentages')),
 				barLayout: this.view.type === 'chart-bar' ? normalizeBarLayout(this.view.config.get(BAR_LAYOUT_KEY)) : undefined,
@@ -108,19 +131,31 @@ export class ChartLayout {
 		}
 	}
 
-	private renderLegend(data: DataWrapper, palette: string[]): void {
+	private renderLegend(data: DataWrapper, colors: ResolvedColors): void {
 		this.legendEl.empty();
-		const entries = this.view.getChartLegend(data);
+		const entries = this.view.getChartLegend(data, colors);
 		if (entries.length === 0) {
 			this.legendEl.addClass('bases-charts-hidden');
 			return;
 		}
 		this.legendEl.removeClass('bases-charts-hidden');
+		const groupColors = this.view.getGroupColorEntries();
 
 		for (const entry of entries) {
-			const itemEl = this.legendEl.createDiv({ cls: 'bases-charts-plot-legend-item' });
+			const group = groupColors.find(group => group.groupIndex === entry.groupIndex);
+			const itemEl = group
+				? this.legendEl.createEl('button', { cls: 'bases-charts-plot-legend-item bases-chart-group-legend-button',
+					attr: { type: 'button', 'aria-label': `Change color for ${group.name}`, 'aria-haspopup': 'menu', title: `Change color for ${group.name}` } })
+				: this.legendEl.createDiv({ cls: 'bases-charts-plot-legend-item' });
+			if (group) itemEl.addEventListener('click', () => this.view.openGroupColors(group.key, itemEl));
 			const colorEl = itemEl.createDiv({ cls: 'bases-charts-plot-legend-color' });
-			colorEl.style.setProperty('--color', palette[entry.colorIndex % palette.length]);
+			colorEl.setAttribute('aria-hidden', 'true');
+			colorEl.style.setProperty('--color', getGroupColor(colors, entry.groupIndex ?? entry.colorIndex, data.hasMultipleGroups(), entry.colorIndex));
+			if (entry.lineStyle && entry.symbol) {
+				colorEl.addClass('is-patterned');
+				colorEl.style.setProperty('--line-style', entry.lineStyle);
+				colorEl.setAttribute('data-symbol', entry.symbol);
+			}
 			itemEl.createSpan({ cls: 'bases-charts-plot-legend-label', text: entry.name, attr: { title: entry.name } });
 		}
 	}

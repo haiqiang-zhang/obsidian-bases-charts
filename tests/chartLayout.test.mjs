@@ -23,7 +23,7 @@ const bundle = await build({
 	plugins: [{
 		name: 'layout-host-boundaries',
 		setup(builder) {
-			builder.onResolve({ filter: /^(obsidian|echarts|\.\.\/ui\/chartToolbar|\.\.\/ui\/chartFormulaEditor|\.\.\/utils\/renderer)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
+			builder.onResolve({ filter: /^(obsidian|echarts|\.\.\/ui\/chartToolbar|\.\.\/ui\/chartFormulaEditor|\.\.\/ui\/groupColorsModal|\.\.\/utils\/renderer)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
 			builder.onLoad({ filter: /.*/, namespace: 'host-stub' }, args => ({
 				contents: args.path === 'obsidian' ? `
 					export class BasesView { constructor(controller) { this.app = controller.app; } addChild(child) { return child; } removeChild() {} }
@@ -39,14 +39,17 @@ const bundle = await build({
 						return schedule;
 					}
 					export class NullValue {}
+					export class Menu {}
 					export class DateValue {}
 					export class ListValue {}
 					export class NumberValue {}
 					export class StringValue {}
+					export function setIcon(element, icon) { element.icon = icon; }
 				` : args.path === 'echarts' ? 'export const format = { truncateText: text => text };'
 					: args.path === '../ui/chartToolbar' ? 'export class ChartToolbar {}'
 						: args.path === '../ui/chartFormulaEditor' ? 'export class ChartFormulaEditor {}'
-							: 'export class ChartRenderer { constructor(...args) { return runtime.createRenderer(...args); } }',
+							: args.path === '../ui/groupColorsModal' ? 'export class GroupColorCustomModal {}'
+								: 'export class ChartRenderer { constructor(...args) { return runtime.createRenderer(...args); } }',
 			}));
 		},
 	}],
@@ -57,6 +60,8 @@ class Element {
 	children = [];
 	classes = new Set();
 	parentElement = null;
+	listeners = new Map();
+	attributes = new Map();
 	style = { values: new Map(), setProperty(name, value) { this.values.set(name, value); } };
 	win = { getComputedStyle: () => ({ getPropertyValue: () => '' }) };
 	doc = { body: { classList: { contains: () => false } } };
@@ -66,13 +71,14 @@ class Element {
 		child.textContent = options.text ?? '';
 		child.classes = new Set((options.cls ?? '').split(' ').filter(Boolean));
 		child.parentElement = this;
+		for (const [key, value] of Object.entries(options.attr ?? {})) child.setAttribute(key, value);
 		this.children.push(child);
 		return child;
 	}
 	createDiv(options) { return this.createEl('div', options); }
 	createSpan(options) { return this.createEl('span', options); }
-	addEventListener() {}
-	setAttribute() {}
+	addEventListener(name, callback) { this.listeners.set(name, callback); }
+	setAttribute(name, value) { this.attributes.set(name, value); }
 	empty() { this.children = []; }
 	addClass(name) { this.classes.add(name); }
 	removeClass(name) { this.classes.delete(name); }
@@ -282,4 +288,59 @@ test('radar explains the three-category minimum instead of rendering an invalid 
 	assert.equal(renderer.messages[0][1], undefined, 'numeric data must not offer the unrelated Count repair');
 	host.radar.onunload();
 	host.view.onunload();
+});
+
+test('editable legend opens the correct stable group key and uses the rendered color', () => {
+	const host = harness();
+	const groups = [
+		{ key: '["String","Design"]', name: 'Design', groupIndex: 0, color: '#67539B' },
+		{ key: '["String","Research"]', name: 'Research', groupIndex: 1, color: '#338866' },
+	];
+	const processed = new host.PropertySeparatedData(
+		[{ x: 'A', y: 42, groupIndex: 0, chartIndex: 0, isNumeric: true, files: ['A.md'], fileValues: [42] }],
+		['Design', 'Research'], ['A'], 'category', { min: null, max: null, synced: false }, ['note.amount'], new Map());
+	host.view.config = config;
+	host.view.data = data;
+	host.view.processData = () => processed;
+	host.view.getGroupColorEntries = () => groups;
+	host.view.getResolvedGroupColors = () => new Map(groups.map(group => [group.groupIndex, group.color]));
+	const opened = [];
+	host.view.openGroupColors = key => opened.push(key);
+	host.view.onDataUpdated(); host.flush();
+	const legend = host.view.containerEl.children.find(child => child.classes.has('bases-charts-plot-legend'));
+	assert.equal(legend.children.length, 2, 'color editing keeps the original legend without extra actions');
+	groups.forEach((group, index) => {
+		const button = legend.children[index];
+		assert.equal(button.attributes.get('aria-label'), `Change color for ${group.name}`);
+		assert.equal(button.children[0].style.values.get('--color'), group.color);
+		button.listeners.get('click')();
+	});
+	assert.deepEqual(opened, groups.map(group => group.key));
+	assert.equal(host.renderers[0].calls[0][1].isGrouped, true);
+	host.view.onunload();
+});
+
+test('radar legend matches custom measure patterns and opens the group rather than the measure', () => {
+	const host = radarLayoutFixture(['Sales', 'Support', 'Marketing']);
+	const group = { key: '["String","Team"]', name: 'Team', groupIndex: 0, color: '#557799' };
+	host.processed.isGrouped = true;
+	host.radar.getGroupColorEntries = () => [group];
+	host.radar.getResolvedGroupColors = () => new Map([[0, group.color]]);
+	const opened = [];
+	host.radar.openGroupColors = key => opened.push(key);
+	host.radar.onDataUpdated(); host.flush();
+	const legend = host.radar.containerEl.children.find(child => child.classes.has('bases-charts-plot-legend'));
+	const button = legend.children[0];
+	const swatch = button.children[0];
+	const renderer = host.renderers.find(renderer => renderer.view === host.radar);
+	const [option, context] = renderer.calls.at(-1);
+	assert.equal(context.isGrouped, true, 'a single actual group must retain tooltip context');
+	assert.equal(swatch.style.values.get('--color'), option.series[0].itemStyle.color);
+	assert.equal(swatch.classes.has('is-patterned'), true);
+	assert.equal(swatch.style.values.get('--line-style'), option.series[0].lineStyle.type);
+	assert.equal(swatch.attributes.get('data-symbol'), option.series[0].symbol);
+	assert.equal(button.attributes.get('aria-label'), 'Change color for Team');
+	button.listeners.get('click')();
+	assert.deepEqual(opened, [group.key]);
+	host.radar.onunload(); host.view.onunload();
 });

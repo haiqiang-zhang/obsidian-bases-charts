@@ -181,6 +181,7 @@ export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, 
 		chartIds: BasesPropertyId[],
 		chartNameMap: Map<BasesPropertyId, string>,
 		readonly dateTimeline: DateTimeline | null = null,
+		readonly isGrouped: boolean = groupBySet.length > 1,
 	) {
 		super(data, groupBySet, sortedXOrder, xAxisType, yDomain);
 		this.chartIds = chartIds;

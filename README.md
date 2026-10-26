@@ -25,7 +25,7 @@ Each Data Chart uses the Base's current results. Select note, file, or formula p
 - **Calendar grouping.** Combine timestamps by day, week, month, or year. Enable [Show missing dates](https://haiqiang-zhang.github.io/obsidian-bases-charts/axes-and-dates#show-missing-dates) to keep empty periods on the X axis.
 - **Independent measures.** Add and reorder Y properties, each with its own Sum, Average, Count, Min, or Max aggregation. Scatter also supports None.
 - **Bar layouts.** Compare groups side by side, stack their values, or show each group's share in a 100% stacked column. Data details retain the original values.
-- **Per-view palettes.** Choose Auto, Colorful, Earth, Coastal, or single-color palettes, with light and dark variants.
+- **Per-view colors.** Choose a palette with light and dark variants, or assign preset and custom colors to individual groups from the legend. Group choices are saved with the view.
 - **Source-file inspection.** Hover for a compact, anchored summary. Click a chart mark or supported column to open a searchable table of its source files.
 - **Responsive layout.** Cartesian charts use the available width; Pie and Radar sit at the center. Multiple measures form separate charts, while Radar overlays them.
 

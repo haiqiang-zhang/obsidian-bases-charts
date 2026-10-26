@@ -4,6 +4,8 @@ import { getChartStyle } from './chartStyle';
 
 export interface ResolvedColors {
 	palette: string[];
+	/** Explicit group choices, resolved for the owning window's theme. */
+	groupColors?: ReadonlyMap<number, string>;
 	text: string;
 	mutedText?: string;
 	grid: string;
@@ -40,4 +42,13 @@ export function gridOption(): GridComponentOption {
 export function getResolvedColor(palette: string[], accent: string, groupIndex: number, isGrouped: boolean): string {
 	if (!isGrouped) return accent;
 	return palette[groupIndex % palette.length];
+}
+
+/** Group overrides are independent of each chart's automatic palette indexing. */
+export function getGroupColor(colors: ResolvedColors, groupIndex: number, isGrouped: boolean, fallbackIndex?: number): string {
+	const override = colors.groupColors?.get(groupIndex);
+	if (override) return override;
+	return fallbackIndex === undefined
+		? getResolvedColor(colors.palette, colors.accent, groupIndex, isGrouped) ?? colors.accent
+		: colors.palette[fallbackIndex % colors.palette.length] ?? colors.accent;
 }

@@ -19,6 +19,8 @@ Use the **Group** menu in the toolbar. The charts use the groups selected by Bas
 - Pie includes group and category in slice labels.
 - Radar creates a profile for each selected measure and group.
 
+Use [Group colors](./colors-and-layout#group-colors) to assign a preset or custom color to individual groups in this view.
+
 ![A bar chart comparing several groups across categories.](/gallery/02-bar.png)
 
 ## Choose an aggregation for each measure

@@ -1050,6 +1050,17 @@ body {
     gap: var(--size-4-2) var(--size-4-4);
 }
 .is-phone .bases-data-chart-view { padding-top: var(--size-4-4); }
+/* Let Cartesian plots use the phone's width; keep surrounding text aligned
+   with the native content inset. ECharts contains its own axis labels. */
+.is-phone .bases-data-chart-view:not(.bases-pie-chart-view):not(.bases-radar-chart-view) {
+    padding-inline: var(--size-4-1);
+}
+.is-phone .bases-data-chart-view:not(.bases-pie-chart-view):not(.bases-radar-chart-view) > .bases-charts-plot-legend {
+    padding-inline: var(--size-4-3);
+}
+.is-phone .bases-data-chart-view:not(.bases-pie-chart-view):not(.bases-radar-chart-view) > .bases-chart-touch-preview {
+    margin-inline: var(--size-4-3);
+}
 /* Short selections should not leave a mostly empty, full-height drawer. */
 .is-phone .modal.bases-chart-files-modal.mod-lg {
     height: auto;
@@ -1095,18 +1106,7 @@ body {
         overflow: hidden;
     }
 }
-.bases-chart-touch-preview-empty {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--size-4-2);
-    padding: var(--size-4-4);
-    color: var(--text-muted);
-    text-align: center;
-}
-.bases-chart-touch-preview-empty svg { width: var(--icon-l); height: var(--icon-l); color: var(--text-faint); }
+.is-phone .bases-chart-touch-preview:empty { display: none; }
 .bases-chart-touch-preview-header { flex: 0 0 auto; padding-bottom: var(--size-4-2); }
 .bases-chart-touch-preview-property { font-size: var(--font-ui-smaller); color: var(--text-muted); }
 .bases-chart-touch-preview-title { font-weight: var(--font-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1131,3 +1131,105 @@ body {
 .bases-chart-touch-preview-value { font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .bases-chart-touch-preview-footer { display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; gap: var(--size-4-2); margin-top: auto; padding-top: var(--size-4-1); color: var(--text-muted); font-size: var(--font-ui-smaller); }
 .bases-chart-touch-preview-footer button { min-height: 44px; padding-inline: var(--size-4-3); background: transparent; box-shadow: none; color: var(--text-normal); font-weight: var(--font-medium); }
+
+/* Custom colors use a compact native dialog for one group at a time. */
+.modal.bases-chart-custom-color-modal {
+    width: min(360px, calc(100vw - var(--size-4-8)));
+    max-height: calc(100dvh - var(--size-4-8));
+}
+.bases-chart-custom-color-modal .modal-content.bases-chart-custom-color-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-4);
+    margin-top: var(--size-4-2);
+}
+.bases-chart-custom-color-group {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    overflow-wrap: anywhere;
+}
+.bases-chart-custom-color-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-3);
+}
+.bases-chart-custom-color-controls input[type="color"] {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 36px;
+}
+.bases-chart-custom-color-controls input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    height: 36px;
+    font-family: inherit;
+    font-size: var(--font-ui-medium);
+    font-variant-numeric: tabular-nums;
+}
+.bases-chart-custom-color-controls input[aria-invalid="true"] { border-color: var(--text-error); }
+.bases-chart-custom-color-error {
+    color: var(--text-error);
+    font-size: var(--font-ui-smaller);
+}
+.bases-chart-custom-color-error:empty { display: none; }
+.bases-chart-custom-color-footer.modal-button-container {
+    gap: var(--size-4-2);
+    margin-top: var(--size-4-1);
+}
+.is-mobile .bases-chart-custom-color-controls input,
+.is-mobile .bases-chart-custom-color-footer button { min-height: 44px; }
+.is-phone .modal.bases-chart-custom-color-modal {
+    width: 100%;
+    max-height: calc(100dvh - var(--safe-area-inset-top, 0px) - var(--keyboard-height, 0px));
+}
+.bases-charts-plot-legend button.bases-chart-group-legend-button {
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: var(--font-ui-small);
+    font-weight: inherit;
+    line-height: inherit;
+    cursor: pointer;
+}
+.bases-charts-plot-legend button.bases-chart-group-legend-button:is(:hover, :focus-visible) {
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-normal);
+}
+.bases-charts-plot-legend button.bases-chart-group-legend-button:focus-visible {
+    outline: 2px solid var(--background-modifier-border-focus);
+    outline-offset: 3px;
+}
+/* Radar measures sharing a chosen group hue retain matching legend patterns. */
+.bases-charts-plot-legend.is-line-chart .bases-charts-plot-legend-color.is-patterned {
+    position: relative;
+    width: 22px;
+    height: 10px;
+    border-radius: 0;
+    background: transparent;
+}
+.bases-charts-plot-legend-color.is-patterned::before {
+    content: '';
+    position: absolute;
+    inset: 4px 0 auto;
+    border-top: 2px var(--line-style, solid) var(--color);
+}
+.bases-charts-plot-legend-color.is-patterned::after {
+    content: '';
+    position: absolute;
+    inset: 2px auto auto 8px;
+    width: 6px;
+    height: 6px;
+    background: var(--color);
+}
+.bases-charts-plot-legend-color.is-patterned[data-symbol="circle"]::after { border-radius: 50%; }
+.bases-charts-plot-legend-color.is-patterned[data-symbol="diamond"]::after { transform: rotate(45deg); }
+.bases-charts-plot-legend-color.is-patterned[data-symbol="triangle"]::after { clip-path: polygon(50% 0, 100% 100%, 0 100%); }

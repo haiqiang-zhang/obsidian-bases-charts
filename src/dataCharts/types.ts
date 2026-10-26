@@ -4,6 +4,7 @@ export const COMMON_SETTINGS = {
 	X_DATE_GAPS: 'x-date-gaps',
 	Y: 'y',
 	COLOR_PALETTE: 'color-palette',
+	GROUP_COLORS: 'group-colors',
 	SYNC_Y_AXES: 'sync-y-axes',
 	MIN_Y_OVERRIDE: 'min-y-override',
 	MAX_Y_OVERRIDE: 'max-y-override',

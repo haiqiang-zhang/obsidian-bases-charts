@@ -5,7 +5,7 @@ import type { BasesAllOptions, BasesViewConfig } from 'obsidian';
 import type { DataWrapper, ProcessedData } from '../data';
 import { DataChartView } from '../dataChartView';
 import type { ResolvedColors } from '../../ui/colors';
-import { getResolvedColor, gridOption } from '../../ui/colors';
+import { getGroupColor, gridOption } from '../../ui/colors';
 import { toCompactString } from '../../utils/utils';
 import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 import { BAR_LAYOUT_KEY, getStackedDomain, normalizeBarLayout, stackPercentage } from '../stacking';
@@ -140,7 +140,7 @@ export function buildBarOption(
 				return { hideOverlap: true, width: fits ? undefined : 0, height: fits ? undefined : 0 };
 			} : { hideOverlap: true },
 			itemStyle: {
-				color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
+				color: getGroupColor(colors, groupIdx, isGrouped),
 			},
 			emphasis: {
 				focus: 'series',

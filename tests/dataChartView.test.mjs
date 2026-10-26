@@ -11,7 +11,7 @@ const result = await build({
 		contents: `
 			export { DataChartView } from './src/dataCharts/dataChartView.ts';
 			export { detectXAxisType } from './src/utils/utils.ts';
-			export { StringValue, NumberValue, BooleanValue, DateValue, NullValue, ListValue } from 'obsidian';
+			export { Menu, StringValue, NumberValue, BooleanValue, DateValue, NullValue, ListValue } from 'obsidian';
 		`,
 		resolveDir: fileURLToPath(new URL('../', import.meta.url)),
 		loader: 'ts',
@@ -24,25 +24,45 @@ const result = await build({
 		name: 'test-runtime-boundaries',
 		setup(builder) {
 			builder.onResolve({ filter: /^obsidian$/ }, () => ({ path: 'obsidian', namespace: 'test-stub' }));
-			builder.onResolve({ filter: /^(\.\/layout|\.\.\/ui\/chartToolbar|\.\.\/ui\/chartFormulaEditor)$/ }, args => ({ path: args.path, namespace: 'test-stub' }));
+			builder.onResolve({ filter: /^(\.\/layout|\.\.\/ui\/chartToolbar|\.\.\/ui\/chartFormulaEditor|\.\.\/ui\/groupColorsModal)$/ }, args => ({ path: args.path, namespace: 'test-stub' }));
 			builder.onLoad({ filter: /.*/, namespace: 'test-stub' }, args => ({
 				contents: args.path === 'obsidian' ? `
 					export class BasesView { constructor(controller) { Object.assign(this, controller); } }
-					export class Events {}
+					export class Events { changes = 0; trigger() { this.changes++; } }
+					export class Menu {
+						static created = []; items = [];
+						constructor() { Menu.created.push(this); }
+						setUseNativeMenu() { throw new Error('Group color menus must respect the native-menu preference'); }
+						addItem(callback) {
+							const item = { setTitle(value) { this.title = value; return this; }, setIcon(value) { this.icon = value; return this; },
+								setChecked(value) { this.checked = value; return this; }, setDisabled(value) { this.disabled = value; return this; },
+								onClick(callback) { this.click = callback; return this; } };
+							callback(item); this.items.push(item); return this;
+						}
+						addSeparator() { return this; }
+						onHide(callback) { this.onHideCallback = callback; return this; }
+						hide() { this.onHideCallback?.(); }
+						showAtPosition(position, doc) { this.position = position; this.doc = doc; }
+					}
 					class Value { constructor(data) { this.data = data; } toString() { return String(this.data); } }
-					export class StringValue extends Value {}
-					export class NumberValue extends Value {}
-					export class BooleanValue extends Value {}
-					export class DateValue extends Value {}
-					export class NullValue extends Value { constructor() { super(null); } }
-					export class ListValue extends Value { length() { return this.data.length; } get(index) { return this.data[index]; } }
-				` : 'export class ChartLayout {} export class ChartToolbar {} export class ChartFormulaEditor {}',
+					export class StringValue extends Value { static type = 'String'; }
+					export class NumberValue extends Value { static type = 'Number'; }
+					export class BooleanValue extends Value { static type = 'Boolean'; }
+					export class DateValue extends Value { static type = 'Date'; }
+					export class NullValue extends Value { static type = 'Null'; constructor() { super(null); } }
+					export class ListValue extends Value { static type = 'List'; length() { return this.data.length; } get(index) { return this.data[index]; } }
+				` : `export class ChartLayout {} export class ChartToolbar {} export class ChartFormulaEditor {}
+					export class GroupColorCustomModal {
+						constructor(host, key) { this.host = host; this.key = key; this.opened = false; }
+						open() { this.opened = true; }
+						close() { this.opened = false; }
+					}`,
 				loader: 'js',
 			}));
 		},
 	}],
 });
-const { DataChartView, detectXAxisType, StringValue, NumberValue, BooleanValue, DateValue, NullValue, ListValue } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
+const { DataChartView, detectXAxisType, Menu, StringValue, NumberValue, BooleanValue, DateValue, NullValue, ListValue } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
 
 function entry(path, folder, amount, extraValues = {}) {
 	const values = {
@@ -75,7 +95,8 @@ function makeView(entries, groups = [group(entries)], extraConfig = {}) {
 			getSort: () => settings.get('sort') ?? [],
 			getDisplayName: id => id,
 		},
-	}, {});
+	}, { isConnected: true, doc: { body: { classList: { contains: () => false } } },
+		win: { getComputedStyle: () => ({ getPropertyValue: () => '' }) } });
 	view.type = 'chart-bar';
 	return view;
 }
@@ -471,4 +492,179 @@ test('file timestamps support gaps and oversized date ranges produce a recoverab
 	assert.equal(data.dateTimeline.categories.length, 101);
 	assert.equal(view.getChartMessage(data, 0), null);
 	assert.equal(data.data.length, 2);
+});
+
+function colorFixture() {
+	const a = entry('A/a.md', 'A', 1);
+	const b = entry('B/b.md', 'B', 2);
+	const groups = [group([a], new StringValue('Design')), group([b], new StringValue('Research'))];
+	return { view: makeView([a, b], groups), groups };
+}
+
+test('group color overrides follow values through reordering, filtering, and restoring groups', () => {
+	const { view, groups } = colorFixture();
+	const [design, research] = view.getGroupColorEntries();
+	view.setGroupColor(design.key, { type: 'custom', value: '#abc' });
+	view.setGroupColor(research.key, { type: 'custom', value: '#123456' });
+	view.data.groupedData = [groups[1], groups[0]];
+	assert.deepEqual([...view.getResolvedGroupColors()], [[0, '#123456'], [1, '#AABBCC']]);
+	view.data.groupedData = [groups[0]];
+	assert.deepEqual([...view.getResolvedGroupColors()], [[0, '#AABBCC']]);
+	view.setGroupColor(design.key, null);
+	assert.equal(view.getGroupColorEntries()[0].choice, null);
+	assert.equal(view.hasGroupColors(), true, 'a filtered-out group keeps its override');
+	view.data.groupedData = [groups[1]];
+	assert.equal(view.getGroupColorEntries()[0].color, '#123456');
+	view.resetGroupColors();
+	assert.equal(view.hasGroupColors(), false);
+	assert.equal(view.getResolvedGroupColors().size, 0);
+});
+
+test('group colors are per-view and preserve explicit choices when palettes change', () => {
+	const { view } = colorFixture();
+	const second = colorFixture().view;
+	const key = view.getGroupColorEntries()[0].key;
+	view.setGroupColor(key, { type: 'custom', value: '#445566' });
+	view.config.set('color-palette', 'green');
+	assert.equal(view.getGroupColorEntries()[0].color, '#445566');
+	assert.equal(second.hasGroupColors(), false);
+	assert.equal(second.getGroupColorEntries()[0].choice, null);
+});
+
+test('group presets adapt to the owning theme while custom hex colors remain exact', () => {
+	const { view } = colorFixture();
+	const [first, second] = view.getGroupColorEntries();
+	view.setGroupColor(first.key, { type: 'preset', value: 'blue' });
+	view.setGroupColor(second.key, { type: 'custom', value: '#a1b2c3' });
+	const light = view.getGroupColorEntries();
+	view.containerEl.doc.body.classList.contains = name => name === 'theme-dark';
+	const dark = view.getGroupColorEntries();
+	assert.notEqual(light[0].color, dark[0].color);
+	assert.equal(light[1].color, '#A1B2C3');
+	assert.equal(dark[1].color, light[1].color);
+});
+
+test('group color keys distinguish typed equal labels and missing values from text', () => {
+	const values = [new NumberValue(1), new StringValue('1'), new NullValue(), new StringValue('null')];
+	const entries = values.map((_, i) => entry(`${i}.md`, 'A', i + 1));
+	const view = makeView(entries, values.map((value, i) => group([entries[i]], value)));
+	const groups = view.getGroupColorEntries();
+	assert.equal(new Set(groups.map(item => item.key)).size, 4);
+	groups.forEach((item, index) => view.setGroupColor(item.key, { type: 'custom', value: `#${index + 1}11222` }));
+	view.data.groupedData.reverse();
+	assert.deepEqual(view.getGroupColorEntries().map(item => item.color), ['#411222', '#311222', '#211222', '#111222']);
+});
+
+test('one real group retains its legend and editor while ungrouped data has no group controls', () => {
+	const { view, groups } = colorFixture();
+	view.data.groupedData = [groups[0]];
+	assert.equal(view.processData().isGrouped, true);
+	assert.equal(view.getGroupColorEntries().length, 1);
+	assert.deepEqual(view.getChartLegend(view.processData()), [{ name: 'Design', colorIndex: 0, groupIndex: 0 }]);
+	view.data.groupedData = [group(groups[0].entries)];
+	assert.equal(view.processData().isGrouped, false);
+	assert.deepEqual(view.getGroupColorEntries(), []);
+	assert.deepEqual(view.getChartLegend(view.processData()), []);
+});
+
+test('invalid or hidden group changes cannot write view config', () => {
+	const { view } = colorFixture();
+	view.setGroupColor('["String","Hidden"]', { type: 'custom', value: '#123456' });
+	view.setGroupColor(view.getGroupColorEntries()[0].key, { type: 'custom', value: 'red' });
+	view.setGroupColor(view.getGroupColorEntries()[0].key, { type: 'preset', value: 'unknown' });
+	assert.equal(view.config.get('group-colors'), undefined);
+	assert.equal(view.events.changes, 0);
+});
+
+function menuFixture() {
+	const fixture = colorFixture();
+	const writes = [];
+	const set = fixture.view.config.set;
+	fixture.view.config.set = (key, value) => { writes.push([key, value]); set(key, value); };
+	const attributes = new Map();
+	const anchor = {
+		ownerDocument: { name: 'popout document' },
+		setAttribute: (name, value) => attributes.set(name, value),
+		getBoundingClientRect: () => ({ left: 125, bottom: 280 }),
+	};
+	return { ...fixture, writes, anchor, attributes };
+}
+
+test('legend menu respects native preference, anchors in its owning document, and opens without saving', () => {
+	const { view, writes, anchor, attributes } = menuFixture();
+	view.openGroupColors(view.getGroupColorEntries()[0].key, anchor);
+	const menu = Menu.created.at(-1);
+	assert.equal(menu.doc, anchor.ownerDocument);
+	assert.deepEqual(menu.position, { x: 125, y: 284 });
+	assert.equal(menu.items[0].title, 'Design');
+	assert.equal(menu.items[0].disabled, true);
+	assert.deepEqual(menu.items.filter(item => item.checked).map(item => item.title), ['Automatic']);
+	assert.equal(menu.items.some(item => item.title === 'Reset all group colors'), false);
+	assert.deepEqual(writes, []);
+	assert.equal(attributes.get('aria-expanded'), 'true');
+	menu.hide();
+	assert.equal(attributes.get('aria-expanded'), 'false');
+});
+
+test('preset menu action targets the stable group value after reordering and checks the saved choice', () => {
+	const { view, groups, writes, anchor } = menuFixture();
+	const key = view.getGroupColorEntries()[0].key;
+	view.openGroupColors(key, anchor);
+	const menu = Menu.created.at(-1);
+	view.data.groupedData = [groups[1], groups[0]];
+	menu.items.find(item => item.title === 'Blue').click();
+	assert.deepEqual(writes, [['group-colors', { version: 1, overrides: { [key]: { type: 'preset', value: 'blue' } } }]]);
+	assert.equal(view.getGroupColorEntries()[0].choice, null);
+	view.openGroupColors(key, anchor);
+	assert.deepEqual(Menu.created.at(-1).items.filter(item => item.checked).map(item => item.title), ['Blue']);
+});
+
+test('Automatic clears one group and Reset all group colors also clears hidden choices', () => {
+	const { view, groups, writes, anchor } = menuFixture();
+	const [design, research] = view.getGroupColorEntries();
+	view.setGroupColor(design.key, { type: 'preset', value: 'blue' });
+	view.setGroupColor(research.key, { type: 'custom', value: '#123456' });
+	view.data.groupedData = [groups[0]];
+	writes.length = 0;
+	view.openGroupColors(design.key, anchor);
+	Menu.created.at(-1).items.find(item => item.title === 'Automatic').click();
+	assert.deepEqual(writes[0], ['group-colors', { version: 1, overrides: { [research.key]: { type: 'custom', value: '#123456' } } }]);
+	view.openGroupColors(design.key, anchor);
+	Menu.created.at(-1).items.find(item => item.title === 'Reset all group colors').click();
+	assert.deepEqual(writes[1], ['group-colors', null]);
+	assert.equal(view.hasGroupColors(), false);
+});
+
+test('Custom color opens the selected group editor without changing its saved color', () => {
+	const { view, writes, anchor, attributes } = menuFixture();
+	const key = view.getGroupColorEntries()[1].key;
+	view.setGroupColor(key, { type: 'custom', value: '#123456' });
+	writes.length = 0;
+	view.openGroupColors(key, anchor);
+	const menu = Menu.created.at(-1);
+	assert.deepEqual(menu.items.filter(item => item.checked).map(item => item.title), ['Custom color…']);
+	menu.items.find(item => item.title === 'Custom color…').click();
+	assert.equal(view.groupColorsModal.host, view);
+	assert.equal(view.groupColorsModal.key, key);
+	assert.equal(view.groupColorsModal.opened, true);
+	assert.equal(attributes.get('aria-expanded'), 'false');
+	assert.deepEqual(writes, []);
+});
+
+test('unknown groups and stale menu actions cannot save colors or open an editor', () => {
+	const { view, groups, writes, anchor } = menuFixture();
+	const menuCount = Menu.created.length;
+	view.openGroupColors('["String","Unknown"]', anchor);
+	assert.equal(Menu.created.length, menuCount);
+	const key = view.getGroupColorEntries()[0].key;
+	view.openGroupColors(key, anchor);
+	const menu = Menu.created.at(-1);
+	view.data.groupedData = [groups[1]];
+	menu.items.find(item => item.title === 'Blue').click();
+	menu.items.find(item => item.title === 'Automatic').click();
+	menu.items.find(item => item.title === 'Custom color…').click();
+	view.openGroupColors(key, anchor);
+	assert.equal(Menu.created.length, menuCount + 1);
+	assert.equal(view.groupColorsModal, null);
+	assert.deepEqual(writes, []);
 });
