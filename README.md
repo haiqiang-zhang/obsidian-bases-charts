@@ -44,9 +44,9 @@ Use [Claudian](https://github.com/YishenTu/claudian) to create and refine a cust
 
 Add an **AI Chart** view, choose **Set up AI Chart**, and describe the visualization to Claudian. It writes the ECharts option into the `.base` file. This view renders its saved configuration independently of the live Bases query.
 
-![A saved ECharts timeline comparing six research collections, with smooth curves and an overview zoom slider.](gallery/images/10-ai-chart.png)
+![AI Chart showing the Reference Library chart, its Bases table, and the Claudian conversation.](images/ai-charts.png)
 
-The example uses a saved configuration with fictional reference-library data.
+The example shows a Reference Library chart alongside the source table and Claudian conversation.
 
 [AI Chart configuration](https://haiqiang-zhang.github.io/obsidian-bases-charts/ai-charts)
 

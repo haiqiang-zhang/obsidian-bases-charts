@@ -5,6 +5,9 @@ hero:
   name: Bases Chart Views
   text: Charts for Obsidian Bases
   tagline: Add chart views to a Base. Choose note properties, group dates, and inspect the files behind a value.
+  image:
+    src: /gallery/overview.png
+    alt: Weekly hours by workstream in a stacked area chart, with a tooltip for the selected week.
   actions:
     - theme: brand
       text: Install plugin
@@ -16,12 +19,6 @@ hero:
       text: UI Gallery
       link: /screenshots
 ---
-
-<div className="home-showcase">
-
-![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](/gallery/overview.png)
-
-</div>
 
 <div className="home-docs">
 

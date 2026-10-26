@@ -9,9 +9,9 @@ AI Chart renders a saved [Apache ECharts](https://echarts.apache.org/) configura
 
 [Claudian](https://github.com/YishenTu/claudian) can read your data and write the configuration into the selected view in your `.base` file.
 
-![A saved ECharts timeline comparing six research collections, with smooth curves and an overview zoom slider.](/gallery/10-ai-chart.png)
+![AI Chart showing the Reference Library chart, its Bases table, and the Claudian conversation.](/examples/ai-charts.png)
 
-The **Reference library** example uses a saved option containing 619 fictional papers across six collections from 2014 to 2026. The option includes smooth lines, area fills, and a zoom slider.
+The example shows a **Reference Library** chart alongside the source table and Claudian conversation.
 
 ## Set up
 

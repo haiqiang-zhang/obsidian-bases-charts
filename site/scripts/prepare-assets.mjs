@@ -32,3 +32,6 @@ await mkdir(destination, { recursive: true });
 await cp(resolve(source, 'images'), destination, { recursive: true });
 await rm(resolve(destination, 'bases-chart-views-gallery.zip'), { force: true });
 await cp(resolve(source, manifestName), resolve(destination, manifestName));
+const examples = resolve(site, 'docs/public/examples');
+await mkdir(examples, { recursive: true });
+await cp(resolve(site, '../images/ai-charts.png'), resolve(examples, 'ai-charts.png'));

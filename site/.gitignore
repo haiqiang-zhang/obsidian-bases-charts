@@ -2,3 +2,4 @@ node_modules/
 build/
 .rspress/
 docs/public/gallery/
+docs/public/examples/

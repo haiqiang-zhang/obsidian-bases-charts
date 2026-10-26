@@ -6,7 +6,7 @@ outline: false
 
 # UI gallery
 
-Chart views and controls with fictional English sample data. Select an image to enlarge it.
+Chart views, configuration controls, and a Claudian example. Select an image to enlarge it.
 
 <figure className="gallery-card">
 
@@ -149,13 +149,13 @@ Each point represents one of 32 initiatives. Color identifies its workstream.
 
 ## AI Chart
 
-The Reference library view renders a saved ECharts option with 619 fictional papers across six research collections from 2014 to 2026.
+The Reference Library chart is shown alongside its source table and the Claudian conversation.
 
 <figure className="gallery-card">
 
-![A saved ECharts timeline comparing six research collections with a zoom slider.](/gallery/10-ai-chart.png)
+![AI Chart showing the Reference Library chart, its Bases table, and the Claudian conversation.](/examples/ai-charts.png)
 
-<figcaption>Reference library: saved ECharts configuration</figcaption>
+<figcaption>AI Chart with Claudian</figcaption>
 </figure>
 
 ## Dark theme

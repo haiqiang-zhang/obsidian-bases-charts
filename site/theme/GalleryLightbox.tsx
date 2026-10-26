@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from '@rspress/core/runtime';
 
 type Preview = { src: string; alt: string };
-const imageSelector = '.gallery-card img, .home-showcase img, .screenshot-frame img, .rp-doc img[src*="/gallery/"]';
+const imageSelector = '.gallery-card img, .rp-home-hero__image img[src*="/gallery/"], .screenshot-frame img, .rp-doc img[src*="/gallery/"], .rp-doc img[src*="/examples/"]';
 
 export default function GalleryLightbox() {
   const { pathname } = useLocation();
@@ -21,7 +21,7 @@ export default function GalleryLightbox() {
         image.setAttribute('role', 'button');
         image.setAttribute('aria-label', `Enlarge: ${image.alt}`);
         image.setAttribute('aria-haspopup', 'dialog');
-        if (!image.closest('.home-showcase')) image.loading = 'lazy';
+        if (!image.closest('.rp-home-hero__image')) image.loading = 'lazy';
       }
     };
     decorate();
