@@ -36,14 +36,19 @@ export default function GalleryLightbox() {
     };
     const onClick = (event: MouseEvent) => { if (open(event.target)) event.preventDefault(); };
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.key === 'Enter' || event.key === ' ') && open(event.target)) event.preventDefault();
+      if (event.isComposing) return;
+      if ((event.key === 'Enter' || event.key === ' ') && open(event.target)) {
+        event.preventDefault();
+        // Keep image activation out of Rspress's global search Enter handler.
+        event.stopPropagation();
+      }
     };
     document.addEventListener('click', onClick);
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keydown', onKeyDown, true);
     return () => {
       observer.disconnect();
       document.removeEventListener('click', onClick);
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDown, true);
       for (const image of images) {
         image.removeAttribute('tabindex');
         image.removeAttribute('role');
@@ -67,6 +72,7 @@ export default function GalleryLightbox() {
   return (
     <dialog ref={dialog} className="gallery-lightbox" aria-label="Screenshot preview"
       onCancel={event => { event.preventDefault(); close(); }}
+      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') event.stopPropagation(); }}
       onClick={event => { if (event.target === event.currentTarget) close(); }}>
       <div className="gallery-lightbox__panel">
         <div className="gallery-lightbox__toolbar">

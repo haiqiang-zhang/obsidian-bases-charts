@@ -42,7 +42,10 @@ views:
     x: "formula.Week label"
     y: ["note.Hours", "note.Deliverables"]
     order: ["file.name", "note.Completed", "note.Hours", "note.Deliverables"]
-    color-palette: "blue"
+    color-palette: "colorful"
+    groupBy:
+      property: "note.Workstream"
+      direction: "ASC"
     sort:
       -
         property: "note.Week"
@@ -69,6 +72,24 @@ views:
         property: "note.Completed"
         direction: "ASC"
     "aggregate:note.Hours": "Sum"
+    x-date-grouping:
+      property: "note.Completed"
+      unit: "week"
+    min-y-override: "0"
+    filters: "note.Week >= 5"
+  -
+    type: "chart-line"
+    name: "Column selection"
+    x: "formula.Week label"
+    y: ["note.Hours", "note.Deliverables"]
+    order: ["file.name", "note.Completed", "note.Hours", "note.Deliverables"]
+    color-palette: "blue"
+    sort:
+      -
+        property: "note.Week"
+        direction: "ASC"
+    "aggregate:note.Hours": "Sum"
+    "aggregate:note.Deliverables": "Sum"
     x-date-grouping:
       property: "note.Completed"
       unit: "week"

@@ -17,13 +17,13 @@ Chart views, configuration controls, and a Claudian example. Select an image to 
 
 ## Multiple measures
 
-Each Y property has its own chart and aggregation. This view shows hours and deliverables by week.
+Each Y property has its own chart, scale, and aggregation. This view compares weekly hours and deliverables across four workstreams, with the same colors in both charts.
 
 <figure className="gallery-card">
 
-![Hours and deliverables in separate charts within one Base view.](/gallery/12-multiple-measures.png)
+![Weekly hours and deliverables in separate charts, with Design, Engineering, Research, and Writing shown as four colored series.](/gallery/12-multiple-measures.png)
 
-<figcaption>Hours (Sum) and Deliverables (Sum)</figcaption>
+<figcaption>Hours and deliverables · Four workstreams · Independent scales</figcaption>
 </figure>
 
 ## Date grouping

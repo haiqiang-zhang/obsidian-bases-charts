@@ -20,10 +20,10 @@ REPO = Path(__file__).resolve().parents[2]
 GALLERY = REPO / "gallery"
 CATALOG = [
     ("overview.png", "Stacked area and tooltip", "Weekly hours grouped by workstream, with a summary for the selected week.", "03 Capacity.base", "A season of progress"),
-    ("12-multiple-measures.png", "Multiple Y properties", "Hours and deliverables in separate charts, with an aggregation for each property.", "01 Trend.base", "Hours & deliverables"),
+    ("12-multiple-measures.png", "Multiple Y properties", "Hours and deliverables by week, with four workstream series and a separate scale for each measure.", "01 Trend.base", "Hours & deliverables"),
     ("08-date-grouping.png", "Date grouping", "The Date property grouped into calendar weeks from the X-axis picker.", "01 Trend.base", "Calendar weeks"),
     ("13-formula-editor.png", "Formula editor", "The native Bases editor showing the Week label formula.", "01 Trend.base", "Weekly momentum"),
-    ("14-column-hover.png", "Column selection", "A vertical guide and tooltip for a column containing one selectable point.", "01 Trend.base", "Hours & deliverables"),
+    ("14-column-hover.png", "Column selection", "A vertical guide and tooltip for a column containing one selectable point.", "01 Trend.base", "Column selection"),
     ("09-data-details.png", "Source files", "A data dialog over the chart view, listing the eight files in the selected week.", "03 Capacity.base", "A season of progress"),
     ("07-color-palettes.png", "Color palettes", "The view's palette picker with color swatches and the current selection.", "03 Capacity.base", "A season of progress"),
     ("01-line.png", "Line chart", "Hours across eight weeks, grouped into four workstreams.", "01 Trend.base", "Weekly momentum"),

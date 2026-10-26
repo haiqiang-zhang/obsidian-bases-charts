@@ -66,6 +66,7 @@ def main():
     resize(1040, 520)
     open_view('01 Trend.base', 'Hours & deliverables')
     capture('12-multiple-measures')
+    open_view('01 Trend.base', 'Column selection')
     capture('14-column-hover', hover=(0, 4))
 
     resize(1120, 900)

@@ -28,7 +28,7 @@ Each Data Chart uses the Base's current results. Select note, file, or formula p
 - **Source-file inspection.** Hover for a compact, anchored summary. Click a chart mark or supported column to open a searchable table of its source files.
 - **Responsive layout.** Cartesian charts use the available width; Pie and Radar sit at the center. Multiple measures form separate charts, while Radar overlays them.
 
-![Hours and deliverables displayed as two charts in one Base view, each with its own measure and aggregation.](gallery/images/12-multiple-measures.png)
+![Hours and deliverables by week in two charts, each comparing Design, Engineering, Research, and Writing with a shared color legend.](gallery/images/12-multiple-measures.png)
 
 ## Source files
 

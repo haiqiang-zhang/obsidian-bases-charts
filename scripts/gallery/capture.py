@@ -46,7 +46,10 @@ def prepare():
 
 
 def open_view(file, name):
-    ev('''(async()=>{await window.galleryLeaf.setViewState({type:'bases',state:{file:''' +
+    # Reopen the Base so its controller applies viewName even when consecutive
+    # captures use different views of the same file.
+    ev('''(async()=>{await window.galleryLeaf.setViewState({type:'empty',state:{}});
+       await window.galleryLeaf.setViewState({type:'bases',state:{file:''' +
        json.dumps('Chart Gallery/' + file) + ',viewName:' + json.dumps(name) + '''}});
        return JSON.stringify(true);})()''')
     time.sleep(1.2)

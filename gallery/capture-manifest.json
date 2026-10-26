@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "Real Obsidian Sandbox UI with synthetic English-only data",
-  "plugin_commit": "aad7b63e118730845f2ab78283a75a08d25796b7",
+  "plugin_commit": "c483af2154401ec13a77ef92f1017e2e63aa81d6",
   "language": "en",
   "image_format": "PNG",
   "capture_count": 15,
@@ -35,18 +35,18 @@
       "file": "12-multiple-measures.png",
       "path": "images/12-multiple-measures.png",
       "title": "Multiple Y properties",
-      "description": "Hours and deliverables in separate charts, with an aggregation for each property.",
+      "description": "Hours and deliverables by week, with four workstream series and a separate scale for each measure.",
       "size": {
         "width": 2080,
         "height": 888
       },
-      "bytes": 60508,
-      "sha256": "9b0f6843e8527ad4f3ba0c49af68d8747349c3599ab717c525b1bc5b265dbb9a",
+      "bytes": 79748,
+      "sha256": "5ea181cae3ae0cde322c6ba68b91a3748d4edc6edb9333aa12a9ebf1e19f10bf",
       "view": {
         "file": "Chart Gallery/01 Trend.base",
         "viewName": "Hours & deliverables"
       },
-      "plugin_commit": "9330e8b6d9eaaf93ff8b6e0872950938ac4a9857",
+      "plugin_commit": "c483af2154401ec13a77ef92f1017e2e63aa81d6",
       "viewport": [
         1040,
         520
@@ -106,13 +106,13 @@
         "width": 2080,
         "height": 888
       },
-      "bytes": 78205,
-      "sha256": "0ec01fc9a1f5a946a090fec1525887d659e13dc87cfbbffa7bc4dfb638f44525",
+      "bytes": 77649,
+      "sha256": "d509f6a54eb3af858b70cac750c54f7d7c409b3bc4067a6fb03ec9364d6ed06a",
       "view": {
         "file": "Chart Gallery/01 Trend.base",
-        "viewName": "Hours & deliverables"
+        "viewName": "Column selection"
       },
-      "plugin_commit": "9330e8b6d9eaaf93ff8b6e0872950938ac4a9857",
+      "plugin_commit": "c483af2154401ec13a77ef92f1017e2e63aa81d6",
       "viewport": [
         1040,
         520

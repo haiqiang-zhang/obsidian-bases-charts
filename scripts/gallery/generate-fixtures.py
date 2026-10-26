@@ -137,11 +137,13 @@ def main():
     trend["sort"] = [{"property": "note.Week", "direction": "ASC"}]
     dates = chart_view("line", "Calendar weeks", "Completed", ["Hours"], group="Workstream", **weekly)
     dates["filters"] = 'note.Week >= 5'
-    metrics = chart_view("line", "Hours & deliverables", "Completed", ["Hours", "Deliverables"], palette="blue", **weekly)
+    metrics = chart_view("line", "Hours & deliverables", "Completed", ["Hours", "Deliverables"], group="Workstream", **weekly)
     metrics["filters"] = 'note.Week >= 5'
     metrics["x"] = "formula.Week label"
     metrics["sort"] = [{"property": "note.Week", "direction": "ASC"}]
-    write_base(root, "01 Trend.base", "Sessions", [trend, metrics, dates], common_properties,
+    column = {**metrics, "name": "Column selection", "color-palette": "blue"}
+    column.pop("groupBy")
+    write_base(root, "01 Trend.base", "Sessions", [trend, metrics, dates, column], common_properties,
                {"Week label": 'date(WeekStart)\n  .format("MMM D")'})
     bar = chart_view("bar", "Projects by workstream", "Project", ["Hours"], palette="colorful", group="Workstream", **{"show-labels": True, "min-y-override": "0"})
     comparison = chart_view("bar", "Two measures", "Project", ["Hours", "Deliverables"], palette="colorful", **{"show-labels": True, "min-y-override": "0"})

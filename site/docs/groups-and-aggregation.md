@@ -46,7 +46,9 @@ To count how many records have a particular property value, select that property
 
 A view can show `Hours → Sum` and `Rating → Average` together, with a separate chart for each measure. Their aggregations are independent. Radar compares the selected measures in a single chart instead.
 
-![Hours and deliverables in separate charts, with multiple measures selected in one Base view.](/gallery/12-multiple-measures.png)
+The example below sums hours and deliverables by week and workstream. Both charts use the same group colors, with a separate scale for each measure.
+
+![Weekly hours and deliverables, each comparing four workstreams in a separate chart with a shared color legend.](/gallery/12-multiple-measures.png)
 
 Use [Y scale controls](./axes-and-dates#y-scale) when several charts should share the same scale.
 
