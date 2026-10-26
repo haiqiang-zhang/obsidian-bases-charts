@@ -3,6 +3,8 @@ title: Overview
 description: Chart types, configuration controls, and source-file inspection in Obsidian Bases.
 ---
 
+import { DocumentationVersion } from '../theme/DocumentationVersion';
+
 # Overview
 
 Bases Chart Views adds six Data Chart types and an AI Chart view to [Obsidian Bases](https://help.obsidian.md/bases). Charts use [Apache ECharts](https://echarts.apache.org/).
@@ -34,10 +36,11 @@ To count notes instead, add **file name** as the Y property and select **Count**
 
 | Control | Purpose |
 | --- | --- |
-| View selector → Configure view | Chart appearance, color palette, and applicable scale settings |
+| View selector → Configure view | Color palette, Bar layout, and other chart-specific display and scale settings |
 | X axis | Category, number, date, file property, or formula |
 | Y axes | Measures, their order, and per-property aggregation |
 | Group | Native Bases groups, shown as chart series |
+| Group legend | Assign a preset or custom color to a group in this view |
 | Filter | Choose which notes enter the Base's result set |
 | Sort | Control category order; date buckets form a chronological timeline |
 
@@ -45,10 +48,10 @@ Pie and Radar label their controls **Category** and **Values**. The AI Chart too
 
 ## View configuration
 
-Add several views to one Base: a line for change over time, bars for category comparisons, and a donut for composition. Axis selection, date grouping, aggregation, and palette are saved with each view in the `.base` file.
+Add several views to one Base: a line for change over time, bars for category comparisons, and a donut for composition. Axis selection, date grouping, missing-date display, aggregation, bar layout, palette, and group colors are saved with each view in the `.base` file.
 
 [Chart types](./chart-types) · [Axes and dates](./axes-and-dates) · [Groups and aggregation](./groups-and-aggregation)
 
 :::info Documentation version
-These docs cover the **0.5.0** feature set. See [release notes](https://github.com/haiqiang-zhang/obsidian-bases-charts/releases) for subsequent changes.
+<DocumentationVersion />
 :::

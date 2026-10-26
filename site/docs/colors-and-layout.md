@@ -46,7 +46,7 @@ Every palette includes light and dark variants. Series keep their hue order when
 
 ## Layout by chart type
 
-Line, Bar, Stacked Area, and Scatter use narrow chart margins below the native Bases toolbar. Pie and Radar are centered in their chart area. Legends sit below the charts.
+Line, Bar, Stacked Area, and Scatter use narrow chart margins below the native Bases toolbar. Pie and Radar are centered in their chart area. Legends sit below charts on desktop and above them on phones.
 
 Selecting several Y properties creates multiple charts in responsive columns. Smaller panes scroll when more vertical space is needed. Radar keeps the selected measures in one chart.
 

@@ -8,6 +8,7 @@ on:
       - 'gallery/**'
       - 'images/ai-charts.png'
       - 'package.json'
+      - 'manifest.json'
       - 'package-lock.json'
       - 'eslint.config.mts'
       - '.github/workflows/pages.yml'
