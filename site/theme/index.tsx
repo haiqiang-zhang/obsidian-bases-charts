@@ -1,6 +1,7 @@
 import { normalizeImagePath } from '@rspress/core/runtime';
 import { DocContent, HomeHero as OriginalHomeHero, Layout as OriginalLayout, type HomeHeroProps } from '@rspress/core/theme-original';
 import { useLayoutEffect, useRef, useState } from 'react';
+import { CommunityDownloads } from './CommunityDownloads';
 
 const homeFeatures = [
   {
@@ -102,7 +103,7 @@ export function HomeHero(props: HomeHeroProps) {
     };
   }, [order, selected]);
 
-  return <OriginalHomeHero {...props} image={
+  return <OriginalHomeHero {...props} afterHeroActions={<>{props.afterHeroActions}<CommunityDownloads /></>} image={
     <div className="home-chart-composition" aria-label="Plugin feature examples">
       <div className="home-chart-picker" role="group" aria-label="Choose a feature example">
         {homeFeatures.map((example, index) => (

@@ -12,6 +12,9 @@ on:
       - 'eslint.config.mts'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
+  # Refresh Obsidian Community download statistics without a plugin release.
+  schedule:
+    - cron: '23 3 * * *'
 
 permissions:
   contents: read
@@ -35,6 +38,8 @@ jobs:
       - run: npm ci
       - run: npm run lint:site
       - run: npm run build:site
+        env:
+          REQUIRE_COMMUNITY_DOWNLOADS: 'true'
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

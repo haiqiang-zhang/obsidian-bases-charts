@@ -5,7 +5,7 @@
   "type": "module",
   "license": "GPL-3.0-only",
   "scripts": {
-    "prepare:assets": "node scripts/prepare-assets.mjs",
+    "prepare:assets": "node scripts/update-downloads.mjs && node scripts/prepare-assets.mjs",
     "dev": "npm run prepare:assets && rspress dev --host 127.0.0.1",
     "build": "npm run typecheck && npm run prepare:assets && rspress build",
     "preview": "rspress preview --host 127.0.0.1",

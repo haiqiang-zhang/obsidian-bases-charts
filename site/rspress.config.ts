@@ -1,4 +1,5 @@
 import { defineConfig } from '@rspress/core';
+import { obsidianIcon } from './theme/obsidianIcon';
 
 const repository = 'https://github.com/haiqiang-zhang/obsidian-bases-charts';
 const galleryItems = [
@@ -54,7 +55,10 @@ export default defineConfig({
     editLink: { docRepoBaseUrl: `${repository}/edit/master/site/docs` },
     lastUpdated: true,
     search: true,
-    socialLinks: [{ icon: 'github', mode: 'link', content: repository }],
+    socialLinks: [
+      { icon: 'github', mode: 'link', content: repository },
+      { icon: { svg: obsidianIcon }, mode: 'link', content: 'https://community.obsidian.md/plugins/bases-chart-views' },
+    ],
     footer: { message: '© 2026 Haiqiang Zhang · Bases Chart Views · GPL-3.0' },
   },
 });
