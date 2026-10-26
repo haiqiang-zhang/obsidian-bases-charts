@@ -15,11 +15,11 @@ Click the chart to view the source files.
 
 ## Touch inspection on phones
 
-Portrait phones show a fixed preview below the chart. Tap a chart mark or a supported column to select it, or slide across the chart to inspect different values. The selection stays after you lift your finger.
+Portrait phones and foldables up to 1024 pixels wide show a fixed preview below the chart, with an icon and a short hint before the first selection. Tap a chart mark or a supported column to select it, or slide across the chart to inspect different values. The selection stays after you lift your finger.
 
 Tap **View data** in the preview to open a native drawer with the source files. When a view has multiple measures, the charts scroll while the preview stays in place.
 
-Landscape phones and tablets use the full chart area without the bottom preview. Tapping supported chart data opens its source-file details directly.
+Landscape mobile windows, including unfolded foldables, and portrait windows wider than 1024 pixels use the full chart area without the bottom preview. They use the same anchored tooltips as desktop. Tapping supported chart data opens its source-file details directly. Resizing switches between these layouts without clearing the last phone selection.
 
 [Mobile UI gallery](./mobile-gallery)
 
@@ -51,6 +51,6 @@ The value in a row is that file's contribution, rather than a repeated copy of t
 
 Search by file name or folder path. The search checks the entire result set, including files not yet displayed.
 
-The table initially displays up to **100 files**. Use **Load more** for the next batch. Both scrolling directions stay inside the table when the dialog is small.
+Selections of up to **1,000 files** scroll as a single list. Larger selections use **Load more** to display the next 1,000 files. On narrow mobile screens, group details appear below each file name and values remain on the right.
 
 Click or tap a file row to open its note. **Ctrl-click** or **Cmd-click** opens it in a new tab.

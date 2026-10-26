@@ -6,13 +6,13 @@ outline: false
 
 # Mobile UI gallery
 
-Chart views and controls at a 390 × 844 portrait phone viewport and a 1024 × 768 large landscape viewport. Select an image to enlarge it.
+Chart views and controls at a 390 × 844 portrait phone viewport and a 930 × 840 landscape viewport sized for an unfolded foldable phone or tablet. Select an image to enlarge it.
 
 These screenshots use Obsidian’s official mobile emulation on desktop, with fictional English sample data. Unused status-bar space is excluded. They are not physical-device screenshots.
 
 ## Chart views
 
-Group colors remain visible above the chart. A fixed preview below the chart shows the current touch selection on portrait phones.
+Group colors remain visible above the chart on phones. Portrait phones and foldables up to 1024 CSS pixels wide show the current selection in a fixed preview below the chart.
 
 <div className="mobile-gallery-grid">
 <figure className="gallery-card mobile-gallery-card">
@@ -108,15 +108,15 @@ Axis settings use a native sheet. The palette picker shows the available colors 
 </figure>
 </div>
 
-## Landscape
+## Foldable phones and tablets
 
-Landscape phones and tablets use the full chart area without the bottom preview. This capture uses a 1024 × 768 large landscape viewport in the mobile emulator, with the native interface visible.
+This capture shows a foldable-phone or tablet layout at 930 × 840 CSS pixels in landscape. Tooltips appear beside the selected column, without a bottom preview. The native interface remains visible.
 
 <figure className="gallery-card mobile-gallery-card">
 
-![A chart in a 1024 by 768 landscape emulator viewport, with the native interface visible and no bottom touch-preview panel.](/mobile-gallery/14-landscape.png)
+![A chart in a 930 by 840 CSS-pixel landscape viewport sized for an unfolded foldable phone or tablet, with the native interface visible and no bottom preview.](/mobile-gallery/14-landscape.png)
 
-<figcaption><strong>Large landscape viewport</strong>1024 × 768 with the native interface visible</figcaption>
+<figcaption><strong>Foldable phone or tablet</strong>Landscape · 930 × 840 CSS pixels</figcaption>
 </figure>
 
 [Desktop UI gallery](./screenshots) · [Chart configuration](./overview) · [Data inspection](./explore-data)

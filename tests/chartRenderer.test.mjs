@@ -129,13 +129,14 @@ function harness(withPreview = false) {
 			assert.equal(element, container);
 			assert.equal(host, view);
 			const tooltip = {
-				calls: [], opened: [], disposed: 0, hide, previews: [], touchPreview: false, resets: 0,
+				calls: [], opened: [], disposed: 0, hide, previews: [], touchPreview: false, resets: 0, selection: null,
 				usesTouchPreview() { return this.touchPreview; },
-				preview(params, context) { this.previews.push({params, context}); return true; },
-				resetTouchPreview() { this.resets++; },
+				preview(params, context) { this.selection = { params, context }; this.previews.push(this.selection); return true; },
+				resetTouchPreview() { this.resets++; this.selection = null; },
 				options(base, context, anchor, bounds) {
 					this.calls.push({ base, context, anchor, bounds });
-					return { ...base, testContext: context, tooltipIndex: tooltips.indexOf(this) };
+					return { ...base, show: !this.touchPreview, triggerOn: this.touchPreview ? 'none' : base.triggerOn,
+						testContext: context, tooltipIndex: tooltips.indexOf(this) };
 				},
 				openFiles(raw, context) { this.opened.push({ raw, context }); },
 				dispose() { this.disposed++; },
@@ -260,11 +261,14 @@ test('dispose cancels pending resize and releases chart, observer, tooltip, and 
 
 test('window migration rebuilds in the new window and reapplies the latest option/context', () => {
 	const state = harness();
+	state.tooltips[0].touchPreview = true;
 	const oldContext = { xName: 'Old X' };
-	const context = { xName: 'Folder', yLabel: 'Count', groupNames: ['A', 'B'] };
+	const context = { xName: 'Folder', yLabel: 'Count', groupNames: ['A', 'B'], chartType: 'chart-line' };
 	state.renderer.setOption({ tooltip: [{ trigger: 'axis' }], series: [{ data: [1] }] }, oldContext);
-	const latest = { tooltip: { trigger: 'item' }, series: [{ data: [9] }] };
+	const latest = { tooltip: { trigger: 'item' }, series: [{ type: 'line', emphasis: { focus: 'series' }, data: [9] }] };
 	state.renderer.setOption(latest, context);
+	assert.equal(state.charts[0].current.tooltip.show, false);
+	assert.equal(state.charts[0].current.series[0].emphasis.disabled, true);
 	const nextWindow = createWindow();
 	let unrelatedCalls = 0;
 	const unrelatedTimer = nextWindow.setTimeout(() => { unrelatedCalls++; });
@@ -290,6 +294,9 @@ test('window migration rebuilds in the new window and reapplies the latest optio
 	assert.equal(state.tooltips[1].calls[0].context, context);
 	assert.equal(state.charts[1].current.tooltip.testContext, context);
 	assert.equal(state.charts[1].current.tooltip.tooltipIndex, 1);
+	assert.equal(state.charts[1].current.tooltip.show, true, 'the destination tooltip selects its own interaction mode');
+	assert.equal(state.charts[1].current.series[0].emphasis.focus, 'series');
+	assert.equal(state.charts[1].current.series[0].emphasis.disabled, undefined);
 	const raw = { files: ['a.md', 'b.md'] };
 	state.charts[1].handlers.get('click')({ data: { _raw: raw } });
 	assert.deepEqual(state.tooltips[1].opened, [{ raw, context }]);
@@ -880,16 +887,52 @@ test('native long touch and horizontal drag inspect data while vertical drag rem
 	assert.equal(state.container.listeners.size, 0);
 });
 
-test('portrait comparisons retain every series color after touch selection', () => {
+test('folding refreshes tooltip and emphasis options without resetting the shared selection or duplicating handlers', () => {
 	const state = harness(true);
-	const series = [{ type: 'bar', emphasis: { focus: 'series', label: { fontSize: 14 } }, data: [1, 2] }];
-	state.tooltips[0].touchPreview = true;
-	state.renderer.setOption({ series }, { chartType: 'chart-bar' });
-	assert.equal(state.charts[0].current.series[0].emphasis.disabled, true);
-	assert.equal(state.charts[0].current.series[0].emphasis.focus, 'none');
-	assert.equal(series[0].emphasis.focus, 'series', 'do not mutate stored desktop options');
-	state.tooltips[0].touchPreview = false;
-	state.renderer.setOption({ series }, { chartType: 'chart-bar' });
-	assert.equal(state.charts[0].current.series[0].emphasis.focus, 'series');
+	const chart = state.charts[0];
+	const tooltip = state.tooltips[0];
+	const raw = rawPoint('Monday', 2);
+	const series = [{ type: 'bar', emphasis: { focus: 'series', label: { fontSize: 14 } }, data: [{ value: 2, _raw: raw }] }];
+	const option = { tooltip: { trigger: 'axis', triggerOn: 'mousemove', axisPointer: { type: 'shadow' } },
+		xAxis: { type: 'category', data: ['Monday'] }, series };
+	const context = { chartType: 'chart-bar' };
+	state.renderer.setOption(option, context);
+	state.flushTimers();
+	const resetCount = tooltip.resets;
+	const originalSize = [state.container.clientWidth, state.container.clientHeight];
+	for (const mode of [true, false, true]) {
+		const calls = chart.calls.length;
+		tooltip.touchPreview = mode;
+		state.window.listeners.get('resize')();
+		state.observers[0].callback();
+		state.flushTimers();
+		assert.equal(chart.calls.length, calls + 1, 'refresh a changed mode even when canvas dimensions stay unchanged');
+		assert.deepEqual([state.container.clientWidth, state.container.clientHeight], originalSize);
+		assert.equal(chart.current.tooltip.show, !mode);
+		assert.equal(chart.current.tooltip.triggerOn, mode ? 'none' : 'mousemove');
+		assert.equal(chart.current.series[0].emphasis.focus, mode ? 'none' : 'series');
+		assert.equal(chart.current.series[0].emphasis.disabled, mode ? true : undefined);
+		assert.equal(chart.current.series[0].emphasis.label.fontSize, 14);
+		assert.equal(chart.current.xAxis.axisPointer, undefined, 'clear the portrait-only column guide when reapplying options');
+		assert.equal(chart.current.tooltip.axisPointer.type, 'shadow');
+		assert.equal(tooltip.resets, resetCount);
+		assert.equal(chart.zr.handlers.size, 3);
+		assert.deepEqual(chart.zr.registrations.slice(-3), ['setOption', 'mousemove', 'click']);
+		if (tooltip.selection) assert.equal(tooltip.selection.params[0].data._raw, raw);
+		if (mode) {
+			chart.zr.handlers.get('mousemove')({ offsetX: 100, offsetY: 50 });
+			assert.equal(chart.current.xAxis.axisPointer.type, 'line');
+			assert.equal(tooltip.selection.params[0].data._raw, raw);
+		}
+		const stableCalls = chart.calls.length;
+		state.observers[0].callback();
+		state.flushTimers();
+		assert.equal(chart.calls.length, stableCalls, 'unchanged notifications do not reapply options');
+	}
+	assert.equal(series[0].emphasis.focus, 'series', 'do not mutate the stored floating-mode options');
+	assert.equal(series[0].emphasis.disabled, undefined);
+	state.renderer.setOption(option, context);
+	assert.equal(tooltip.resets, resetCount + 1, 'real data/config updates still reset stale selections');
+	assert.equal(tooltip.selection, null);
 	state.renderer.dispose();
 });

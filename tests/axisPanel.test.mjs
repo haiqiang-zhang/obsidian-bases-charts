@@ -329,30 +329,47 @@ test('mobile axes use a native modal and do not focus search on opening', () => 
 	assert.equal(modal.opened, false);
 });
 
-test('mobile keyboard viewport changes keep the picker and active search intact', () => {
-	const state = harness('note.completed at', { mobile: true, date: true });
+test('folding and mobile keyboard viewport changes keep the picker, settings, and active search intact', () => {
+	const state = harness('note.completed at', { mobile: true, date: true, grouping: 'week' });
+	Platform.isPhone = false;
+	state.doc.defaultView.innerWidth = 840;
+	state.settings.set('x-date-gaps', { property: 'note.completed at', enabled: true });
 	state.toolbar.openAxis('x');
 	const modal = Modal.instances.at(-1);
 	const panel = state.panel();
+	assert.equal(modal.modalEl.classList.contains('mod-lg'), true, 'native phone-scoped styling stays available before the host updates its platform state');
 	const search = searchInput(panel);
 	search.focus();
 	search.value = 'hours';
 	search.dispatch('input');
+	const selected = selectedRows(panel)[0];
+	const savedSettings = [...state.settings];
 	const viewport = state.doc.defaultView.visualViewport;
-	viewport.height = 360;
-	viewport.emit('resize', {});
-	assert.equal(state.panel(), panel);
-	assert.equal(modal.opened, true);
-	assert.equal(search.value, 'hours');
-	assert.equal(state.doc.activeElement, search);
-	assert.equal(panel.style.values.get('--chart-panel-height'), '360px');
-	assert.equal(modal.modalEl.style.values.get('--chart-panel-viewport-height'), '360px');
-	viewport.height = 800;
-	state.doc.defaultView.emit('resize', {});
-	assert.equal(state.panel(), panel);
-	assert.equal(panel.style.values.get('--chart-panel-height'), '800px');
+	for (const [phone, width, height, target] of [
+		[true, 390, 800, state.doc.defaultView],
+		[true, 390, 360, viewport],
+		[false, 840, 800, state.doc.defaultView],
+	]) {
+		state.doc.defaultView.innerWidth = width;
+		viewport.height = height;
+		target.emit('resize', {});
+		// Obsidian may update its device classification after the resize callback.
+		Platform.isPhone = phone;
+		assert.equal(modal.modalEl.classList.contains('mod-lg'), true);
+		assert.equal(state.panel(), panel);
+		assert.equal(modal.opened, true);
+		assert.equal(search.value, 'hours');
+		assert.equal(state.doc.activeElement, search);
+		assert.equal(selectedRows(panel)[0], selected, 'resizing must not rebuild the selected property');
+		assert.equal(panel.style.values.get('--chart-panel-height'), `${height}px`);
+		assert.equal(modal.modalEl.style.values.get('--chart-panel-viewport-height'), `${height}px`);
+		assert.deepEqual([...state.settings], savedSettings);
+		assert.deepEqual(state.writes, []);
+	}
 	state.toolbar.onunload();
 	assert.equal(viewport.listeners.get('resize').size, 0);
+	Platform.isMobile = false;
+	Platform.isPhone = false;
 });
 
 for (const close of ['native-close', 'back', 'toolbar']) test(`mobile ${close} cleans up the picker and its child menu`, () => {
@@ -1069,7 +1086,7 @@ for (const mobile of [false, true]) test(`missing-date native toggle persists in
 		const panel = state.panel();
 		const row = panel.querySelector('.bases-chart-date-gaps');
 		const toggle = row.querySelector('.checkbox-container');
-		assert.equal(row.querySelector('span').textContent, 'Show missing dates');
+		assert.equal(row.querySelector('.input-row-label').textContent, 'Show missing dates');
 		assert.equal(toggle.getAttribute('aria-label'), 'Show missing dates');
 		assert.equal(toggle.getAttribute('aria-checked'), 'false');
 		assert.equal(toggle.disabled, false);

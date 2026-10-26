@@ -99,7 +99,8 @@ export class ChartToolbar extends Component {
 		if (modal) {
 			modal.setTitle(this.axisLabel(axis));
 			modal.modalEl.addClass('bases-chart-axis-modal');
-			if (Platform.isPhone) modal.modalEl.addClass('mod-lg');
+			// Obsidian scopes mod-lg to phones, so fold transitions follow its body class.
+			modal.modalEl.addClass('mod-lg');
 		}
 		const panel = modal?.contentEl ?? doc.body.createDiv();
 		panel.addClass('bases-chart-axis-panel');
@@ -382,9 +383,11 @@ export class ChartToolbar extends Component {
 		setIcon(row.createSpan({ cls: 'bases-chart-property-check', attr: { 'aria-label': 'Selected' } }), 'check');
 		this.propertyEditButton(row, 'x', x);
 		if (this.view.isDateXAxis()) {
-			const groupingRow = container.createDiv({ cls: 'bases-chart-date-grouping' });
-			groupingRow.createSpan({ text: 'Date grouping' });
-			const dropdown = groupingRow.createEl('button', {
+			const dateSettings = container.createDiv({ cls: 'bases-toolbar-menu-form bases-chart-date-settings' });
+			const groupingRow = dateSettings.createDiv({ cls: 'input-row bases-chart-date-grouping' });
+			groupingRow.createDiv({ cls: 'input-row-label', text: 'Date grouping' });
+			const groupingControl = groupingRow.createDiv({ cls: 'input-row-content' });
+			const dropdown = groupingControl.createEl('button', {
 				cls: 'dropdown', text: DATE_GROUPING_OPTIONS[this.view.getXDateGrouping()],
 				attr: { type: 'button', 'aria-label': 'Date grouping', 'aria-haspopup': 'menu', 'aria-expanded': 'false' },
 			});
@@ -396,9 +399,10 @@ export class ChartToolbar extends Component {
 				}
 			});
 			if (this.view.supportsMissingDates()) {
-				const gapRow = container.createDiv({ cls: 'bases-chart-date-gaps' });
-				gapRow.createSpan({ text: 'Show missing dates' });
-				this.dateGapToggle = new ToggleComponent(gapRow).onChange(enabled => {
+				const gapRow = dateSettings.createDiv({ cls: 'input-row bases-chart-date-gaps' });
+				gapRow.createDiv({ cls: 'input-row-label', text: 'Show missing dates' });
+				const gapControl = gapRow.createDiv({ cls: 'input-row-content' });
+				this.dateGapToggle = new ToggleComponent(gapControl).onChange(enabled => {
 					if (this.view.getXDateGrouping() === 'exact') return;
 					this.view.setShowMissingDates(enabled);
 					this.changed();

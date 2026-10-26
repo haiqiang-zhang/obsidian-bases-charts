@@ -97,8 +97,8 @@ function harness(width = 1280, height = 900, fontSize = 13, tooltipContext = con
 	};
 	doc.defaultView.createDiv = options => new Element(doc, options);
 	doc.defaultView.matchMedia = query => {
-		assert.equal(query, '(orientation: portrait)');
-		return { matches: doc.defaultView.innerHeight >= doc.defaultView.innerWidth };
+		assert.equal(query, '(max-width: 1024px) and (orientation: portrait)');
+		return { matches: doc.defaultView.innerWidth <= 1024 && doc.defaultView.innerHeight >= doc.defaultView.innerWidth };
 	};
 	doc.body = new Element(doc);
 	const container = new Element(doc);
@@ -213,26 +213,37 @@ test('fixed touch previews activate only for portrait phones with a shared previ
 		state.doc.defaultView.innerHeight = 844;
 		assert.equal(state.tooltip.usesTouchPreview(), true, 'orientation is evaluated against the owning window');
 		Platform.isPhone = false;
-		assert.equal(state.tooltip.usesTouchPreview(), false, 'a portrait tablet must keep the full chart');
+		assert.equal(state.tooltip.usesTouchPreview(), true, 'folding must not wait for phone classification');
+		state.doc.defaultView.innerWidth = 840;
+		state.doc.defaultView.innerHeight = 930;
+		assert.equal(state.tooltip.usesTouchPreview(), true, 'portrait foldables retain the bottom preview');
+		state.doc.defaultView.innerWidth = 1024;
+		state.doc.defaultView.innerHeight = 1366;
+		assert.equal(state.tooltip.usesTouchPreview(), true);
+		state.doc.defaultView.innerWidth = 1025;
+		assert.equal(state.tooltip.usesTouchPreview(), false);
+		state.doc.defaultView.innerWidth = 390;
+		Platform.isMobile = false;
+		assert.equal(state.tooltip.usesTouchPreview(), false, 'narrow desktop windows never show the phone panel');
 	} finally {
 		Platform.isPhone = Platform.isMobile = false;
 	}
 });
 
-test('the shared preview remains empty and hidden until a valid touch selection', () => {
+test('the shared preview starts with guidance and retains a valid selection after release', () => {
 	const { tooltip, previewEl, app } = harness(390, 844, 13, context, true);
 	tooltip.resetTouchPreview();
 	assert.equal(previewEl.attributes.get('role'), 'region');
 	assert.equal(previewEl.attributes.get('aria-label'), 'Chart selection');
-	assert.equal(previewEl.children.length, 0);
-	assert.ok(previewEl.className.split(' ').includes('bases-charts-hidden'));
+	const placeholder = previewEl.find('bases-chart-touch-preview-placeholder');
+	assert.ok(placeholder);
+	assert.equal(placeholder.find('bases-chart-touch-preview-icon').icon, 'mouse-pointer-2');
 	assert.equal(previewEl.find('bases-chart-touch-preview-footer'), null);
 	assert.deepEqual(app.modals, []);
 	Platform.isPhone = Platform.isMobile = true;
 	try {
 		assert.equal(tooltip.preview({ data: { _raw: null } }, context), false);
-		assert.equal(previewEl.children.length, 0);
-		assert.ok(previewEl.className.split(' ').includes('bases-charts-hidden'));
+		assert.equal(previewEl.find('bases-chart-touch-preview-placeholder'), placeholder);
 		assert.equal(tooltip.preview({ data: { _raw: rawPoint(2) } }, context), true);
 		assert.ok(!previewEl.className.split(' ').includes('bases-charts-hidden'));
 		const header = previewEl.find('bases-chart-touch-preview-header');
@@ -241,7 +252,10 @@ test('the shared preview remains empty and hidden until a valid touch selection'
 		assert.equal(previewEl.find('bases-chart-touch-preview-header'), header, 'selection persists when the finger leaves the data');
 		assert.ok(!previewEl.className.split(' ').includes('bases-charts-hidden'));
 		tooltip.resetTouchPreview();
-		assert.equal(previewEl.children.length, 0);
+		assert.ok(previewEl.find('bases-chart-touch-preview-placeholder'));
+		assert.equal(previewEl.find('bases-chart-touch-preview-header'), null);
+		tooltip.resetTouchPreview(false);
+		assert.equal(previewEl.children.length, 0, 'empty/error charts have no misleading touch hint');
 		assert.ok(previewEl.className.split(' ').includes('bases-charts-hidden'));
 	} finally {
 		tooltip.dispose();
@@ -310,6 +324,65 @@ test('unchanged previews preserve their action while opening the newest files, a
 	} finally {
 		Platform.isPhone = Platform.isMobile = false;
 	}
+});
+
+test('empty measures do not clear another chart’s shared hint or selection', () => {
+	Platform.isMobile = true;
+	try {
+		const { tooltip, previewEl, container, view } = harness(840, 930, 13, context, true);
+		const emptyMeasure = new ChartTooltip(container, view, () => {}, previewEl);
+		tooltip.resetTouchPreview();
+		const hint = previewEl.find('bases-chart-touch-preview-placeholder');
+		emptyMeasure.resetTouchPreview(false);
+		assert.equal(previewEl.find('bases-chart-touch-preview-placeholder'), hint);
+		tooltip.preview({ data: { _raw: rawPoint(2) } }, context);
+		const selection = previewEl.find('bases-chart-touch-preview-header');
+		emptyMeasure.resetTouchPreview(false);
+		assert.equal(previewEl.find('bases-chart-touch-preview-header'), selection);
+		tooltip.resetTouchPreview(false);
+		assert.equal(previewEl.children.length, 0, 'the owning measure clears stale data when it becomes empty');
+	} finally { Platform.isMobile = false; }
+});
+
+test('disposing the preview owner removes stale content before an empty replacement measure mounts', () => {
+	Platform.isMobile = true;
+	try {
+		for (const selected of [false, true]) {
+			const { tooltip, previewEl, container, view, app } = harness(840, 930, 13, context, true);
+			tooltip.resetTouchPreview();
+			if (selected) tooltip.preview({ data: { _raw: rawPoint(2) } }, context);
+			const oldButton = selected ? previewButton(previewEl) : null;
+			tooltip.dispose();
+			assert.equal(previewEl.children.length, 0, 'a removed measure must not leave an orphaned hint or selection');
+			assert.ok(previewEl.className.split(' ').includes('bases-charts-hidden'));
+			// ChartLayout unhides the shared panel when the new Y property is added.
+			previewEl.removeClass('bases-charts-hidden');
+			const replacement = new ChartTooltip(container, view, () => {}, previewEl);
+			replacement.resetTouchPreview(false);
+			assert.equal(previewEl.children.length, 0);
+			assert.ok(previewEl.className.split(' ').includes('bases-charts-hidden'));
+			oldButton?.dispatch('click');
+			assert.equal(app.modals.length, 0, 'detached actions cannot reopen the disposed selection');
+			replacement.dispose();
+		}
+	} finally { Platform.isMobile = false; }
+});
+
+test('disposing another measure preserves the active shared preview and its action', () => {
+	Platform.isMobile = true;
+	try {
+		const { tooltip, previewEl, container, view, app } = harness(840, 930, 13, context, true);
+		const other = new ChartTooltip(container, view, () => {}, previewEl);
+		tooltip.resetTouchPreview();
+		other.preview({ data: { _raw: rawPoint(1, { files: ['active.md'] }) } }, context);
+		const button = previewButton(previewEl);
+		tooltip.dispose();
+		assert.equal(previewButton(previewEl), button);
+		assert.ok(!previewEl.className.split(' ').includes('bases-charts-hidden'));
+		button.dispatch('click');
+		assert.equal(app.modals.at(-1).files[0].path, 'active.md');
+		other.dispose();
+	} finally { Platform.isMobile = false; }
 });
 
 test('multiple chart renderers can replace the shared preview without stale deduplication', () => {
@@ -622,16 +695,18 @@ test('a large radar preview caps visible categories while the modal retains all 
 });
 
 
-test('mobile charts without a fixed preview retain data drawer access without a floating tooltip', () => {
+test('wide and landscape mobile windows show anchored tooltips and retain data drawer access', () => {
     Platform.isMobile = true;
     try {
-        const { options, tooltip, app } = harness(390, 844);
-        assert.equal(options.show, false);
-        assert.equal(options.triggerOn, 'none');
-        tooltip.openFiles(rawPoint(8), context);
-        assert.equal(app.modals.length, 1);
-        assert.equal(app.modals[0].files.length, 8);
-        assert.equal(app.events.at(-1), 'open');
+        for (const [width, height, preview] of [[844, 390, true], [1280, 1400, true], [568, 320, true], [390, 844, false]]) {
+            const { options, tooltip, app } = harness(width, height, 13, context, preview);
+            assert.equal(options.show, true);
+            assert.equal(options.triggerOn, undefined, 'use ECharts default hover/click behavior');
+            tooltip.openFiles(rawPoint(8), context);
+            assert.equal(app.modals.length, 1);
+            assert.equal(app.modals[0].files.length, 8);
+            assert.equal(app.events.at(-1), 'open');
+        }
     } finally {
         Platform.isMobile = false;
     }

@@ -14,7 +14,8 @@ export interface ChartFileDetails {
 	groupLabel?: string;
 }
 
-const PAGE_SIZE = 100;
+// Ordinary selections scroll as one list; only very large results need paging.
+const PAGE_SIZE = 1000;
 let nextAccessibleLabelId = 0;
 
 interface IndexedFile {
@@ -50,7 +51,8 @@ export class ChartFilesModal extends Modal {
 		this.setTitle(this.details?.xValue ?? this.heading);
 		this.containerEl.addClass('bases-chart-files-container');
 		this.modalEl.addClass('bases-chart-files-modal');
-		this.modalEl.toggleClass('mod-lg', Platform.isPhone);
+		// Native phone styling follows the current body class after folding/rotation.
+		this.modalEl.addClass('mod-lg');
 		this.contentEl.addClass('bases-chart-files-content');
 		this.contentEl.empty();
 		const conditions = this.contentEl.createDiv({ cls: 'bases-chart-files-conditions' });

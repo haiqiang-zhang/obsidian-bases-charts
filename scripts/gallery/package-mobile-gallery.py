@@ -32,7 +32,8 @@ CATALOG = [
     ('10-data-drawer.png', 'Source files', 'View data opens the source-file drawer above the selected chart.'),
     ('11-multiple-measures.png', 'Multiple measures', 'Scroll through vertically stacked measures while the selected values stay below the charts.'),
     ('12-dark.png', 'Dark theme', 'Chart colors and native controls in Obsidian’s dark theme.'),
-    ('14-landscape.png', 'Large landscape viewport', 'At 1024 × 768, the chart uses the available height without a bottom preview panel.'),
+    ('13-touch-preview.png', 'Touch preview', 'Before a selection, the fixed preview shows a touch instruction. Tap or slide across the chart to inspect values.'),
+    ('14-landscape.png', 'Foldable phone — landscape', 'At 930 × 840, tooltips appear beside the selected column without a bottom preview.'),
 ]
 
 
@@ -72,6 +73,9 @@ def expected_png_size(entry):
 def make_index(captures):
     cards = []
     for shot in captures:
+        # Keep the initial-state capture in the archive, outside the gallery cards.
+        if shot['file'] == '13-touch-preview.png':
+            continue
         src = 'images/' + shot['file']
         orientation = ' is-landscape' if shot['viewport'][0] > shot['viewport'][1] else ''
         cards.append(f'''<figure class="card{orientation}">
@@ -86,7 +90,7 @@ def make_index(captures):
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}header,main,footer{max-width:1080px;margin:auto;padding-inline:24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-block:24px;border-bottom:1px solid var(--line)}header>a{font-weight:650;text-decoration:none;color:var(--ink)}nav{display:flex;gap:20px;font-size:14px}nav a{text-decoration:none}.intro{max-width:740px;margin:48px 0 32px}h1{font-size:clamp(28px,4vw,40px);line-height:1.15;letter-spacing:-.025em;margin:0 0 16px;font-weight:600}.intro p{color:var(--muted);margin:8px 0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:24px}.card{margin:0;min-width:0;background:white;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgb(28 44 34 / 4%)}.card.is-landscape{grid-column:1/-1}.card>a{display:block;cursor:zoom-in}.card img{display:block;width:100%;height:auto}.card figcaption{padding:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:5px}.card strong{font-weight:600;font-size:15px}.card span{font-size:13px;color:var(--muted)}footer{padding-block:36px;font-size:13px;color:var(--muted)}@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){header{align-items:flex-start;flex-direction:column;gap:12px}.intro{margin-top:32px}.grid{grid-template-columns:minmax(0,1fr);max-width:390px;margin-inline:auto}}
 </style></head><body>
 <header><a href="index.html">Bases Chart Views</a><nav aria-label="Gallery navigation"><a href="../index.html">Desktop gallery</a><a href="https://haiqiang-zhang.github.io/obsidian-bases-charts/mobile-gallery">Documentation</a></nav></header>
-<main><div class="intro"><h1>Mobile UI gallery</h1><p>Chart views, touch inspection, axis settings, palettes, and source-file details.</p><p>In portrait, tap or slide across the chart to update the fixed preview. The selection stays after you lift your finger. View data opens its source files. Landscape and tablet layouts use the full chart area without this panel.</p><p>Captured in Obsidian’s official mobile emulation at a 390 × 844 portrait phone viewport and a 1024 × 768 large landscape viewport, with 2× pixel density. Unused status-bar space is excluded. These are desktop emulator captures, not physical-device screenshots. Sample data is fictional and in English.</p></div>
+<main><div class="intro"><h1>Mobile UI gallery</h1><p>Chart views, touch inspection, axis settings, palettes, and source-file details.</p><p>On portrait phones and foldables up to 1024 CSS pixels wide, tap or slide across the chart to update the fixed preview below it. The selection stays after you lift your finger. View data opens its source files. Landscape layouts show tooltips beside the selected column, without a bottom preview.</p><p>Captured in Obsidian’s official mobile emulation at a 390 × 844 portrait phone viewport and a 930 × 840 landscape foldable-phone viewport, with 2× pixel density. Unused status-bar space is excluded. These are desktop emulator captures, not physical-device screenshots. Sample data is fictional and in English.</p></div>
 <section class="grid" aria-label="Mobile screenshots">
 ''' + '\n'.join(cards) + '''
 </section></main><footer>Obsidian mobile emulation · English sample data · Select an image to view it at full resolution.</footer>
@@ -116,7 +120,7 @@ def main():
             raise ValueError(f'{filename}: PNG {width}×{height} differs from capture bounds and scale {expected}')
         captures.append({
             **entry, 'file': filename, 'path': 'images/' + filename, 'title': title,
-            'description': description, 'plugin_commit': commit,
+            'description': description, 'plugin_commit': entry.get('plugin_commit', commit),
             'size': {'width': width, 'height': height}, 'bytes': len(data),
             'sha256': hashlib.sha256(data).hexdigest(),
         })

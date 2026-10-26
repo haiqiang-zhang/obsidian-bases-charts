@@ -1,4 +1,4 @@
-import { Platform } from 'obsidian';
+import { Platform, setIcon } from 'obsidian';
 import type { App } from 'obsidian';
 import type { TooltipComponentOption } from 'echarts';
 import type { ProcessedData } from '../dataCharts/data';
@@ -49,7 +49,7 @@ interface TooltipHost {
 export class ChartTooltip {
 	private modal: ChartFilesModal | null = null;
 	private touchSelection: { params: unknown; context: ChartTooltipContext } | null = null;
-	private touchPreviewHeader: HTMLElement | null = null;
+	private touchPreviewContent: HTMLElement | null = null;
 	private touchPreviewKey: string | null = null;
 
 	constructor(
@@ -61,19 +61,30 @@ export class ChartTooltip {
 
 	usesTouchPreview(): boolean {
 		const win = this.previewEl?.ownerDocument.defaultView;
-		return !!this.previewEl && Platform.isPhone && !!win?.matchMedia('(orientation: portrait)').matches;
+		// Match the preview's CSS directly; phone/tablet classification can lag a fold.
+		return !!this.previewEl && Platform.isMobile
+			&& !!win?.matchMedia('(max-width: 1024px) and (orientation: portrait)').matches;
 	}
 
-	resetTouchPreview(): void {
+	resetTouchPreview(showHint = true): void {
+		const ownsPreview = !this.previewEl?.children.length || this.touchPreviewContent?.parentElement === this.previewEl;
 		this.touchSelection = null;
-		this.touchPreviewHeader = null;
+		this.touchPreviewContent = null;
 		this.touchPreviewKey = null;
-		if (!this.previewEl) return;
+		// An empty measure must not clear another measure's shared hint or selection.
+		if (!this.previewEl || (!showHint && !ownsPreview)) return;
 		this.previewEl.empty();
 		this.previewEl.addClass('bases-chart-touch-preview');
-		this.previewEl.addClass('bases-charts-hidden');
+		if (showHint) this.previewEl.removeClass('bases-charts-hidden');
+		else this.previewEl.addClass('bases-charts-hidden');
 		this.previewEl.setAttribute('role', 'region');
 		this.previewEl.setAttribute('aria-label', 'Chart selection');
+		if (!showHint) return;
+		const placeholder = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-placeholder' });
+		this.touchPreviewContent = placeholder;
+		const icon = placeholder.createSpan({ cls: 'bases-chart-touch-preview-icon', attr: { 'aria-hidden': 'true' } });
+		setIcon(icon, 'mouse-pointer-2');
+		placeholder.createSpan({ text: 'Tap or drag on the chart to see details.' });
 	}
 
 	preview(params: unknown, context: ChartTooltipContext): boolean {
@@ -88,7 +99,7 @@ export class ChartTooltip {
 		const key = JSON.stringify([property, selected.x, visibleGroups, hiddenGroups, selected.total, selected.detailLabel, selected.fileCount]);
 		// Repeated moves in the same column must not replace the focused action or
 		// announce the same selection again. Another chart may share this panel.
-		if (this.touchPreviewKey === key && this.touchPreviewHeader?.parentElement === this.previewEl) return true;
+		if (this.touchPreviewKey === key && this.touchPreviewContent?.parentElement === this.previewEl) return true;
 		this.touchPreviewKey = key;
 		this.previewEl.empty();
 		this.previewEl.addClass('bases-chart-touch-preview');
@@ -96,7 +107,7 @@ export class ChartTooltip {
 		this.previewEl.setAttribute('aria-label', 'Chart selection');
 		const header = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-header',
 			attr: { 'aria-live': 'polite', 'aria-atomic': 'true' } });
-		this.touchPreviewHeader = header;
+		this.touchPreviewContent = header;
 		header.createDiv({ cls: 'bases-chart-touch-preview-property', text: property });
 		header.createDiv({ cls: 'bases-chart-touch-preview-title', text: selected.x });
 		const groups = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-groups' });
@@ -131,12 +142,12 @@ export class ChartTooltip {
 		anchor?: (params: unknown) => number[] | null,
 		plotBounds?: () => TooltipBounds | null): TooltipComponentOption {
 		let fixed: { key: string; point: number[] } | undefined;
+		const touchPreview = this.usesTouchPreview();
 		return {
 			...base,
-			// Mobile inspection uses the fixed preview or native data sheet.
-			// Floating hover previews remain available for desktop pointers.
-			show: !Platform.isMobile,
-			...(Platform.isMobile ? { triggerOn: 'none' as const } : {}),
+			// Wide mobile windows use the same anchored tooltip as desktop.
+			show: !touchPreview,
+			...(touchPreview ? { triggerOn: 'none' as const } : {}),
 			renderMode: 'html',
 			appendTo: element => element.ownerDocument.body,
 			confine: false,
@@ -295,8 +306,8 @@ export class ChartTooltip {
 	dispose(): void {
 		this.modal?.close();
 		this.modal = null;
-		this.touchSelection = null;
-		this.touchPreviewHeader = null;
-		this.touchPreviewKey = null;
+		// Remove owned content before losing its reference; other measures may
+		// keep using the same preview after this renderer is removed.
+		this.resetTouchPreview(false);
 	}
 }

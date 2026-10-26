@@ -86,10 +86,10 @@ test('phone data details do not focus search and summon the software keyboard', 
 	assert.equal(mobile.modalEl.classes.has('mod-lg'), true);
 	assert.equal(mobile.contentEl.find('bases-chart-files-search').focused, undefined);
 	const desktop = createModal([{ path: 'Study/note.md', value: 2 }]);
-	assert.equal(desktop.modalEl.classes.has('mod-lg'), false);
+	assert.equal(desktop.modalEl.classes.has('mod-lg'), true);
 	assert.equal(desktop.contentEl.find('bases-chart-files-search').focused, true);
 	const tablet = createModal([{ path: 'Study/note.md', value: 2 }], undefined, undefined, true, false);
-	assert.equal(tablet.modalEl.classes.has('mod-lg'), false);
+	assert.equal(tablet.modalEl.classes.has('mod-lg'), true);
 	assert.equal(tablet.contentEl.find('bases-chart-files-search').focused, undefined);
 });
 
@@ -111,38 +111,55 @@ test('responsive rows preserve one accessible table and labeled group/value cell
 	assert.equal(row.find('bases-chart-file-value').textContent, '7.5');
 });
 
-test('pagination limits initial DOM rows and appends the full list in batches', () => {
-	const files = Array.from({ length: 205 }, (_, index) => ({ path: `Study/note-${index}.md`, value: index }));
+test('ordinary selections and the 1000-file boundary show every file without Load more', () => {
+	for (const count of [205, 1000]) {
+		const files = Array.from({ length: count }, (_, index) => ({ path: `Study/note-${index}.md`, value: index }));
+		const modal = createModal(files, undefined, undefined, true);
+		const rows = modal.contentEl.find('bases-chart-files-table-body').children;
+		assert.equal(rows.length, count);
+		assert.equal(rows.at(-1).find('bases-chart-file-name').textContent, `note-${count - 1}`);
+		assert.equal(modal.contentEl.find('bases-chart-files-count').textContent, `${count} of ${count} files shown`);
+		assert.equal(modal.contentEl.find('bases-chart-files-footer').hidden, true);
+	}
+});
+
+test('very large selections load 1000 files at a time and focus the first appended row', () => {
+	const files = Array.from({ length: 2005 }, (_, index) => ({ path: `Study/note-${index}.md`, value: index }));
 	const modal = createModal(files);
 	const list = modal.contentEl.find('bases-chart-files-table-body');
 	const footer = modal.contentEl.find('bases-chart-files-footer');
 	const more = footer.find('bases-chart-files-more');
-	assert.equal(list.children.length, 100);
-	assert.equal(modal.contentEl.find('bases-chart-files-count').textContent, '100 of 205 files shown');
+	assert.equal(list.children.length, 1000);
+	assert.equal(modal.contentEl.find('bases-chart-files-count').textContent, '1000 of 2005 files shown');
 	assert.equal(footer.hidden, false);
 	more.dispatch('click');
-	assert.equal(list.children.length, 200);
-	assert.equal(list.children[100].find('bases-chart-file-open').focused, true);
+	assert.equal(list.children.length, 2000);
+	assert.equal(list.children[1000].find('bases-chart-file-open').focused, true);
+	assert.equal(footer.hidden, false);
 	more.dispatch('click');
-	assert.equal(list.children.length, 205);
+	assert.equal(list.children.length, 2005);
+	assert.equal(list.children[2000].find('bases-chart-file-open').focused, true);
 	assert.equal(footer.hidden, true);
-	assert.equal(modal.contentEl.find('bases-chart-files-count').textContent, '205 of 205 files shown');
+	assert.equal(modal.contentEl.find('bases-chart-files-count').textContent, '2005 of 2005 files shown');
 });
 
 test('search reaches unrendered files by full path and resets pagination', () => {
-	const files = Array.from({ length: 205 }, (_, index) => ({ path: `Study/note-${index}.md`, value: index }));
+	const files = Array.from({ length: 2005 }, (_, index) => ({ path: `Study/note-${index}.md`, value: index }));
 	const modal = createModal(files);
 	const search = modal.contentEl.find('bases-chart-files-search');
 	const list = modal.contentEl.find('bases-chart-files-table-body');
-	search.value = 'STUDY/NOTE-204.MD';
+	assert.equal(list.children.length, 1000);
+	assert.equal(list.children.at(-1).find('bases-chart-file-name').textContent, 'note-999');
+	search.value = 'STUDY/NOTE-2004.MD';
 	search.dispatch('input');
 	assert.equal(list.children.length, 1);
-	assert.equal(list.children[0].find('bases-chart-file-name').textContent, 'note-204');
+	assert.equal(list.children[0].find('bases-chart-file-name').textContent, 'note-2004');
 	assert.equal(list.children[0].find('bases-chart-file-folder').textContent, 'Study');
-	assert.equal(modal.contentEl.find('bases-chart-files-count').textContent, '1 of 1 files shown (205 total)');
+	assert.equal(modal.contentEl.find('bases-chart-files-count').textContent, '1 of 1 files shown (2005 total)');
+	assert.equal(modal.contentEl.find('bases-chart-files-footer').hidden, true);
 	search.value = '';
 	search.dispatch('input');
-	assert.equal(list.children.length, 100);
+	assert.equal(list.children.length, 1000);
 	assert.equal(modal.contentEl.find('bases-chart-files-footer').hidden, false);
 });
 

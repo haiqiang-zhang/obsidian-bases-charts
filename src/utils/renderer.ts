@@ -44,6 +44,7 @@ export class ChartRenderer {
 	private pointColumns: PointColumn[] | undefined;
 	private handledClicks = new WeakSet<object>();
 	private touchGuideEnabled = false;
+	private touchPreviewMode = false;
 
 	private onColumnClick = (event: PointerEvent): void => {
 		if (this.handledClicks.has(event) || !this.tooltipContext) return;
@@ -101,15 +102,20 @@ export class ChartRenderer {
 	private initialize(): void {
 		this.chart = echarts.init(this.containerEl, undefined, { renderer: 'canvas' });
 		this.tooltip = new ChartTooltip(this.containerEl, this.view, () => this.hideTooltip(), this.previewEl);
+		this.touchPreviewMode = this.tooltip.usesTouchPreview();
 		const win = this.containerEl.ownerDocument.defaultView;
 		let lastWidth: number | undefined;
 		let lastHeight: number | undefined;
 		const onResize = () => {
 			const { clientWidth, clientHeight } = this.containerEl;
-			if (clientWidth === lastWidth && clientHeight === lastHeight) return;
+			const touchPreviewMode = this.tooltip?.usesTouchPreview() ?? false;
+			const modeChanged = touchPreviewMode !== this.touchPreviewMode;
+			if (clientWidth === lastWidth && clientHeight === lastHeight && !modeChanged) return;
 			lastWidth = clientWidth;
 			lastHeight = clientHeight;
 			this.hideTooltip();
+			if (modeChanged && this.option) this.applyOption(this.option, this.tooltipContext);
+			this.touchPreviewMode = touchPreviewMode;
 			this.plotBounds = undefined;
 			this.pointColumns = undefined;
 			this.chart?.resize();
@@ -384,6 +390,11 @@ export class ChartRenderer {
 		this.clearMessage();
 		this.hideTooltip();
 		this.tooltip?.resetTouchPreview();
+		this.applyOption(option, context);
+	}
+
+	private applyOption(option: EChartsOption, context?: ChartTooltipContext): void {
+		const touchPreviewMode = this.tooltip?.usesTouchPreview() ?? false;
 		const base = Array.isArray(option.tooltip) ? option.tooltip[0] : option.tooltip;
 		let rendered = context && this.tooltip
 			? { ...option, tooltip: this.tooltip.options(base ?? {}, context, params => this.tooltipAnchor(params),
@@ -397,7 +408,7 @@ export class ChartRenderer {
 				label: { show: false }, lineStyle: { ...base?.axisPointer?.lineStyle, type: 'dashed', width: 1 },
 			} }) };
 		}
-		if (this.tooltip?.usesTouchPreview() && rendered.series) {
+		if (touchPreviewMode && rendered.series) {
 			const series = Array.isArray(rendered.series) ? rendered.series : [rendered.series];
 			// A finger can leave ECharts' hovered-series state active after release.
 			// Keep every comparison visible while the fixed preview identifies data.
@@ -415,6 +426,7 @@ export class ChartRenderer {
 		this.pointColumns = undefined;
 		this.touchGuideEnabled = false;
 		this.chart?.setOption(rendered, { notMerge: true });
+		this.touchPreviewMode = touchPreviewMode;
 		this.option = option;
 		this.tooltipContext = context;
 		// ECharts registers its native tooltip handlers during setOption. Run
@@ -429,7 +441,7 @@ export class ChartRenderer {
 	showMessage(message: string, action?: { label: string; onClick: () => void }): void {
 		this.clearMessage();
 		this.hideTooltip();
-		this.tooltip?.resetTouchPreview();
+		this.tooltip?.resetTouchPreview(false);
 		this.option = null;
 		this.tooltipContext = undefined;
 		this.pointColumns = undefined;

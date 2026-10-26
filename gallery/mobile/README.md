@@ -2,9 +2,9 @@
 
 14 English screenshots of Bases Chart Views, using fictional sample data in **Obsidian’s official mobile emulation**. These are desktop emulator captures, not screenshots from a physical iOS or Android device.
 
-Portrait phone captures use **390 × 844 CSS pixels**; the large landscape capture uses **1024 × 768**. Both use **2× pixel density** and **100% zoom**. Captures exclude the emulator’s unused status-bar space while retaining the native navigation, controls, and drawers. No screenshot pixels are retouched.
+Portrait phone captures use **390 × 844 CSS pixels**; the landscape foldable-phone capture uses **930 × 840**. Both use **2× pixel density** and **100% zoom**. Captures exclude the emulator’s unused status-bar space while retaining the native navigation, controls, and drawers. No screenshot pixels are retouched.
 
-On portrait phones, tapping or sliding across the chart updates a fixed preview below it. The selection remains after release. **View data** opens the native source-file drawer. Landscape and tablet layouts use the full chart area without the bottom preview.
+On portrait phones and foldables up to 1024 CSS pixels wide, tapping or sliding across the chart updates a fixed preview below it. The selection remains after release. **View data** opens the native source-file drawer. Landscape layouts show tooltips beside the selected column, without a bottom preview.
 
 - `images/` contains the original PNG files.
 - [index.html](index.html) displays the local gallery.
@@ -28,7 +28,7 @@ On portrait phones, tapping or sliding across the chart updates a fixed preview 
 | [11-multiple-measures.png](images/11-multiple-measures.png) | Scrollable stacked charts with a fixed selection preview |
 | [12-dark.png](images/12-dark.png) | Chart and controls in dark mode |
 | [13-touch-preview.png](images/13-touch-preview.png) | Initial preview before selecting chart data |
-| [14-landscape.png](images/14-landscape.png) | Large 1024 × 768 landscape viewport without a bottom preview |
+| [14-landscape.png](images/14-landscape.png) | Foldable phone — landscape: 930 × 840 with tooltips beside the selected column |
 
 ## Rebuild the package
 
@@ -38,7 +38,7 @@ Capture the plugin in a separate test vault using Obsidian’s `dev:mobile on` m
 python3 scripts/gallery/capture-mobile.py
 ```
 
-The script captures all 14 images through actual touch input and restores the saved Sandbox workspace. For a manual large landscape capture, use `--view '03 Capacity.base' 'A season of progress' --viewport 1024 768`, then `--current 14-landscape`. Finish manual sessions with `--close`.
+The script captures all 14 images through actual touch input and restores the saved Sandbox workspace. For a manual landscape foldable-phone capture, use `--view '03 Capacity.base' 'A season of progress' --viewport 930 840`, then `--current 14-landscape`. Finish manual sessions with `--close`.
 
 Store the capture metadata in `capture-metadata.json`. Every capture must record its filename, viewport, capture bounds, device scale factor, zoom, view state, and theme. Run from the repository root after all images are present:
 

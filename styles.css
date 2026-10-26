@@ -531,6 +531,10 @@ body {
     height: auto;
     font-weight: var(--font-normal);
 }
+/* Axis controls are toolbar items. Tablet dialog-button padding is too wide here. */
+.bases-chart-toolbar .bases-toolbar-item > button.bases-chart-axis-button {
+    padding: var(--size-4-1);
+}
 /* Follow the native compact toolbar breakpoint without wrapping its fixed-height header. */
 .bases-chart-axis-summary {
     display: var(--bases-toolbar-label-display, inline);
@@ -540,6 +544,18 @@ body {
     white-space: nowrap;
     color: var(--text-muted);
     font-size: var(--font-ui-smaller);
+}
+/* Bases' native breakpoint does not account for the two added axis controls.
+   Use the pane's header and font size so folding, split panes, and UI zoom adapt alike. */
+@container bases-header (width < 62.5em) {
+    .bases-chart-toolbar .bases-chart-axis-summary { display: none; }
+}
+@container bases-header (width < 50em) {
+    .bases-chart-toolbar > .bases-toolbar-item:not(.bases-toolbar-result-count) {
+        --bases-toolbar-label-display: none;
+    }
+    .bases-chart-toolbar > .bases-toolbar-result-count { display: none; }
+    .bases-chart-toolbar > .bases-toolbar-views-menu { margin-inline-end: auto; }
 }
 /* Match native Bases menus while keeping the chart controls scoped. */
 .bases-chart-axis-panel {
@@ -620,23 +636,21 @@ body {
     flex: 1 1 auto;
 }
 .bases-chart-property-results > .bases-chart-panel-description { padding: var(--size-4-2); }
-.bases-chart-date-grouping,
-.bases-chart-date-gaps {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--size-4-2);
-    min-height: 32px;
-    padding-inline: var(--size-4-2) var(--size-4-1);
+.bases-chart-date-settings {
     flex-shrink: 0;
+    margin-block-start: var(--size-4-2);
 }
-.bases-chart-date-grouping > span,
-.bases-chart-date-gaps > span { color: var(--text-muted); }
-.bases-chart-date-grouping > .dropdown {
-    max-width: 55%;
+.bases-chart-date-grouping .dropdown {
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+/* Keep the native arrow clearance when tablet styling targets all buttons. */
+.bases-chart-axis-panel .bases-chart-date-grouping button.dropdown {
+    display: block;
+    padding: var(--dropdown-padding);
+    text-align: start;
 }
 .bases-chart-panel-footer {
     flex: 0 0 auto;
@@ -876,6 +890,42 @@ body {
 .bases-chart-palette-check svg { width: 16px; height: 16px; }
 .bases-chart-palette-empty { padding: 16px 10px; color: var(--text-muted); font-size: var(--font-ui-small); }
 
+/* Mobile details use the native modal surface, without a second framed panel. */
+.is-mobile .modal.bases-chart-files-modal {
+    height: auto;
+    min-height: 0;
+    max-height: min(84dvh, calc(100dvh - var(--safe-area-inset-top, 0px) - var(--keyboard-height, 0px)));
+    padding: 0;
+}
+.is-mobile .bases-chart-files-modal .modal-header { padding: var(--size-4-4) var(--size-4-4) var(--size-4-3); }
+.is-mobile .bases-chart-files-modal .modal-title { margin-bottom: 0; }
+.is-mobile .bases-chart-files-modal .modal-content.bases-chart-files-content {
+    container: chart-files / inline-size;
+    flex: 0 1 auto;
+    gap: var(--size-4-3);
+    padding: 0 0 var(--size-4-4);
+}
+.is-mobile :is(.bases-chart-files-conditions, .bases-chart-files-tools, .bases-chart-files-footer) { margin-inline: var(--size-4-4); }
+.is-mobile .bases-chart-files-condition {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+}
+.is-mobile .bases-chart-files-tools { padding: var(--size-2-1); }
+.is-mobile .bases-chart-files-tools .bases-chart-files-search { height: var(--touch-size-m); }
+.is-mobile .bases-chart-files-list {
+    box-sizing: border-box;
+    flex: 0 1 auto;
+    /* Native modal inset inside the scroll area keeps the scrollbar at the edge. */
+    padding-inline: var(--size-4-4);
+    border: 0;
+    border-radius: 0;
+}
+.is-mobile .bases-chart-files-table th { padding-block: var(--size-4-2); }
+.is-mobile .bases-chart-files-table .bases-chart-files-file-heading { padding-inline-start: 0; }
+.is-mobile .bases-chart-files-table button.bases-chart-file-open { padding-inline-start: 0; }
+.is-mobile .bases-chart-files-table :is(.bases-chart-file-value, .bases-chart-files-value-heading) { padding-inline-end: 0; }
+
 /* Phone controls use Obsidian's native Modal sheet, header and dismissal. */
 .is-phone .modal-container.bases-chart-files-container {
     align-items: flex-end;
@@ -911,79 +961,82 @@ body {
     font-size: var(--font-ui-large);
 }
 .is-phone .bases-chart-axis-modal .bases-chart-selection-count { margin-inline-start: var(--size-4-2); }
+.is-phone .bases-chart-files-modal .modal-title { padding-inline-start: 0; }
 .is-phone .bases-chart-files-modal .modal-content.bases-chart-files-content {
-    padding: var(--size-4-2) var(--size-4-4) max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
+    padding: var(--size-4-2) 0 max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
     gap: var(--size-4-3);
 }
-.is-phone .bases-chart-files-tools { padding: 2px; }
-.is-phone .bases-chart-files-tools .bases-chart-files-search {
-    height: var(--touch-size-m);
-    flex-basis: 100%;
-    width: 100%;
+/* Follow the available width immediately, including during a fold transition. */
+@container chart-files (max-width: 600px) {
+    .is-mobile .bases-chart-files-tools .bases-chart-files-search {
+        height: var(--touch-size-m);
+        flex-basis: 100%;
+        width: 100%;
+    }
+    /* A semantic table with stacked file/group information and visible values. */
+    .is-mobile .bases-chart-files-table,
+    .is-mobile .bases-chart-files-table-grouped { min-width: 0; }
+    .is-mobile .bases-chart-files-table :is(thead, tbody) { display: block; }
+    .is-mobile .bases-chart-files-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--background-primary);
+    }
+    .is-mobile .bases-chart-files-table tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(52px, max-content);
+    }
+    .is-mobile .bases-chart-files-table .bases-chart-file-row {
+        display: grid;
+        border-bottom: var(--border-width) solid var(--background-modifier-border);
+    }
+    .is-mobile .bases-chart-files-table .bases-chart-file-row:last-child { border-bottom: 0; }
+    .is-mobile .bases-chart-files-table :is(th, td) {
+        position: static;
+        min-width: 0;
+        width: auto;
+        border: 0;
+        padding: var(--size-4-3);
+    }
+    .is-mobile .bases-chart-files-table .bases-chart-files-group-heading {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+    .is-mobile .bases-chart-files-table .bases-chart-file-cell {
+        grid-column: 1;
+        grid-row: 1;
+        padding: 0;
+    }
+    .is-mobile .bases-chart-files-table .bases-chart-file-open {
+        padding: var(--size-4-3);
+        min-height: var(--touch-size-l);
+    }
+    .is-mobile .bases-chart-files-table .bases-chart-file-group {
+        grid-column: 1;
+        grid-row: 2;
+        padding: 0 var(--size-4-3) var(--size-4-3) 0;
+        font-size: var(--font-ui-smaller);
+        overflow-wrap: anywhere;
+    }
+    .is-mobile .bases-chart-files-table .bases-chart-file-group::before {
+        content: attr(data-label) ': ';
+        color: var(--text-faint);
+    }
+    .is-mobile .bases-chart-files-table :is(.bases-chart-file-value, .bases-chart-files-value-heading) {
+        grid-column: 2;
+        max-width: 110px;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .is-mobile .bases-chart-files-table .bases-chart-file-value { grid-row: 1 / span 2; align-self: center; }
+    .is-mobile .bases-chart-files-table .bases-chart-files-empty { grid-column: 1 / -1; }
 }
-/* A semantic table with stacked file/group information and visible values. */
-.is-phone .bases-chart-files-table,
-.is-phone .bases-chart-files-table-grouped { min-width: 0; }
-.is-phone .bases-chart-files-table :is(thead, tbody) { display: block; }
-.is-phone .bases-chart-files-table thead {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: var(--background-primary);
-}
-.is-phone .bases-chart-files-table tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(52px, max-content);
-}
-.is-phone .bases-chart-files-table .bases-chart-file-row {
-    display: grid;
-    border-bottom: var(--border-width) solid var(--background-modifier-border);
-}
-.is-phone .bases-chart-files-table .bases-chart-file-row:last-child { border-bottom: 0; }
-.is-phone .bases-chart-files-table :is(th, td) {
-    position: static;
-    min-width: 0;
-    width: auto;
-    border: 0;
-    padding: var(--size-4-3);
-}
-.is-phone .bases-chart-files-table .bases-chart-files-group-heading {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-}
-.is-phone .bases-chart-files-table .bases-chart-file-cell {
-    grid-column: 1;
-    grid-row: 1;
-    padding: 0;
-}
-.is-phone .bases-chart-files-table .bases-chart-file-open {
-    padding: var(--size-4-3);
-    min-height: var(--touch-size-l);
-}
-.is-phone .bases-chart-files-table .bases-chart-file-group {
-    grid-column: 1;
-    grid-row: 2;
-    padding: 0 var(--size-4-3) var(--size-4-3);
-    font-size: var(--font-ui-smaller);
-    overflow-wrap: anywhere;
-}
-.is-phone .bases-chart-files-table .bases-chart-file-group::before {
-    content: attr(data-label) ': ';
-    color: var(--text-faint);
-}
-.is-phone .bases-chart-files-table :is(.bases-chart-file-value, .bases-chart-files-value-heading) {
-    grid-column: 2;
-    max-width: 110px;
-    min-width: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
-}
-.is-phone .bases-chart-files-table .bases-chart-file-value { grid-row: 1 / span 2; align-self: center; }
-.is-phone .bases-chart-files-table .bases-chart-files-empty { grid-column: 1 / -1; }
 
 .is-mobile .bases-chart-axis-modal {
     display: flex;
@@ -1064,36 +1117,37 @@ body {
 /* Short selections should not leave a mostly empty, full-height drawer. */
 .is-phone .modal.bases-chart-files-modal.mod-lg {
     height: auto;
-    min-height: min(48dvh, 420px, calc(100dvh - var(--safe-area-inset-top, 0px) - var(--keyboard-height, 0px)));
+    min-height: 0;
     max-height: min(72dvh, calc(100dvh - var(--safe-area-inset-top, 0px) - var(--keyboard-height, 0px)));
 }
 
-/* Portrait phones reserve a stable reading area below the plot. */
+/* Portrait phones and foldables reserve a stable reading area below the plot. */
 .bases-chart-touch-preview { display: none; }
-@media (orientation: portrait) {
-    .is-phone .bases-data-chart-view { overflow: hidden; }
-    .is-phone .bases-data-chart-view > .bases-charts-plot-grid {
+@media (max-width: 1024px) and (orientation: portrait) {
+    .is-mobile .bases-data-chart-view { overflow: hidden; }
+    .is-mobile .bases-data-chart-view > .bases-charts-plot-grid {
         flex: 1 1 auto;
         min-height: 160px;
         overflow-y: auto;
         overflow-x: hidden;
         overscroll-behavior-y: contain;
     }
-    .is-phone .bases-data-chart-view > .bases-charts-plot-grid:has(> .bases-charts-plot-grid-item:only-child) {
+    .is-mobile .bases-data-chart-view > .bases-charts-plot-grid:has(> .bases-charts-plot-grid-item:only-child) {
         grid-template-rows: minmax(0, 1fr);
         overflow: visible;
     }
-    .is-phone .bases-data-chart-view > .bases-charts-plot-grid > .bases-charts-plot-grid-item:only-child {
+    .is-mobile .bases-data-chart-view > .bases-charts-plot-grid > .bases-charts-plot-grid-item:only-child {
         height: 100%;
         min-height: 0;
         max-height: none;
         aspect-ratio: auto;
     }
-    .is-phone .bases-data-chart-view .bases-charts-plot-grid-item { touch-action: pan-y; }
-    .is-phone .bases-data-chart-view::before,
-    .is-phone .bases-data-chart-view::after { display: none; }
-    .is-phone .bases-chart-touch-preview:not(.bases-charts-hidden) {
+    .is-mobile .bases-data-chart-view .bases-charts-plot-grid-item { touch-action: pan-y; }
+    .is-mobile .bases-data-chart-view::before,
+    .is-mobile .bases-data-chart-view::after { display: none; }
+    .is-mobile .bases-chart-touch-preview:not(.bases-charts-hidden) {
         display: flex;
+        order: 1;
         flex: 0 0 auto;
         flex-direction: column;
         min-height: 150px;
@@ -1106,7 +1160,24 @@ body {
         overflow: hidden;
     }
 }
-.is-phone .bases-chart-touch-preview:empty { display: none; }
+.is-mobile .bases-chart-touch-preview:empty { display: none; }
+.bases-chart-touch-preview-placeholder {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: var(--size-4-3);
+    padding: var(--size-4-3);
+    color: var(--text-muted);
+}
+.bases-chart-touch-preview-placeholder > span:last-child { max-width: 26ch; }
+.bases-chart-touch-preview-icon {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--text-faint);
+    --icon-size: var(--icon-m);
+    --icon-stroke: var(--icon-m-stroke-width);
+}
 .bases-chart-touch-preview-header { flex: 0 0 auto; padding-bottom: var(--size-4-2); }
 .bases-chart-touch-preview-property { font-size: var(--font-ui-smaller); color: var(--text-muted); }
 .bases-chart-touch-preview-title { font-weight: var(--font-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1117,6 +1188,12 @@ body {
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
+}
+/* Wider portrait screens can compare more values without adding panel height. */
+@media (min-width: 601px) and (max-width: 1024px) and (orientation: portrait) {
+    .bases-chart-touch-preview-groups {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+    }
 }
 .bases-chart-touch-preview-row { display: flex; align-items: center; gap: var(--size-2-2); min-width: 0; min-height: 28px; }
 .bases-chart-touch-preview-row:only-child { grid-column: 1 / -1; }

@@ -4,7 +4,7 @@
 Install the current plugin build and gallery fixtures in the Sandbox first.
 This script never copies plugin files. It uses Obsidian's official mobile
 emulator, CDP touch input, and native PNG captures (390 x 844
-portrait and 1024 x 768 large landscape CSS pixels at 2x density). These are not
+portrait and 930 x 840 foldable landscape CSS pixels at 2x density). These are not
 physical-device screenshots. Native capture bounds exclude the measured unused
 top status area; the original viewport and crop are recorded separately. No
 image pixels are retouched after capture.
@@ -393,9 +393,9 @@ def capture_all():
     capture('12-dark', 'dark')
     set_theme('light')
     open_view('01 Trend.base', 'Weekly momentum')
-    wait_visible('.bases-chart-touch-preview-empty')
+    wait_visible('.bases-chart-touch-preview-placeholder')
     capture('13-touch-preview')
-    set_viewport(1024, 768)
+    set_viewport(930, 840)
     open_view('03 Capacity.base', 'A season of progress')
     wait_for("!Array.from(document.querySelectorAll('.bases-chart-touch-preview')).some(el=>el.getClientRects().length)",
              'full chart without a landscape preview panel')

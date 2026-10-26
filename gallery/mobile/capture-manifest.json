@@ -306,17 +306,23 @@
       },
       "theme": "light",
       "file": "10-data-drawer.png",
-      "captured_at": "2026-10-26T03:40:12Z",
+      "captured_at": "2026-10-26T17:48:56Z",
+      "plugin_commit": "b0a9e7d3981148d2faf6855ce79de17f61ec51ad",
+      "working_tree_modified": true,
+      "build_assets_sha256": {
+        "main.js": "a95085c11cee451fc2852d7af3e014054f73bfda1c18d834d87fd5f3612b75cb",
+        "styles.css": "d8c6bf9b20b1ac8c424b25765bb92649bf9ceb732ea2aecbd6af2baba1f9604e",
+        "manifest.json": "2e797c72341ff839429e43b97390f81c3066b88cb63976249c1268fcf90b77e5"
+      },
       "path": "images/10-data-drawer.png",
       "title": "Source files",
       "description": "View data opens the source-file drawer above the selected chart.",
-      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
       "size": {
         "width": 780,
         "height": 1586
       },
-      "bytes": 132293,
-      "sha256": "7652fc6781b53283a5030c8d5f0e8f9d6802d4185d249c6845aa1d9694172e41"
+      "bytes": 134398,
+      "sha256": "ad71d407e0a82f3d8143ddeb8b2b3bbf2fe940eefa41ff5b1c8ab965b2adc8c7"
     },
     {
       "viewport": [
@@ -413,14 +419,14 @@
     },
     {
       "viewport": [
-        1024,
-        768
+        930,
+        840
       ],
       "crop": {
         "x": 0,
         "y": 51,
-        "width": 1024,
-        "height": 717
+        "width": 930,
+        "height": 789
       },
       "device_scale_factor": 2,
       "zoom": 1,
@@ -430,17 +436,23 @@
       },
       "theme": "light",
       "file": "14-landscape.png",
-      "captured_at": "2026-10-26T03:40:24Z",
-      "path": "images/14-landscape.png",
-      "title": "Large landscape viewport",
-      "description": "At 1024 \u00d7 768, the chart uses the available height without a bottom preview panel.",
-      "plugin_commit": "015ca6ecdcff1da874246060615cee20a7e4e8e5",
-      "size": {
-        "width": 2048,
-        "height": 1434
+      "captured_at": "2026-10-26T17:21:14Z",
+      "plugin_commit": "b0a9e7d3981148d2faf6855ce79de17f61ec51ad",
+      "working_tree_modified": true,
+      "build_assets_sha256": {
+        "main.js": "48550ebca7a09337e23d5219890bc1dd1f57aa552dfc6fd6b0d51590bc3d3c90",
+        "styles.css": "e75a405e67fde69f272d5762ec1242b71de1721298dfa1b865c799f0026e5b68",
+        "manifest.json": "2e797c72341ff839429e43b97390f81c3066b88cb63976249c1268fcf90b77e5"
       },
-      "bytes": 87831,
-      "sha256": "319427dee36996ac42686e9db2b3ea02b27f755eb18bc611f63535be4e9a1ab9"
+      "path": "images/14-landscape.png",
+      "title": "Foldable phone \u2014 landscape",
+      "description": "At 930 \u00d7 840, tooltips appear beside the selected column without a bottom preview.",
+      "size": {
+        "width": 1860,
+        "height": 1578
+      },
+      "bytes": 85458,
+      "sha256": "2ebad5161179251c2bb99fcf04423e001c30a9afea29afcc56d04676c1f919fe"
     }
   ]
 }
