@@ -1,10 +1,12 @@
 import type { DataAdapter } from 'obsidian';
+import { Platform } from 'obsidian';
 
 const IPC_DIR = '.claude/ipc';
 
 declare const require: ((module: string) => Record<string, unknown>) | undefined;
 
 function getHostname(): string | null {
+	if (!Platform.isDesktop) return null;
 	try {
 		return (require!('os') as { hostname(): string }).hostname();
 	} catch {

@@ -23,16 +23,21 @@ export class AiChartView extends BaseChartView {
 		this.containerEl.addClass('bases-ai-chart-view');
 		this.chartEl = this.containerEl.createDiv({ cls: 'bases-charts-plot-grid-item' });
 		this.renderer = new ChartRenderer(this.chartEl, this);
+		this.onDataUpdated();
 	}
 
 	protected onChartUnload(): void {
 		void clearAiViewIpc(this.app.vault.adapter);
 		this.renderer?.dispose();
 		this.renderer = null;
+		this.chartEl?.remove();
+		this.chartEl = null;
+		this.initialized = false;
 		this.containerEl.removeClass('bases-ai-chart-view');
 	}
 
 	override onDataUpdated(): void {
+		if (!this.renderer || !this.config) return;
 		if (!this.initialized) {
 			this.initialized = true;
 			void writeAiViewIpc(this.app.vault.adapter, this.config.name);
@@ -43,12 +48,24 @@ export class AiChartView extends BaseChartView {
 	}
 
 	private async initialize(): Promise<void> {
+		// Claudian is needed to generate a chart, not to reopen saved options.
+		if (this.hasSavedOption()) {
+			this.renderFromConfig();
+			return;
+		}
+		const renderer = this.renderer;
 		const status = await checkSkillStatus(this.app);
-		if (status.skillInstalled && status.systemPromptConfigured) {
+		if (!renderer || this.renderer !== renderer) return;
+		if (this.hasSavedOption() || (status.skillInstalled && status.systemPromptConfigured)) {
 			this.renderFromConfig();
 		} else {
 			this.showSetup(status.skillInstalled, status.systemPromptConfigured);
 		}
+	}
+
+	private hasSavedOption(): boolean {
+		const option = this.config?.get(ECHARTS_OPTION_KEY);
+		return !!option && typeof option === 'object';
 	}
 
 	private showSetup(skillInstalled: boolean, systemPromptConfigured: boolean): void {

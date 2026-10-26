@@ -53,6 +53,7 @@ const bundle = await build({
 });
 
 class Element {
+	isConnected = true;
 	children = [];
 	classes = new Set();
 	parentElement = null;
@@ -140,6 +141,20 @@ const config = {
 	get: () => false,
 };
 const data = { groupedData: [{ entries: [{ y: 42, isNumeric: true }] }] };
+
+test('detached embeds render with their owning document font before attachment', () => {
+	const h = harness();
+	h.view.config = config;
+	h.view.data = data;
+	h.view.containerEl.isConnected = false;
+	h.view.containerEl.win.getComputedStyle = target => {
+		assert.equal(target, h.view.containerEl.doc.body);
+		return { fontFamily: 'Obsidian test font', getPropertyValue: () => '' };
+	};
+	h.view.onDataUpdated(); h.flush();
+	assert.equal(h.renderers[0].calls[0][0].textStyle.fontFamily, 'Obsidian test font');
+	h.view.onunload();
+});
 
 function paletteConfig(value) {
 	return { ...config, get: key => key === 'color-palette' ? value : false };

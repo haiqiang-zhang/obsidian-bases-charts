@@ -1,5 +1,6 @@
 import type { GridComponentOption } from 'echarts';
 import { getPaletteColors } from './chartPalettes';
+import { getChartStyle } from './chartStyle';
 
 export interface ResolvedColors {
 	palette: string[];
@@ -11,7 +12,7 @@ export interface ResolvedColors {
 }
 
 export function resolveColors(containerEl: HTMLElement, paletteId?: unknown): ResolvedColors {
-	const style = containerEl.win.getComputedStyle(containerEl);
+	const style = getChartStyle(containerEl);
 	const isDark = containerEl.doc.body.classList.contains('theme-dark');
 	const palette = getPaletteColors(paletteId, isDark);
 	return {

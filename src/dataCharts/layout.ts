@@ -6,6 +6,7 @@ import { AggregateMode, aggregateKey } from './aggregate';
 import { COMMON_SETTINGS } from './types';
 import { ChartRenderer } from '../utils/renderer';
 import { resolveColors } from '../ui/colors';
+import { getChartStyle } from '../ui/chartStyle';
 
 export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
@@ -60,7 +61,7 @@ export class ChartLayout {
 		const chartCount = this.view.getChartCount(data);
 
 		const colors = resolveColors(this.containerEl, this.view.config.get(COMMON_SETTINGS.COLOR_PALETTE));
-		const fontFamily = this.containerEl.win.getComputedStyle(this.containerEl).fontFamily;
+		const fontFamily = getChartStyle(this.containerEl).fontFamily;
 		this.renderLegend(data, colors.palette);
 		this.reconcileRenderers(chartCount);
 

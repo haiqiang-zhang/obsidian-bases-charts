@@ -24,6 +24,7 @@ const {
 function container(isDark = false, variables = {}) {
 	const state = { isDark, reads: 0 };
 	const element = {
+		isConnected: true,
 		doc: { body: { classList: { contains: name => name === 'theme-dark' && state.isDark } } },
 		win: {
 			getComputedStyle(target) {
@@ -51,6 +52,37 @@ test('Auto preserves the existing muted palette in both themes', () => {
 	assert.equal(palette.kind, 'categorical');
 	assert.deepEqual(palette.light, ['#6B8EAD', '#88A28A', '#C0A269', '#BA8774', '#9C8AA5', '#74A29E', '#B68D9B', '#9B958B']);
 	assert.deepEqual(palette.dark, ['#8BA9C3', '#A0B69E', '#CCB47E', '#CC9A87', '#B2A0BB', '#91B8B3', '#C5A1AE', '#ADA79D']);
+});
+
+test('detached embeds inherit colors from their own document and retain scoped styles after attachment', () => {
+	for (const isDark of [false, true]) {
+		const h = container(isDark);
+		const bodyVariables = {
+			'--text-normal': isDark ? '#eeeeee' : '#222222',
+			'--text-muted': isDark ? '#aaaaaa' : '#555555',
+			'--background-modifier-border': isDark ? '#444444' : '#dddddd',
+			'--background-primary': isDark ? '#121212' : '#fafafa',
+		};
+		h.element.isConnected = false;
+		h.element.win.getComputedStyle = target => {
+			assert.equal(target, h.element.doc.body, 'use the owning popout body, never a global document');
+			return { getPropertyValue: name => bodyVariables[name] ?? '' };
+		};
+		const detached = resolveColors(h.element, 'coastal');
+		assert.equal(detached.text, bodyVariables['--text-normal']);
+		assert.equal(detached.mutedText, bodyVariables['--text-muted']);
+		assert.equal(detached.grid, bodyVariables['--background-modifier-border']);
+		assert.equal(detached.background, bodyVariables['--background-primary']);
+		assert.deepEqual(detached.palette, getPaletteColors('coastal', isDark));
+		h.element.isConnected = true;
+		h.element.win.getComputedStyle = target => {
+			assert.equal(target, h.element);
+			return { getPropertyValue: name => name === '--text-normal' ? '#123456' : bodyVariables[name] ?? '' };
+		};
+		const attached = resolveColors(h.element, 'coastal');
+		assert.equal(attached.text, '#123456');
+		assert.deepEqual(attached.palette, detached.palette, 'attachment must not change series and legend colors');
+	}
 });
 
 test('missing, malformed, and unknown saved settings safely resolve to Auto', () => {
