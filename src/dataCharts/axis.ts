@@ -1,4 +1,4 @@
-import type { XAXisComponentOption, YAXisComponentOption } from 'echarts';
+import type { EChartsOption, XAXisComponentOption, YAXisComponentOption } from 'echarts';
 import type { DataWrapper, ProcessedData } from './data';
 import type { ResolvedColors } from '../ui/colors';
 import type { XAxisType } from '../utils/utils';
@@ -18,6 +18,7 @@ export function buildXAxisConfig(
 	xAxis: XAXisComponentOption;
 	xCategories: string[];
 	xAxisType: XAxisType;
+	axisMedia: EChartsOption['media'];
 } {
 	const flatData = data.getFlat(chartIndex);
 	const flatXSet = new Set(flatData.map(d => toXKey(d.x)));
@@ -59,7 +60,37 @@ export function buildXAxisConfig(
 		xAxis.nameGap = crowded ? Math.ceil(labelWidth * Math.sin(rotation * Math.PI / 180)) + 22 : 36;
 	}
 
-	return { xAxis, xCategories, xAxisType };
+	return { xAxis, xCategories, xAxisType, axisMedia: categoryAxisMedia(xAxis, xCategories) };
+}
+
+/** Keep modest category sets readable in narrow views without shrinking text. */
+function categoryAxisMedia(xAxis: XAXisComponentOption, categories: string[]): EChartsOption['media'] {
+	const categoryCount = categories.length;
+	// Long paths need the existing wider, sampled labels to retain distinct
+	// prefixes. Wrapping each into a tiny band would make them indistinguishable.
+	if (xAxis.type !== 'category' || categoryCount < 2 || categoryCount > 8 || categories.some(value => value.length > 24)) return [];
+	const compactAxis = (availableWidth: number): XAXisComponentOption => ({
+		nameGap: 48,
+		axisLabel: {
+			...xAxis.axisLabel,
+			width: Math.min(110, Math.max(24, Math.floor(availableWidth / categoryCount) - 4)),
+			overflow: 'break',
+			lineOverflow: 'truncate',
+			height: 28,
+			lineHeight: 14,
+		},
+	});
+	return [
+		{ query: { maxWidth: 519 }, option: { xAxis: compactAxis(296) } },
+		{ query: { maxWidth: 359 }, option: { xAxis: compactAxis(216) } },
+		{
+			// Explicitly clear wrapping dimensions when the view widens again.
+			option: { xAxis: {
+				nameGap: xAxis.nameGap,
+				axisLabel: { ...xAxis.axisLabel, height: undefined, lineHeight: undefined, lineOverflow: undefined },
+			} },
+		},
+	];
 }
 
 /**

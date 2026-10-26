@@ -5,7 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
 const result = await build({
-	entryPoints: [fileURLToPath(new URL('../src/ui/chartFilesModal.ts', import.meta.url))],
+	stdin: {
+		contents: `export { ChartFilesModal } from './src/ui/chartFilesModal.ts'; export { Platform as hostPlatform } from 'obsidian';`,
+		resolveDir: fileURLToPath(new URL('..', import.meta.url)),
+	},
 	bundle: true,
 	write: false,
 	format: 'esm',
@@ -15,8 +18,8 @@ const result = await build({
 		setup(builder) {
 			builder.onResolve({ filter: /^obsidian$/ }, () => ({ path: 'obsidian', namespace: 'host-stub' }));
 			builder.onLoad({ filter: /.*/, namespace: 'host-stub' }, () => ({
-				contents: `export class Modal {
-					constructor(app) { this.modalEl = app.makeElement(); this.contentEl = app.makeElement(); this.titleEl = app.makeElement(); }
+				contents: `export const Platform = { isMobile: false, isPhone: false }; export class Modal {
+					constructor(app) { this.containerEl = app.makeElement(); this.modalEl = app.makeElement(); this.contentEl = app.makeElement(); this.titleEl = app.makeElement(); }
 					setTitle(title) { this.titleEl.textContent = title; return this; }
 					close() { this.closed = true; this.onClose(); }
 				}`,
@@ -24,7 +27,7 @@ const result = await build({
 		},
 	}],
 });
-const { ChartFilesModal } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-files-modal-under-test.mjs`).toString('base64')}`);
+const { ChartFilesModal, hostPlatform } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-files-modal-under-test.mjs`).toString('base64')}`);
 
 // Exercise list/search/pagination against a minimal text-only DOM boundary.
 class Element {
@@ -49,6 +52,7 @@ class Element {
 	createDiv(options) { return this.createEl('div', options); }
 	createSpan(options) { return this.createEl('span', options); }
 	addClass(cls) { this.classes.add(cls); }
+	toggleClass(cls, enabled) { if (enabled) this.classes.add(cls); else this.classes.delete(cls); }
 	setAttribute(name, value) { this.attributes.set(name, value); }
 	addEventListener(name, callback) { this.listeners.set(name, callback); }
 	dispatch(name, event = {}) {
@@ -67,11 +71,45 @@ class Element {
 	}
 }
 
-function createModal(files, openFile = async () => {}, details) {
+function createModal(files, openFile = async () => {}, details, mobile = false, phone = mobile) {
 	const modal = new ChartFilesModal({ makeElement: () => new Element() }, 'Folder: Study', 'Count: 205', files, openFile, details);
-	modal.onOpen();
+	hostPlatform.isMobile = mobile;
+	hostPlatform.isPhone = phone;
+	try { modal.onOpen(); }
+	finally { hostPlatform.isMobile = hostPlatform.isPhone = false; }
 	return modal;
 }
+
+test('phone data details do not focus search and summon the software keyboard', () => {
+	const mobile = createModal([{ path: 'Study/note.md', value: 2 }], undefined, undefined, true);
+	assert.equal(mobile.containerEl.classes.has('bases-chart-files-container'), true);
+	assert.equal(mobile.modalEl.classes.has('mod-lg'), true);
+	assert.equal(mobile.contentEl.find('bases-chart-files-search').focused, undefined);
+	const desktop = createModal([{ path: 'Study/note.md', value: 2 }]);
+	assert.equal(desktop.modalEl.classes.has('mod-lg'), false);
+	assert.equal(desktop.contentEl.find('bases-chart-files-search').focused, true);
+	const tablet = createModal([{ path: 'Study/note.md', value: 2 }], undefined, undefined, true, false);
+	assert.equal(tablet.modalEl.classes.has('mod-lg'), false);
+	assert.equal(tablet.contentEl.find('bases-chart-files-search').focused, undefined);
+});
+
+test('responsive rows preserve one accessible table and labeled group/value cells', () => {
+	const details = { xName: 'Week', xValue: 'Aug 31', yLabel: 'Hours (Sum)', groupLabel: 'Workstream' };
+	const modal = createModal([{ path: 'Sessions/Research/Interview.md', value: 7.5, group: '<Research>' }], undefined, details, true);
+	const table = modal.contentEl.find('bases-chart-files-table');
+	assert.equal(table.attributes.get('role'), 'table');
+	assert.deepEqual(table.children.map(section => section.attributes.get('role')), ['rowgroup', 'rowgroup']);
+	assert.equal(table.children[0].children[0].attributes.get('role'), 'row');
+	assert.deepEqual(table.children[0].children[0].children.map(cell => cell.attributes.get('role')), ['columnheader', 'columnheader', 'columnheader']);
+	const row = modal.contentEl.find('bases-chart-files-table-body').children[0];
+	assert.equal(row.attributes.get('role'), 'row');
+	assert.deepEqual(row.children.map(cell => cell.attributes.get('role')), ['cell', 'cell', 'cell']);
+	assert.equal(row.children.length, 3);
+	assert.equal(row.find('bases-chart-file-group').attributes.get('data-label'), 'Workstream');
+	assert.equal(row.find('bases-chart-file-group').textContent, '<Research>');
+	assert.equal(row.find('bases-chart-file-value').attributes.get('data-label'), 'Hours (Sum)');
+	assert.equal(row.find('bases-chart-file-value').textContent, '7.5');
+});
 
 test('pagination limits initial DOM rows and appends the full list in batches', () => {
 	const files = Array.from({ length: 205 }, (_, index) => ({ path: `Study/note-${index}.md`, value: index }));

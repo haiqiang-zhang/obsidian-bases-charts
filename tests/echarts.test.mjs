@@ -11,6 +11,7 @@ const result = await build({
 	stdin: {
 		contents: `
 			export { buildBarOption } from './src/dataCharts/charts/barChart.ts';
+			export { buildAreaOption } from './src/dataCharts/charts/areaChart.ts';
 			export { buildLineOption } from './src/dataCharts/charts/lineChart.ts';
 			export { buildScatterOption } from './src/dataCharts/charts/scatterChart.ts';
 			export { buildPieOption } from './src/dataCharts/charts/pieChart.ts';
@@ -36,7 +37,7 @@ const result = await build({
 		},
 	}],
 });
-const { buildBarOption, buildLineOption, buildScatterOption, buildPieOption, PropertySeparatedData } = await import(
+const { buildBarOption, buildAreaOption, buildLineOption, buildScatterOption, buildPieOption, PropertySeparatedData } = await import(
 	`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=echarts-builders-under-test.mjs`).toString('base64')}`,
 );
 
@@ -59,6 +60,7 @@ function makeData(axisType, grouped = false, xValues = values[axisType]) {
 function buildOption(type, data, xName = 'Folder / size / time →', yName = '↑ Amount (Sum)') {
 	const args = [data, 0, xName, yName, data.hasMultipleGroups(), colors];
 	if (type === 'bar') return buildBarOption(...args, true, false, false);
+	if (type === 'area') return buildAreaOption(...args);
 	if (type === 'line') return buildLineOption(...args, false);
 	if (type === 'scatter') return buildScatterOption(...args, false);
 	return buildPieOption(data, 0, colors, true, false, true);
@@ -118,6 +120,54 @@ function overlappingLabelPairs(labels) {
 		}
 	}
 	return pairs;
+}
+
+function visibleCategoryLabels(chart) {
+	const axis = chart.getModel().getComponent('xAxis');
+	const labels = [];
+	chart.getViewOfComponentModel(axis).group.traverse(element => {
+		if (element.type !== 'text' || !element.anid?.startsWith('label_') || element.ignore || element.invisible) return;
+		const bounds = element.getBoundingRect().clone();
+		const transform = element.getComputedTransform();
+		if (transform) bounds.applyTransform(transform);
+		labels.push({ text: String(element.style.text), bounds });
+	});
+	return labels;
+}
+
+for (const type of ['bar', 'line', 'area', 'scatter']) {
+	test(`${type} keeps every moderate category visible on phones and restores desktop labels after resize`, () => {
+		const categories = ['Atlas', 'Beacon', 'Canvas', 'Field Notes', 'Launchpad', 'Signal'];
+		const data = makeData('category', true, categories);
+		const option = buildOption(type, data, 'Project', 'Hours');
+		const chart = echarts.init(null, null, { renderer: 'svg', ssr: true, width: 320, height: 300 });
+		try {
+			chart.setOption({ ...option, animation: false }, { notMerge: true });
+			for (const width of [304, 320, 374, 390, 1000, 320, 1000]) {
+				chart.resize({ width, height: 300 });
+				assertValidSvg(chart);
+				assertTextFitsCanvas(chart);
+				const labels = visibleCategoryLabels(chart);
+				assert.deepEqual(labels.map(label => label.text), categories, `every category must retain a visible label at ${width}px`);
+				assert.deepEqual(overlappingLabelPairs(labels), [], `category labels must not overlap at ${width}px`);
+				const axis = chart.getOption().xAxis[0];
+				assert.equal(axis.axisLabel.fontSize, 12, 'narrow labels must retain the shared font size');
+				assert.deepEqual(axis.data, categories, 'wrapping must not change category identity');
+				if (width > 519) {
+					assert.equal(axis.axisLabel.overflow, 'truncate');
+					assert.equal(axis.axisLabel.width, option.xAxis.axisLabel.width);
+					assert.equal(axis.axisLabel.height, undefined, 'desktop labels must clear the two-line height');
+					assert.equal(axis.axisLabel.lineHeight, undefined, 'desktop labels must restore their automatic line height');
+					assert.equal(axis.nameGap, option.xAxis.nameGap);
+				} else {
+					assert.equal(axis.axisLabel.overflow, 'break');
+					assert.equal(axis.axisLabel.height, 28, 'phone labels must fit at most two readable lines');
+				}
+			}
+		} finally {
+			chart.dispose();
+		}
+	});
 }
 
 test('grouped bars hide colliding near-equal value labels without removing values or source files', () => {

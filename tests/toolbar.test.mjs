@@ -20,6 +20,8 @@ const result = await build({
 					export class SearchComponent {}
 					export class DropdownComponent {}
 					export class Menu {}
+					export class Modal {}
+					export const Platform = { isMobile: false, isPhone: false };
 					export function setIcon() {}
 					export class StringValue {}
 					export class NumberValue {}

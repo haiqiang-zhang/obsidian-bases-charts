@@ -27,6 +27,8 @@ const bundle = await build({
 					? 'export const echarts = { init: element => runtime.init(element) };'
 					: `export class ChartTooltip {
 						options(base) { return { ...base, renderMode: 'richText', hideDelay: 0, formatter: () => 'Column preview' }; }
+						usesTouchPreview() { return false; }
+						resetTouchPreview() {}
 						openFiles(raw) { runtime.opened.push(raw); }
 						dispose() {}
 					}`,

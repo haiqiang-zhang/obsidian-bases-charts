@@ -1,3 +1,4 @@
+import { Platform, setIcon } from 'obsidian';
 import type { App } from 'obsidian';
 import type { TooltipComponentOption } from 'echarts';
 import type { ProcessedData } from '../dataCharts/data';
@@ -40,12 +41,79 @@ interface TooltipHost {
 
 export class ChartTooltip {
 	private modal: ChartFilesModal | null = null;
+	private touchSelection: { params: unknown; context: ChartTooltipContext } | null = null;
+	private touchPreviewHeader: HTMLElement | null = null;
+	private touchPreviewKey: string | null = null;
 
 	constructor(
 		private containerEl: HTMLElement,
 		private view: TooltipHost,
 		private hide: () => void,
+		private previewEl?: HTMLElement,
 	) {}
+
+	usesTouchPreview(): boolean {
+		const win = this.previewEl?.ownerDocument.defaultView;
+		return !!this.previewEl && Platform.isPhone && !!win?.matchMedia('(orientation: portrait)').matches;
+	}
+
+	resetTouchPreview(): void {
+		this.touchSelection = null;
+		this.touchPreviewHeader = null;
+		this.touchPreviewKey = null;
+		if (!this.previewEl) return;
+		this.previewEl.empty();
+		this.previewEl.addClass('bases-chart-touch-preview');
+		this.previewEl.setAttribute('role', 'region');
+		this.previewEl.setAttribute('aria-label', 'Chart selection');
+		const empty = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-empty' });
+		setIcon(empty.createSpan({ attr: { 'aria-hidden': 'true' } }), 'touchpad');
+		empty.createSpan({ text: 'Touch the chart to inspect data.' });
+	}
+
+	preview(params: unknown, context: ChartTooltipContext): boolean {
+		if (!this.usesTouchPreview() || !this.previewEl) return false;
+		const selected = this.selection(params, context, false);
+		if (!selected) return false;
+		this.touchSelection = { params, context };
+		const visibleGroups = selected.groups.slice(0, 6);
+		const hiddenGroups = selected.groups.length - visibleGroups.length;
+		const property = `${selected.propertyLabel ?? context.xName} · ${selected.valueLabel ?? context.yLabel}`;
+		const key = JSON.stringify([property, selected.x, visibleGroups, hiddenGroups, selected.detailLabel, selected.fileCount]);
+		// Repeated moves in the same column must not replace the focused action or
+		// announce the same selection again. Another chart may share this panel.
+		if (this.touchPreviewKey === key && this.touchPreviewHeader?.parentElement === this.previewEl) return true;
+		this.touchPreviewKey = key;
+		this.previewEl.empty();
+		this.previewEl.addClass('bases-chart-touch-preview');
+		this.previewEl.setAttribute('role', 'region');
+		this.previewEl.setAttribute('aria-label', 'Chart selection');
+		const header = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-header',
+			attr: { 'aria-live': 'polite', 'aria-atomic': 'true' } });
+		this.touchPreviewHeader = header;
+		header.createDiv({ cls: 'bases-chart-touch-preview-property', text: property });
+		header.createDiv({ cls: 'bases-chart-touch-preview-title', text: selected.x });
+		const groups = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-groups' });
+		for (const group of visibleGroups) {
+			const row = groups.createDiv({ cls: 'bases-chart-touch-preview-row' });
+			const swatch = row.createSpan({ cls: 'bases-chart-touch-preview-swatch', attr: { 'aria-hidden': 'true' } });
+			if (group.color) swatch.style.setProperty('background-color', group.color);
+			row.createSpan({ cls: 'bases-chart-touch-preview-name', text: group.name });
+			row.createSpan({ cls: 'bases-chart-touch-preview-value', text: group.value });
+		}
+		const footer = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-footer' });
+		footer.createSpan({ text: `${selected.fileCount} ${selected.fileCount === 1 ? 'file' : 'files'}${hiddenGroups
+			? ` · +${hiddenGroups} more ${selected.detailLabel ?? 'groups'}` : ''}` });
+		const button = footer.createEl('button', { text: 'View data', attr: { type: 'button', 'aria-haspopup': 'dialog' } });
+		button.disabled = selected.fileCount === 0;
+		button.addEventListener('click', () => {
+			const current = this.touchSelection;
+			if (!current) return;
+			const fullSelection = this.selection(current.params, current.context, true);
+			if (fullSelection?.fileCount) this.openSelection(fullSelection, current.context);
+		});
+		return true;
+	}
 
 	options(base: TooltipComponentOption, context: ChartTooltipContext,
 		anchor?: (params: unknown) => number[] | null,
@@ -53,6 +121,10 @@ export class ChartTooltip {
 		let fixed: { key: string; point: number[] } | undefined;
 		return {
 			...base,
+			// Mobile inspection uses the fixed preview or native data sheet.
+			// Floating hover previews remain available for desktop pointers.
+			show: !Platform.isMobile,
+			...(Platform.isMobile ? { triggerOn: 'none' as const } : {}),
 			renderMode: 'html',
 			appendTo: element => element.ownerDocument.body,
 			confine: false,
@@ -196,5 +268,8 @@ export class ChartTooltip {
 	dispose(): void {
 		this.modal?.close();
 		this.modal = null;
+		this.touchSelection = null;
+		this.touchPreviewHeader = null;
+		this.touchPreviewKey = null;
 	}
 }

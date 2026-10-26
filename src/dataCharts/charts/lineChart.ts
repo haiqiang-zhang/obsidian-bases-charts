@@ -63,7 +63,7 @@ export function buildLineOption(
 	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
-	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
+	const { xAxis, xCategories, xAxisType, axisMedia } = buildXAxisConfig(data, chartIndex, xName, colors);
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
 		const arr = seriesMap.get(dp.groupIndex) ?? [];
@@ -99,6 +99,7 @@ export function buildLineOption(
 	}));
 
 	return {
+		media: axisMedia,
 		grid: gridOption(),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),

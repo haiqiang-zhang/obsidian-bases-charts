@@ -55,7 +55,7 @@ function createWindow() {
 	};
 }
 
-function harness() {
+function harness(withPreview = false) {
 	const charts = [];
 	const tooltips = [];
 	const openedFiles = [];
@@ -63,6 +63,10 @@ function harness() {
 	let removedMigrations = 0;
 	const window = createWindow();
 	const container = {
+		listeners: new Map(),
+		addEventListener(name, fn) { this.listeners.set(name, fn); },
+		removeEventListener(name) { this.listeners.delete(name); },
+		getBoundingClientRect() { return {left: 0, top: 0}; },
 		clientWidth: 700, clientHeight: 400,
 		ownerDocument: { defaultView: window },
 		onWindowMigrated(callback) {
@@ -85,6 +89,7 @@ function harness() {
 				calls: [], actions: [], actionPayloads: [], handlers: new Map(), resizes: 0, disposed: 0, current: null,
 				zr, containCalls: [], fromPixelCalls: [], toPixelCalls: [],
 				contains: true, ordinal: 0, width: 700, height: 400,
+				getVisual() { return '#123456'; },
 				getWidth() { return this.width; },
 				getHeight() { return this.height; },
 				toPixel: (_finder, value) => value,
@@ -124,7 +129,10 @@ function harness() {
 			assert.equal(element, container);
 			assert.equal(host, view);
 			const tooltip = {
-				calls: [], opened: [], disposed: 0, hide,
+				calls: [], opened: [], disposed: 0, hide, previews: [], touchPreview: false, resets: 0,
+				usesTouchPreview() { return this.touchPreview; },
+				preview(params, context) { this.previews.push({params, context}); return true; },
+				resetTouchPreview() { this.resets++; },
 				options(base, context, anchor, bounds) {
 					this.calls.push({ base, context, anchor, bounds });
 					return { ...base, testContext: context, tooltipIndex: tooltips.indexOf(this) };
@@ -147,7 +155,7 @@ function harness() {
 			constructor() { assert.fail('resize observers must be created in the owning window'); }
 		},
 	}, { filename: 'chart-renderer-under-test.cjs' });
-	const renderer = new module.exports.ChartRenderer(container, view);
+	const renderer = new module.exports.ChartRenderer(container, view, withPreview ? {} : undefined);
 	return {
 		renderer, charts, tooltips, observers: window.observers, window, container, openedFiles,
 		get removedMigrations() { return removedMigrations; },
@@ -778,4 +786,79 @@ test('cached projected columns refresh on resizing, option updates, and window m
 	assert.equal(state.tooltips[1].opened[0].raw[0], c);
 	assert.equal(state.charts[1].toPixelCalls.length, 1);
 	state.renderer.dispose();
+});
+
+test('portrait touch columns update a persistent preview without opening a drawer', () => {
+	const state = barFixture();
+	state.tooltip.touchPreview = true;
+	state.chart.ordinal = 1;
+	const event = { offsetX: 150, offsetY: 20, target: null };
+	state.chart.zr.handlers.get('mousemove')(event);
+	assert.equal(state.tooltip.previews.length, 1);
+	assert.deepEqual(Array.from(state.tooltip.previews[0].params, p => p.data._raw), [state.middleA, state.middleB]);
+	assert.equal(state.tooltip.previews[0].params[0].color, '#123456');
+	state.chart.zr.handlers.get('click')(event);
+	assert.equal(state.tooltip.opened.length, 0);
+	const count = state.tooltip.previews.length;
+	const resets = state.tooltip.resets;
+	state.chart.zr.handlers.get('globalout')();
+	state.window.listeners.get('scroll')();
+	state.container.clientWidth = 320;
+	state.window.listeners.get('resize')();
+	state.flushTimers();
+	assert.equal(state.tooltip.previews.length, count, 'release, scrolling and resize retain the selected summary');
+	assert.equal(state.tooltip.resets, resets);
+	state.tooltip.touchPreview = false;
+	state.chart.zr.handlers.get('click')({ ...event });
+	assert.equal(state.tooltip.opened.length, 1, 'landscape/tablet clicks retain direct file inspection');
+	state.renderer.dispose();
+});
+
+test('portrait grouped line previews all values at the touched X coordinate', () => {
+	const a = rawPoint('Monday', 2);
+	const b = rawPoint('Monday', 5);
+	const state = pointFixture('chart-line', { type: 'category', data: ['Monday'] }, [
+		{ data: [{ value: 2, _raw: a }] }, { data: [{ value: 5, _raw: b }] },
+	]);
+	state.tooltip.touchPreview = true;
+	state.chart.zr.handlers.get('mousemove')({ offsetX: 100, offsetY: 50 });
+	assert.deepEqual(Array.from(state.tooltip.previews.at(-1).params, p => p.data._raw), [a, b]);
+	assert.equal(state.tooltip.opened.length, 0);
+	state.renderer.dispose();
+});
+
+test('portrait radial marks preview their real datum and wait for View data', () => {
+	const state = harness();
+	const context = { chartType: 'chart-pie' };
+	const raw = rawPoint('Design', 4);
+	state.renderer.setOption({ series: [{ type: 'pie', data: [{ value: 4, _raw: raw }] }] }, context);
+	state.tooltips[0].touchPreview = true;
+	const params = { data: { _raw: raw }, percent: 25, color: '#678', event: { offsetX: 10, offsetY: 20 } };
+	state.charts[0].handlers.get('mouseover')(params);
+	state.charts[0].handlers.get('click')(params);
+	assert.equal(state.tooltips[0].previews.at(-1).params, params);
+	assert.equal(state.tooltips[0].opened.length, 0);
+	state.renderer.dispose();
+});
+
+test('native long touch and horizontal drag inspect data while vertical drag remains a scroll', () => {
+	const state = harness(true);
+	const raw = rawPoint('Monday', 2);
+	const context = { chartType: 'chart-line' };
+	state.renderer.setOption({ xAxis: { type: 'category', data: ['Monday'] }, series: [{ data: [{ value: 2, _raw: raw }] }] }, context);
+	const tooltip = state.tooltips[0];
+	tooltip.touchPreview = true;
+	const touch = (x, y) => ({ touches: [{ identifier: 1, clientX: x, clientY: y }] });
+	state.container.listeners.get('touchstart')(touch(50, 50));
+	state.container.listeners.get('touchmove')(touch(90, 51));
+	assert.equal(tooltip.previews.length, 2);
+	state.container.listeners.get('touchmove')(touch(90, 140));
+	state.container.listeners.get('touchmove')(touch(100, 150));
+	assert.equal(tooltip.previews.length, 2, 'vertical scrolling must not scrub across columns');
+	state.container.listeners.get('touchend')();
+	assert.equal(tooltip.opened.length, 0, 'release after a long touch never opens the sheet');
+	state.container.listeners.get('touchstart')({ touches: [{}, {}] });
+	assert.equal(tooltip.previews.length, 2, 'multi-touch gestures are ignored');
+	state.renderer.dispose();
+	assert.equal(state.container.listeners.size, 0);
 });

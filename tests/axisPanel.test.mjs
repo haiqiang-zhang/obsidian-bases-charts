@@ -8,7 +8,7 @@ const result = await build({
 	stdin: {
 		contents: `
 			export { ChartToolbar } from './src/ui/chartToolbar.ts';
-			export { StringValue, NumberValue, Menu } from 'obsidian';
+			export { StringValue, NumberValue, Menu, Modal, Platform } from 'obsidian';
 		`,
 		resolveDir: fileURLToPath(new URL('../', import.meta.url)),
 		loader: 'ts',
@@ -24,6 +24,36 @@ const result = await build({
 			builder.onLoad({ filter: /.*/, namespace: 'host-stub' }, () => ({
 				contents: `
 					export class Component { registerEvent() {} }
+					export const Platform = { isMobile: false, isPhone: false };
+					export class Modal {
+						static instances = [];
+						constructor(app) {
+							this.app = app;
+							this.containerEl = app.doc.body.createDiv({ cls: 'modal-container' });
+							this.containerEl.remove();
+							this.modalEl = this.containerEl.createDiv({ cls: 'modal' });
+							this.titleEl = this.modalEl.createDiv({ cls: 'modal-title' });
+							this.closeButton = this.modalEl.createEl('button', { attr: { 'aria-label': 'Close' } });
+							this.closeButton.addEventListener('click', () => this.close());
+							this.contentEl = this.modalEl.createDiv({ cls: 'modal-content' });
+							Modal.instances.push(this);
+						}
+						setTitle(title) { this.titleEl.setText(title); return this; }
+						setCloseCallback(callback) { this.closeCallback = callback; return this; }
+						open() {
+							this.opened = true;
+							this.containerEl.parentElement = this.app.doc.body;
+							this.app.doc.body.children.push(this.containerEl);
+							this.closeButton.focus();
+						}
+						close() {
+							if (!this.opened) return;
+							this.opened = false;
+							this.containerEl.remove();
+							this.closeCallback?.();
+						}
+						onHistoryBack() { this.close(); }
+					}
 					export function setIcon(element, icon) { element.dataset.icon = icon; }
 					export class SearchComponent {
 						constructor(container) { this.inputEl = container.createEl('input', { type: 'search' }); }
@@ -48,10 +78,13 @@ const result = await build({
 							const item = {
 								setTitle(value) { this.title = value; return this; },
 								setChecked(value) { this.checked = value; return this; },
+								setIcon(value) { this.icon = value; return this; },
+								setDisabled(value) { this.disabled = value; return this; },
 								onClick(value) { this.callback = value; return this; },
 							};
 							callback(item); this.items.push(item); return this;
 						}
+						addSeparator() { return this; }
 						onHide(callback) { this.hideCallback = callback; }
 						showAtPosition(position, doc) {
 							this.position = position; this.doc = doc; this.hidden = false;
@@ -60,6 +93,7 @@ const result = await build({
 							this.background = doc.body.createDiv({ cls: 'suggestion-bg' });
 							for (const item of this.items) {
 								item.element = this.element.createEl('button', { text: item.title });
+								item.element.disabled = item.disabled ?? false;
 								item.element.addEventListener('click', () => { item.callback(); this.hide(); });
 							}
 							return this;
@@ -79,7 +113,7 @@ const result = await build({
 		},
 	}],
 });
-const { ChartToolbar, StringValue, NumberValue, Menu } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=axis-panel-under-test.mjs`).toString('base64')}`);
+const { ChartToolbar, StringValue, NumberValue, Menu, Modal, Platform } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=axis-panel-under-test.mjs`).toString('base64')}`);
 
 class EventTargetFixture {
 	listeners = new Map();
@@ -132,6 +166,10 @@ class Element extends EventTargetFixture {
 		for (const [key, value] of Object.entries(options.attr ?? {})) this.setAttribute(key, value);
 	}
 	get classList() { return { contains: name => this.classes.has(name) }; }
+	get isConnected() {
+		for (let node = this; node; node = node.parentElement) if (node === this.ownerDocument.body) return true;
+		return false;
+	}
 	createEl(tag, options) {
 		const child = new Element(this.ownerDocument, tag, options);
 		child.parentElement = this;
@@ -181,10 +219,16 @@ class Element extends EventTargetFixture {
 	}
 }
 
-function harness(x = 'formula.bucket', { date = false, formulaEditor = true, grouping = 'exact' } = {}) {
+function harness(x = 'formula.bucket', { date = false, formulaEditor = true, grouping = 'exact', mobile = false } = {}) {
+	Platform.isMobile = mobile;
+	Platform.isPhone = mobile;
 	const doc = new EventTargetFixture();
 	doc.defaultView = new EventTargetFixture();
 	Object.assign(doc.defaultView, { innerWidth: 1000, innerHeight: 800 });
+	if (mobile) {
+		doc.defaultView.visualViewport = new EventTargetFixture();
+		doc.defaultView.visualViewport.height = 800;
+	}
 	Object.defineProperty(doc.defaultView, 'event', { get() { throw new Error('do not read deprecated window.event'); } });
 	doc.body = new Element(doc);
 	const nativeToolbar = doc.body.createDiv({ cls: 'bases-toolbar' });
@@ -205,7 +249,7 @@ function harness(x = 'formula.bucket', { date = false, formulaEditor = true, gro
 	const formulaCalls = [];
 	let updateCount = 0;
 	const view = {
-		type: 'chart-bar', containerEl: container,
+		type: 'chart-bar', containerEl: container, app: { doc },
 		// The selected formula is deliberately absent: old saved properties must still show.
 		allProperties: ['file.folder', 'note.status', 'note.hours', 'note.score', 'note.mood', 'formula.ratio', 'file.folder'],
 		config: {
@@ -245,6 +289,278 @@ function selectedRows(panel) { return panel.querySelector('.bases-chart-selected
 function candidates(panel) { return panel.querySelector('.bases-chart-property-results').querySelectorAll('.bases-chart-property-option'); }
 function searchInput(panel) { return panel.querySelector('.bases-chart-property-search').querySelector('input'); }
 function action(row, label) { return row.querySelectorAll('button').find(button => button.getAttribute('aria-label') === label); }
+function propertyMenu(panel, id) {
+	selectedRows(panel).find(row => row.dataset.property === id).querySelector('.bases-chart-property-more').dispatch('click');
+	return Menu.instances.at(-1);
+}
+
+test('mobile axes use a native modal and do not focus search on opening', () => {
+	const state = harness('note.completed at', { mobile: true, date: true });
+	state.toolbar.openAxis('x');
+	const modal = Modal.instances.at(-1);
+	const panel = state.panel();
+	assert.equal(modal.opened, true);
+	assert.equal(modal.contentEl, panel);
+	assert.equal(modal.titleEl.textContent, 'X axis');
+	assert.equal(modal.modalEl.classList.contains('bases-chart-axis-modal'), true);
+	assert.equal(modal.modalEl.classList.contains('mod-lg'), true);
+	assert.equal(panel.querySelector('.bases-chart-panel-header'), null, 'use the native modal header');
+	assert.equal(state.doc.activeElement, panel);
+	assert.notEqual(state.doc.activeElement, searchInput(panel));
+	modal.closeButton.focus();
+	assert.equal(state.panel(), panel, 'native header controls belong to the picker');
+	state.toolbar.onunload();
+	assert.equal(modal.opened, false);
+});
+
+test('mobile keyboard viewport changes keep the picker and active search intact', () => {
+	const state = harness('note.completed at', { mobile: true, date: true });
+	state.toolbar.openAxis('x');
+	const modal = Modal.instances.at(-1);
+	const panel = state.panel();
+	const search = searchInput(panel);
+	search.focus();
+	search.value = 'hours';
+	search.dispatch('input');
+	const viewport = state.doc.defaultView.visualViewport;
+	viewport.height = 360;
+	viewport.emit('resize', {});
+	assert.equal(state.panel(), panel);
+	assert.equal(modal.opened, true);
+	assert.equal(search.value, 'hours');
+	assert.equal(state.doc.activeElement, search);
+	assert.equal(panel.style.values.get('--chart-panel-height'), '360px');
+	assert.equal(modal.modalEl.style.values.get('--chart-panel-viewport-height'), '360px');
+	viewport.height = 800;
+	state.doc.defaultView.emit('resize', {});
+	assert.equal(state.panel(), panel);
+	assert.equal(panel.style.values.get('--chart-panel-height'), '800px');
+	state.toolbar.onunload();
+	assert.equal(viewport.listeners.get('resize').size, 0);
+});
+
+for (const close of ['native-close', 'back', 'toolbar']) test(`mobile ${close} cleans up the picker and its child menu`, () => {
+	const state = harness('note.completed at', { mobile: true, date: true });
+	state.toolbar.openAxis('x');
+	const modal = Modal.instances.at(-1);
+	const dropdown = state.panel().querySelector('.bases-chart-date-grouping').querySelector('button');
+	dropdown.dispatch('click');
+	const menu = Menu.instances.at(-1);
+	if (close === 'native-close') modal.closeButton.dispatch('click');
+	else if (close === 'back') modal.onHistoryBack();
+	else state.toolbar.openAxis('x');
+	assert.equal(state.panel(), null);
+	assert.equal(modal.opened, false);
+	assert.equal(menu.hidden, true);
+	assert.equal(state.button('x').getAttribute('aria-expanded'), 'false');
+	for (const event of ['pointerdown', 'keydown', 'focusin']) assert.equal(state.doc.listeners.get(event)?.size ?? 0, 0);
+	assert.equal(state.doc.defaultView.listeners.get('resize').size, 0);
+	assert.equal(state.doc.defaultView.visualViewport.listeners.get('resize').size, 0);
+	state.toolbar.openAxis('x');
+	assert.notEqual(state.panel(), null, 'picker can reopen after native dismissal');
+	state.toolbar.onunload();
+});
+
+test('mobile Y edits never focus search unless the user is already searching', () => {
+	const state = harness('formula.bucket', { mobile: true });
+	state.toolbar.openAxis('y');
+	const panel = state.panel();
+	const search = searchInput(panel);
+	candidates(panel).find(row => row.dataset.property === 'note.mood').dispatch('click');
+	assert.equal(state.settings.get('aggregate:note.mood'), 'Count');
+	assert.equal(state.doc.activeElement, panel);
+	propertyMenu(panel, 'note.score').items.find(item => item.title === 'Move up').element.dispatch('click');
+	assert.notEqual(state.doc.activeElement, search);
+	propertyMenu(panel, 'note.mood').items.find(item => item.title === 'Remove').element.dispatch('click');
+	assert.equal(state.doc.activeElement, panel);
+	search.focus();
+	search.value = 'Mood';
+	search.dispatch('input');
+	candidates(panel).find(row => row.dataset.property === 'note.mood').dispatch('click');
+	assert.equal(state.doc.activeElement, search, 'preserve a search session that is still focused');
+	assert.equal(search.value, 'Mood');
+	state.toolbar.onunload();
+});
+
+test('mobile native formula editing closes the axis modal before handoff', () => {
+	const state = harness('formula.bucket', { mobile: true });
+	state.toolbar.openAxis('x');
+	const modal = Modal.instances.at(-1);
+	action(selectedRows(state.panel())[0], 'Edit formula: Bucket').dispatch('click');
+	assert.equal(modal.opened, false);
+	assert.equal(state.panel(), null);
+	assert.equal(state.formulaCalls[0].propertyId, 'formula.bucket');
+	assert.equal(state.doc.defaultView.visualViewport.listeners.get('resize').size, 0);
+	state.toolbar.onunload();
+});
+
+test('mobile Y selections expose one options button beside their native aggregation control', () => {
+	const state = harness('formula.bucket', { mobile: true });
+	state.toolbar.openAxis('y');
+	const panel = state.panel();
+	const menuCount = Menu.instances.length;
+	for (const row of selectedRows(panel)) {
+		assert.equal(row.classList.contains('is-compact'), true);
+		assert.equal(row.querySelector('.bases-chart-property-edit'), null);
+		assert.deepEqual(row.querySelectorAll('button'), [row.querySelector('.bases-chart-property-more')]);
+		assert.equal(row.querySelector('.bases-chart-property-more').dataset.icon, 'ellipsis');
+		assert.equal(row.querySelector('.bases-chart-property-more').getAttribute('aria-haspopup'), 'menu');
+		assert.equal(row.querySelector('select').classList.contains('dropdown'), true);
+	}
+	const aggregate = selectedRows(panel)[0].querySelector('select');
+	aggregate.value = 'Max';
+	aggregate.dispatch('change');
+	assert.equal(state.settings.get('aggregate:note.hours'), 'Max');
+	assert.equal(state.panel(), panel);
+	assert.equal(Menu.instances.length, menuCount, 'aggregation does not require the options menu');
+	state.toolbar.onunload();
+});
+
+for (const preference of [false, true]) test(`mobile Y options inherit ${preference ? 'native' : 'DOM'} menus and preserve selection after actions`, () => {
+	Menu.preference = preference;
+	const state = harness('formula.bucket', { mobile: true });
+	try {
+		state.toolbar.openAxis('y');
+		const panel = state.panel();
+		let menu = propertyMenu(panel, 'note.hours');
+		assert.deepEqual(menu.overrides, []);
+		assert.equal(menu.useNativeMenu, preference);
+		assert.equal(menu.parent, panel);
+		assert.equal(menu.doc, state.doc);
+		assert.deepEqual(menu.items.map(item => [item.title, Boolean(item.disabled)]), [
+			['Edit property', false], ['Move up', true], ['Move down', false], ['Remove', false],
+		]);
+		menu.hide();
+		assert.equal(state.doc.activeElement, selectedRows(panel)[0].querySelector('.bases-chart-property-more'));
+		assert.equal(state.panel(), panel, 'cancelling the child menu leaves its parent open');
+		menu = propertyMenu(panel, 'note.hours');
+		const move = menu.items.find(item => item.title === 'Move down');
+		if (preference) move.callback();
+		else {
+			move.element.dispatch('pointerdown');
+			move.element.focus();
+			assert.equal(state.panel(), panel, 'the official menu belongs to its parent sheet');
+			move.element.dispatch('click');
+		}
+		assert.equal(menu.hidden, true);
+		assert.deepEqual(state.settings.get('y'), ['note.score', 'note.hours']);
+		assert.equal(state.settings.get('aggregate:note.hours'), 'Sum');
+		const moved = selectedRows(panel)[1].querySelector('.bases-chart-property-more');
+		assert.equal(state.doc.activeElement, moved, 'reordering restores focus to the same property');
+		menu = propertyMenu(panel, 'note.hours');
+		assert.equal(menu.items.find(item => item.title === 'Move down').disabled, true);
+		menu.items.find(item => item.title === 'Remove').callback();
+		assert.deepEqual(state.settings.get('y'), ['note.score']);
+		assert.equal(state.panel(), panel);
+		assert.equal(state.doc.activeElement, panel, 'removal does not summon the keyboard');
+		assert.equal(Modal.instances.at(-1).titleEl.querySelector('.bases-chart-selection-count').textContent, '1');
+		assert.ok(candidates(panel).some(row => row.dataset.property === 'note.hours'));
+	} finally {
+		state.toolbar.onunload();
+		Menu.preference = false;
+	}
+});
+
+for (const [id, title] of [['note.hours', 'Edit property'], ['formula.ratio', 'Edit formula']]) test(`mobile Y ${title} hands off the selected property through the existing native editor`, () => {
+	const state = harness('formula.bucket', { mobile: true });
+	state.settings.set('y', [id]);
+	state.toolbar.openAxis('y');
+	const modal = Modal.instances.at(-1);
+	const menu = propertyMenu(state.panel(), id);
+	menu.items.find(item => item.title === title).element.dispatch('click');
+	assert.equal(menu.hidden, true);
+	assert.equal(modal.opened, false);
+	assert.equal(state.panel(), null);
+	assert.deepEqual(state.formulaCalls, [{ anchor: state.button('y'), axis: 'y', propertyId: id }]);
+	assert.deepEqual(state.writes, []);
+	state.toolbar.openAxis('y'); // Same path used by the native editor's back callback.
+	assert.deepEqual(selectedRows(state.panel()).map(row => row.dataset.property), [id]);
+	state.toolbar.onunload();
+});
+
+test('mobile Y options omit unavailable editing and disable both moves for the sole selection', () => {
+	const state = harness('formula.bucket', { mobile: true, formulaEditor: false });
+	state.settings.set('y', ['note.hours']);
+	state.toolbar.openAxis('y');
+	const panel = state.panel();
+	const menu = propertyMenu(panel, 'note.hours');
+	assert.deepEqual(menu.items.map(item => item.title), ['Move up', 'Move down', 'Remove']);
+	for (const title of ['Move up', 'Move down']) {
+		const item = menu.items.find(item => item.title === title);
+		assert.equal(item.disabled, true);
+		item.element.dispatch('click');
+	}
+	assert.deepEqual(state.writes, []);
+	assert.equal(menu.hidden, false);
+	menu.items.find(item => item.title === 'Remove').element.dispatch('click');
+	assert.deepEqual(state.settings.get('y'), []);
+	assert.equal(selectedRows(panel).length, 0);
+	assert.equal(state.doc.activeElement, panel);
+	state.toolbar.onunload();
+});
+
+test('mobile Y child menu cancellation restores focus and Escape dismisses only one layer', () => {
+	const state = harness('formula.bucket', { mobile: true });
+	state.toolbar.openAxis('y');
+	const panel = state.panel();
+	const trigger = selectedRows(panel)[0].querySelector('.bases-chart-property-more');
+	trigger.dispatch('keydown', { key: 'ArrowDown' });
+	const menu = Menu.instances.at(-1);
+	assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+	menu.items[0].element.focus();
+	menu.hide();
+	assert.equal(state.doc.activeElement, trigger);
+	assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+	trigger.dispatch('click');
+	const escape = eventFor(trigger, { type: 'keydown', key: 'Escape' });
+	state.doc.defaultView.emit('keydown', escape, true);
+	Menu.instances.at(-1).hide(); // The host keymap may close the menu before ours.
+	state.doc.emit('keydown', escape);
+	assert.equal(escape.defaultPrevented, true);
+	assert.equal(state.panel(), panel);
+	assert.equal(state.doc.activeElement, trigger);
+	trigger.dispatch('keydown', { key: 'Escape' });
+	assert.equal(state.panel(), null);
+	assert.equal(state.doc.activeElement, state.button('y'));
+	state.toolbar.onunload();
+});
+
+test('mobile Y options switch between rows and toggle closed without dismissing the sheet', () => {
+	const state = harness('formula.bucket', { mobile: true });
+	state.toolbar.openAxis('y');
+	const panel = state.panel();
+	const first = propertyMenu(panel, 'note.hours');
+	const second = propertyMenu(panel, 'note.score');
+	assert.equal(first.hidden, true);
+	assert.notEqual(second, first);
+	assert.equal(second.hidden, false);
+	assert.equal(selectedRows(panel)[0].querySelector('.bases-chart-property-more').getAttribute('aria-expanded'), 'false');
+	assert.equal(selectedRows(panel)[1].querySelector('.bases-chart-property-more').getAttribute('aria-expanded'), 'true');
+	propertyMenu(panel, 'note.score');
+	assert.equal(second.hidden, true);
+	assert.equal(state.panel(), panel);
+	assert.equal(state.doc.activeElement, selectedRows(panel)[1].querySelector('.bases-chart-property-more'));
+	state.toolbar.onunload();
+});
+
+for (const close of ['native-close', 'back', 'resize', 'rerender', 'unload']) test(`mobile Y ${close} cleans up its options menu`, () => {
+	const state = harness('formula.bucket', { mobile: true });
+	state.toolbar.openAxis('y');
+	const panel = state.panel();
+	const trigger = selectedRows(panel)[0].querySelector('.bases-chart-property-more');
+	const menu = propertyMenu(panel, 'note.hours');
+	if (close === 'native-close') Modal.instances.at(-1).closeButton.dispatch('click');
+	else if (close === 'back') Modal.instances.at(-1).onHistoryBack();
+	else if (close === 'resize') state.doc.defaultView.visualViewport.emit('resize', {});
+	else if (close === 'rerender') searchInput(panel).dispatch('input');
+	else state.toolbar.onunload();
+	assert.equal(menu.hidden, true);
+	assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+	assert.equal(state.panel(), ['resize', 'rerender'].includes(close) ? panel : null);
+	state.toolbar.onunload();
+	for (const event of ['pointerdown', 'keydown', 'focusin']) assert.equal(state.doc.listeners.get(event)?.size ?? 0, 0);
+	assert.equal(state.doc.defaultView.visualViewport.listeners.get('resize').size, 0);
+});
 
 for (const x of ['file.folder', 'note.status', 'formula.bucket']) {
 	test(`${x} stays above search and out of candidates, including an unmatched search`, () => {

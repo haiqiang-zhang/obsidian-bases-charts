@@ -11,6 +11,7 @@ export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
 	private legendEl: HTMLElement;
 	private gridEl: HTMLElement;
+	private previewEl: HTMLElement;
 	private emptyEl: HTMLElement;
 	private debouncedUpdate = debounce(() => this.update(), 50, true);
 	private updateRef: EventRef;
@@ -20,6 +21,9 @@ export class ChartLayout {
 		private containerEl: HTMLElement,
 	) {
 		this.gridEl = containerEl.createDiv({ cls: 'bases-charts-plot-grid' });
+		this.previewEl = containerEl.createDiv({ cls: 'bases-chart-touch-preview' });
+		this.previewEl.setAttribute('role', 'region');
+		this.previewEl.setAttribute('aria-label', 'Selected chart data');
 		this.legendEl = containerEl.createDiv({ cls: 'bases-charts-plot-legend' });
 		this.legendEl.toggleClass('is-line-chart', ['chart-line', 'chart-area', 'chart-radar'].includes(view.type));
 		this.emptyEl = containerEl.createDiv({ cls: 'bases-chart-empty-state bases-charts-hidden' });
@@ -37,6 +41,7 @@ export class ChartLayout {
 		const needsAxis = !xField || propertyOrder.length === 0;
 		this.emptyEl.toggleClass('bases-charts-hidden', !needsAxis);
 		this.gridEl.toggleClass('bases-charts-hidden', needsAxis);
+		this.previewEl.toggleClass('bases-charts-hidden', needsAxis);
 		if (needsAxis) {
 			this.legendEl.empty();
 			this.legendEl.addClass('bases-charts-hidden');
@@ -128,7 +133,7 @@ export class ChartLayout {
 
 		while (this.renderers.length < count) {
 			const itemEl = this.gridEl.createDiv({ cls: 'bases-charts-plot-grid-item' });
-			const renderer = new ChartRenderer(itemEl, this.view);
+			const renderer = new ChartRenderer(itemEl, this.view, this.previewEl);
 			this.renderers.push(renderer);
 		}
 	}
@@ -142,6 +147,7 @@ export class ChartLayout {
 		this.renderers = [];
 		this.legendEl.remove();
 		this.gridEl.remove();
+		this.previewEl.remove();
 		this.emptyEl.remove();
 	}
 }

@@ -1,4 +1,4 @@
-import { Modal } from 'obsidian';
+import { Modal, Platform } from 'obsidian';
 import type { App } from 'obsidian';
 
 export interface ChartFileItem {
@@ -48,7 +48,9 @@ export class ChartFilesModal extends Modal {
 
 	onOpen(): void {
 		this.setTitle(this.details?.xValue ?? this.heading);
+		this.containerEl.addClass('bases-chart-files-container');
 		this.modalEl.addClass('bases-chart-files-modal');
+		this.modalEl.toggleClass('mod-lg', Platform.isPhone);
 		this.contentEl.addClass('bases-chart-files-content');
 		this.contentEl.empty();
 		const conditions = this.contentEl.createDiv({ cls: 'bases-chart-files-conditions' });
@@ -72,19 +74,33 @@ export class ChartFilesModal extends Modal {
 		this.listEl = this.contentEl.createDiv({ cls: 'bases-chart-files-list' });
 		const table = this.listEl.createEl('table', { cls: 'bases-chart-files-table' });
 		this.setAccessibleLabel(table, `Files for ${this.details?.xValue ?? this.heading}`);
+		// Explicit table roles preserve the same accessible structure when phone
+		// styles lay out each row as a compact grid instead of table columns.
+		table.setAttribute('role', 'table');
 		if (this.hasGroups) table.addClass('bases-chart-files-table-grouped');
-		const header = table.createEl('thead').createEl('tr');
-		header.createEl('th', { cls: 'bases-chart-files-file-heading', text: 'File' }).setAttribute('scope', 'col');
-		if (this.hasGroups) header.createEl('th', { cls: 'bases-chart-files-group-heading', text: this.details?.groupLabel || 'Group' }).setAttribute('scope', 'col');
-		header.createEl('th', { cls: 'bases-chart-files-value-heading', text: this.details?.yLabel || 'Value' }).setAttribute('scope', 'col');
+		const head = table.createEl('thead');
+		head.setAttribute('role', 'rowgroup');
+		const header = head.createEl('tr');
+		header.setAttribute('role', 'row');
+		const addHeading = (cls: string, text: string) => {
+			const cell = header.createEl('th', { cls, text });
+			cell.setAttribute('scope', 'col');
+			cell.setAttribute('role', 'columnheader');
+		};
+		addHeading('bases-chart-files-file-heading', 'File');
+		if (this.hasGroups) addHeading('bases-chart-files-group-heading', this.details?.groupLabel || 'Group');
+		addHeading('bases-chart-files-value-heading', this.details?.yLabel || 'Value');
 		this.rowsEl = table.createEl('tbody', { cls: 'bases-chart-files-table-body' });
+		this.rowsEl.setAttribute('role', 'rowgroup');
 		this.footerEl = this.contentEl.createDiv({ cls: 'bases-chart-files-footer' });
 		this.moreButton = this.footerEl.createEl('button', { cls: 'bases-chart-files-more', text: 'Load more' });
 		this.moreButton.type = 'button';
 		this.moreButton.addEventListener('click', () => this.appendPage()?.focus());
 		search.addEventListener('input', () => this.filter(search.value));
 		this.filter('');
-		search.focus();
+		// A data selection opens for reading. Let the native phone Modal manage
+		// focus so the software keyboard appears only when search is tapped.
+		if (!Platform.isMobile) search.focus();
 	}
 
 	private setAccessibleLabel(element: HTMLElement, text: string): void {
@@ -103,9 +119,13 @@ export class ChartFilesModal extends Modal {
 		this.rowsEl?.empty();
 		if (this.listEl) this.listEl.scrollTop = 0;
 		if (this.matches.length === 0) {
-			const row = this.rowsEl?.createEl('tr');
+			const row = this.rowsEl?.createEl('tr', { cls: 'bases-chart-files-empty-row' });
+			row?.setAttribute('role', 'row');
 			const cell = row?.createEl('td', { cls: 'bases-chart-files-empty', text: needle ? 'No matching files.' : 'No files.' });
-			if (cell) cell.colSpan = this.hasGroups ? 3 : 2;
+			if (cell) {
+				cell.colSpan = this.hasGroups ? 3 : 2;
+				cell.setAttribute('role', 'cell');
+			}
 		}
 		this.appendPage();
 	}
@@ -117,7 +137,9 @@ export class ChartFilesModal extends Modal {
 		for (let index = this.shown; index < end; index++) {
 			const { file } = this.matches[index];
 			const row = this.rowsEl.createEl('tr', { cls: 'bases-chart-file-row' });
+			row.setAttribute('role', 'row');
 			const fileCell = row.createEl('td', { cls: 'bases-chart-file-cell' });
+			fileCell.setAttribute('role', 'cell');
 			const button = fileCell.createEl('button', { cls: 'bases-chart-file-open' });
 			firstRow ??= button;
 			button.type = 'button';
@@ -127,8 +149,14 @@ export class ChartFilesModal extends Modal {
 			const details = button.createSpan({ cls: 'bases-chart-file-details' });
 			details.createSpan({ cls: 'bases-chart-file-name', text: name });
 			details.createSpan({ cls: 'bases-chart-file-folder', text: folder });
-			if (this.hasGroups) row.createEl('td', { cls: 'bases-chart-file-group', text: file.group ?? '—' });
-			row.createEl('td', { cls: 'bases-chart-file-value', text: String(file.value) });
+			if (this.hasGroups) {
+				const group = row.createEl('td', { cls: 'bases-chart-file-group', text: file.group ?? '—' });
+				group.setAttribute('role', 'cell');
+				group.setAttribute('data-label', this.details?.groupLabel || 'Group');
+			}
+			const value = row.createEl('td', { cls: 'bases-chart-file-value', text: String(file.value) });
+			value.setAttribute('role', 'cell');
+			value.setAttribute('data-label', this.details?.yLabel || 'Value');
 			row.addEventListener('click', (event: MouseEvent) => {
 				this.close();
 				void this.openFile(file.path, event.ctrlKey || event.metaKey);

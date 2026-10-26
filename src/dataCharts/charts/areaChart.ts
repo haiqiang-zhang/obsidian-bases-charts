@@ -62,7 +62,7 @@ export function buildAreaOption(
 	colors: ResolvedColors,
 ): EChartsOption {
 	const points = data.getFlat(chartIndex);
-	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
+	const { xAxis, xCategories, xAxisType, axisMedia } = buildXAxisConfig(data, chartIndex, xName, colors);
 	const groups = new Map<number, Map<string, ProcessedData>>();
 	const values = new Map<string, number | string>();
 	for (const point of points) {
@@ -111,6 +111,7 @@ export function buildAreaOption(
 		};
 	});
 	return {
+		media: axisMedia,
 		grid: gridOption(),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, data.hasDomainOverride() ? getStackedAreaDomain(data, chartIndex) : undefined),

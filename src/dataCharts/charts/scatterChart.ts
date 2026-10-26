@@ -58,7 +58,7 @@ export function buildScatterOption(
 	const hasDomain = data.hasDomainOverride();
 	const domain = hasDomain ? data.getYDomainForChart(chartIndex) : undefined;
 
-	const { xAxis, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors);
+	const { xAxis, xAxisType, axisMedia } = buildXAxisConfig(data, chartIndex, xName, colors);
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of dataPoints) {
@@ -85,6 +85,7 @@ export function buildScatterOption(
 	}));
 
 	return {
+		media: axisMedia,
 		grid: gridOption(),
 		xAxis,
 		yAxis: buildYAxisConfig(yLabel, colors, domain),

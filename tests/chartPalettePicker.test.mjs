@@ -9,6 +9,7 @@ const bundled = await build({
 		contents: `
 			export { ChartPalettePicker, isChartPaletteSelect } from './src/ui/chartPalettePicker.ts';
 			export { CHART_PALETTES, getPaletteColors } from './src/ui/chartPalettes.ts';
+			export { Platform as hostPlatform } from 'obsidian';
 		`,
 		resolveDir: fileURLToPath(new URL('..', import.meta.url)),
 	},
@@ -18,6 +19,7 @@ const bundled = await build({
 		setup(builder) {
 			builder.onResolve({ filter: /^obsidian$/ }, () => ({ path: 'obsidian', namespace: 'host' }));
 			builder.onLoad({ filter: /.*/, namespace: 'host' }, () => ({ contents: `
+				export const Platform = { isMobile: false };
 				export function setIcon(element, icon) { element.dataset.icon = icon; }
 				export class SearchComponent {
 					constructor(parent) { this.inputEl = parent.createEl('input'); }
@@ -28,7 +30,7 @@ const bundled = await build({
 		},
 	}],
 });
-const { ChartPalettePicker, isChartPaletteSelect, CHART_PALETTES, getPaletteColors } = await import(
+const { ChartPalettePicker, isChartPaletteSelect, CHART_PALETTES, getPaletteColors, hostPlatform } = await import(
 	`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`,
 );
 
@@ -39,7 +41,7 @@ class EventTargetFixture {
 		this.listeners.get(name).add(callback);
 	}
 	removeEventListener(name, callback) { this.listeners.get(name)?.delete(callback); }
-	emit(name, event) {
+	emit(name, event = {}) {
 		for (const callback of [...(this.listeners.get(name) ?? [])]) {
 			callback(event);
 			if (event.immediateStopped) break;
@@ -139,8 +141,11 @@ class Element extends EventTargetFixture {
 function harness(dark = false) {
 	const doc = new EventTargetFixture();
 	const win = new EventTargetFixture();
+	const viewport = new EventTargetFixture();
+	Object.assign(viewport, { width: 1000, height: 800, offsetLeft: 0, offsetTop: 0 });
 	Object.assign(win, {
 		innerWidth: 1000, innerHeight: 800,
+		visualViewport: viewport,
 		Event: class OwnerWindowEvent {
 			constructor(type, options) { this.type = type; Object.assign(this, options); }
 		},
@@ -167,7 +172,7 @@ function harness(dark = false) {
 		return select;
 	};
 	return {
-		doc, win, nativeMenu, form, writes, saved, createSetting,
+		doc, win, viewport, nativeMenu, form, writes, saved, createSetting,
 		panel: () => nativeMenu.querySelector('.bases-chart-palette-popover'),
 		rows: () => nativeMenu.querySelectorAll('.bases-chart-palette-option'),
 		search: () => nativeMenu.querySelector('.bases-chart-palette-search').querySelector('input'),
@@ -176,12 +181,115 @@ function harness(dark = false) {
 }
 
 function assertNoPopupListeners(host) {
-	for (const target of [host.doc, host.win]) for (const listeners of target.listeners.values()) assert.equal(listeners.size, 0);
+	for (const target of [host.doc, host.win, host.viewport]) for (const listeners of target.listeners.values()) assert.equal(listeners.size, 0);
 }
 
 function swatchColors(element) {
 	return element.querySelectorAll('.bases-chart-palette-swatch').map(swatch => swatch.style.values.get('background-color'));
 }
+
+function openOnMobile(picker) {
+	hostPlatform.isMobile = true;
+	try { picker.open(); }
+	finally { hostPlatform.isMobile = false; }
+}
+
+function assertWithinViewport(host) {
+	const styles = host.panel().style.values;
+	const width = parseFloat(styles.get('--chart-palette-width'));
+	const height = parseFloat(styles.get('--chart-palette-height'));
+	const left = parseFloat(styles.get('--chart-palette-left'));
+	const top = styles.get('--chart-palette-top') === 'auto'
+		? host.win.innerHeight - parseFloat(styles.get('--chart-palette-bottom')) - height
+		: parseFloat(styles.get('--chart-palette-top'));
+	const viewport = host.win.visualViewport ?? { offsetLeft: 0, offsetTop: 0, width: host.win.innerWidth, height: host.win.innerHeight };
+	assert.ok(left >= viewport.offsetLeft + 8);
+	assert.ok(left + width <= viewport.offsetLeft + viewport.width - 8);
+	assert.ok(top >= viewport.offsetTop + 8);
+	assert.ok(top + height <= viewport.offsetTop + viewport.height - 8);
+}
+
+test('phone picker keeps the keyboard closed and repositions without losing search or native saving', () => {
+	const host = harness();
+	Object.assign(host.win, { innerWidth: 390, innerHeight: 844 });
+	Object.assign(host.viewport, { width: 390, height: 844 });
+	const picker = new ChartPalettePicker(host.createSetting('configured-view', 'earth'));
+	picker.button.focus();
+	openOnMobile(picker);
+	const originalPanel = host.panel();
+	assert.equal(host.doc.activeElement, picker.button, 'opening does not focus the text input');
+	assertWithinViewport(host);
+	const search = host.search();
+	search.focus();
+	search.value = 'coast'; search.dispatch('input');
+	Object.assign(host.viewport, { width: 350, height: 300, offsetLeft: 20, offsetTop: 100 });
+	host.viewport.emit('resize');
+	assert.equal(host.panel(), originalPanel);
+	assert.equal(host.search(), search);
+	assert.equal(search.value, 'coast');
+	assert.deepEqual(host.rows().map(row => row.dataset.palette), ['coastal']);
+	assertWithinViewport(host);
+	Object.assign(host.viewport, { offsetLeft: 30, offsetTop: 120 });
+	host.viewport.emit('scroll');
+	host.win.emit('scroll', eventFor(host.doc.body));
+	assert.equal(host.panel(), originalPanel);
+	assertWithinViewport(host);
+	assert.deepEqual(host.writes, []);
+	host.rows()[0].click();
+	assert.deepEqual(host.writes, [{ view: 'configured-view', value: 'coastal' }]);
+	assert.equal(host.panel(), null);
+	assertNoPopupListeners(host);
+	picker.destroy();
+});
+
+test('phone keyboard and window changes clamp an offscreen anchor and clear opposite placement edges', () => {
+	const host = harness();
+	Object.assign(host.win, { innerWidth: 390, innerHeight: 844 });
+	Object.assign(host.viewport, { width: 390, height: 844 });
+	const picker = new ChartPalettePicker(host.createSetting('chart'));
+	let anchorTop = 80;
+	picker.button.getBoundingClientRect = () => ({ left: 60, right: 340, top: anchorTop, bottom: anchorTop + 36, width: 280, height: 36 });
+	openOnMobile(picker);
+	assert.equal(host.panel().style.values.get('--chart-palette-bottom'), 'auto');
+	anchorTop = 680;
+	Object.assign(host.viewport, { width: 330, height: 420, offsetLeft: 40, offsetTop: 80 });
+	host.viewport.emit('resize');
+	assert.equal(host.panel().style.values.get('--chart-palette-top'), 'auto');
+	assertWithinViewport(host);
+	host.win.innerHeight = 500;
+	host.win.emit('resize');
+	assert.ok(host.panel(), 'mobile window resize does not dismiss the picker');
+	assertWithinViewport(host);
+	anchorTop = 80;
+	Object.assign(host.viewport, { width: 390, height: 500, offsetLeft: 0, offsetTop: 0 });
+	host.viewport.emit('resize');
+	assert.equal(host.panel().style.values.get('--chart-palette-bottom'), 'auto');
+	assertWithinViewport(host);
+	picker.destroy();
+	assertNoPopupListeners(host);
+});
+
+test('mobile without VisualViewport still repositions while desktop resize dismisses', () => {
+	const mobile = harness();
+	mobile.win.visualViewport = null;
+	Object.assign(mobile.win, { innerWidth: 320, innerHeight: 568 });
+	const mobilePicker = new ChartPalettePicker(mobile.createSetting('chart'));
+	openOnMobile(mobilePicker);
+	assertWithinViewport(mobile);
+	mobile.win.innerHeight = 280;
+	mobile.win.emit('resize');
+	assert.ok(mobile.panel());
+	assertWithinViewport(mobile);
+	mobilePicker.destroy();
+	assertNoPopupListeners(mobile);
+	const desktop = harness();
+	const desktopPicker = new ChartPalettePicker(desktop.createSetting('chart'));
+	desktopPicker.open();
+	desktop.win.emit('resize');
+	assert.equal(desktop.panel(), null);
+	assertNoPopupListeners(desktop);
+	desktopPicker.destroy();
+});
 
 test('only the exact native palette setting is eligible; measuring and unrelated selects are excluded', () => {
 	const host = harness();

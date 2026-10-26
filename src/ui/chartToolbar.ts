@@ -1,4 +1,4 @@
-import { Component, DropdownComponent, Menu, SearchComponent, setIcon } from 'obsidian';
+import { Component, DropdownComponent, Menu, Modal, Platform, SearchComponent, setIcon } from 'obsidian';
 import type { DataChartView } from '../dataCharts/dataChartView';
 import { AggregateMode, aggregateKey } from '../dataCharts/aggregate';
 import { COMMON_SETTINGS } from '../dataCharts/types';
@@ -15,8 +15,8 @@ export class ChartToolbar extends Component {
 	private items: HTMLElement[] = [];
 	private panel: HTMLElement | null = null;
 	private closePanel: (() => void) | null = null;
-	private dateGroupingMenu: Menu | null = null;
-	private dateGroupingTrigger: HTMLButtonElement | null = null;
+	private childMenu: Menu | null = null;
+	private childMenuTrigger: HTMLButtonElement | null = null;
 
 	constructor(private view: DataChartView) {
 		super();
@@ -93,15 +93,24 @@ export class ChartToolbar extends Component {
 		const doc = button.ownerDocument;
 		const win = doc.defaultView;
 		if (!win) return;
-		const panel = doc.body.createDiv({ cls: 'bases-chart-axis-panel' });
+		const modal = Platform.isMobile ? new Modal(this.view.app) : null;
+		if (modal) {
+			modal.setTitle(this.axisLabel(axis));
+			modal.modalEl.addClass('bases-chart-axis-modal');
+			if (Platform.isPhone) modal.modalEl.addClass('mod-lg');
+		}
+		const panel = modal?.contentEl ?? doc.body.createDiv();
+		panel.addClass('bases-chart-axis-panel');
+		if (modal) panel.addClass('is-mobile');
+		panel.tabIndex = -1;
 		this.panel = panel;
-		panel.setAttribute('role', 'dialog');
+		panel.setAttribute('role', modal ? 'group' : 'dialog');
 		panel.setAttribute('aria-label', this.axisLabel(axis));
 		button.setAttribute('aria-expanded', 'true');
-		const header = panel.createDiv({ cls: 'bases-chart-panel-header' });
-		const title = header.createDiv({ cls: 'bases-chart-panel-title', text: this.axisLabel(axis) });
+		const header = modal ? null : panel.createDiv({ cls: 'bases-chart-panel-header' });
+		const title = modal?.titleEl ?? header!.createDiv({ cls: 'bases-chart-panel-title', text: this.axisLabel(axis) });
 		const count = axis === 'y' ? title.createSpan({ cls: 'flair bases-chart-selection-count' }) : null;
-		this.iconButton(header, 'x', 'Close', () => {
+		if (header) this.iconButton(header, 'x', 'Close', () => {
 			this.closePanel?.();
 			button.focus();
 		});
@@ -131,34 +140,44 @@ export class ChartToolbar extends Component {
 		searchComponent.onChange(render);
 		render();
 
-		const rect = button.getBoundingClientRect();
-		const width = Math.max(0, Math.min(axis === 'x' ? 360 : 420, win.innerWidth - 16));
-		panel.style.setProperty('--chart-panel-width', `${width}px`);
-		panel.style.setProperty('--chart-panel-left', `${Math.max(8, Math.min(rect.right - width, win.innerWidth - width - 8))}px`);
-		const below = win.innerHeight - rect.bottom - 14;
-		if (Math.max(below, rect.top - 14) < 240) {
-			panel.addClass('is-short-window');
-			panel.style.setProperty('--chart-panel-height', `${Math.max(0, win.innerHeight - 16)}px`);
-		} else if (below >= 240 || rect.top < below) {
-			panel.style.setProperty('--chart-panel-top', `${rect.bottom + 6}px`);
-			panel.style.setProperty('--chart-panel-height', `${Math.max(0, below)}px`);
+		const updateMobileViewport = () => {
+			const height = Math.max(0, win.visualViewport?.height ?? win.innerHeight);
+			panel.style.setProperty('--chart-panel-height', `${height}px`);
+			modal?.modalEl.style.setProperty('--chart-panel-viewport-height', `${height}px`);
+		};
+		if (modal) {
+			updateMobileViewport();
 		} else {
-			panel.style.setProperty('--chart-panel-bottom', `${win.innerHeight - rect.top + 6}px`);
-			panel.style.setProperty('--chart-panel-height', `${Math.max(0, rect.top - 14)}px`);
+			const rect = button.getBoundingClientRect();
+			const width = Math.max(0, Math.min(axis === 'x' ? 360 : 420, win.innerWidth - 16));
+			panel.style.setProperty('--chart-panel-width', `${width}px`);
+			panel.style.setProperty('--chart-panel-left', `${Math.max(8, Math.min(rect.right - width, win.innerWidth - width - 8))}px`);
+			const below = win.innerHeight - rect.bottom - 14;
+			if (Math.max(below, rect.top - 14) < 240) {
+				panel.addClass('is-short-window');
+				panel.style.setProperty('--chart-panel-height', `${Math.max(0, win.innerHeight - 16)}px`);
+			} else if (below >= 240 || rect.top < below) {
+				panel.style.setProperty('--chart-panel-top', `${rect.bottom + 6}px`);
+				panel.style.setProperty('--chart-panel-height', `${Math.max(0, below)}px`);
+			} else {
+				panel.style.setProperty('--chart-panel-bottom', `${win.innerHeight - rect.top + 6}px`);
+				panel.style.setProperty('--chart-panel-height', `${Math.max(0, rect.top - 14)}px`);
+			}
 		}
 
+		const focusBoundary = modal?.modalEl ?? panel;
 		const onOutside = (event: PointerEvent) => {
 			const path = event.composedPath();
 			// Public Menu mounts under body, outside this panel's event path.
-			if (this.dateGroupingMenu && path.some(target => (target as Element).classList?.contains('menu'))) return;
-			if (!path.includes(panel) && !path.includes(button)) this.closePanel?.();
+			if (this.childMenu && path.some(target => (target as Element).classList?.contains('menu'))) return;
+			if (!path.includes(focusBoundary) && !path.includes(button)) this.closePanel?.();
 		};
-		const dateMenuEscapes = new WeakMap<KeyboardEvent, HTMLButtonElement>();
+		const childMenuEscapes = new WeakMap<KeyboardEvent, HTMLButtonElement>();
 		const onWindowKey = (event: KeyboardEvent) => {
 			// Window capture precedes the document keymap, which can hide Menu
 			// before this panel handles the same Escape event.
-			if (event.key === 'Escape' && this.dateGroupingMenu && this.dateGroupingTrigger) {
-				dateMenuEscapes.set(event, this.dateGroupingTrigger);
+			if (event.key === 'Escape' && this.childMenu && this.childMenuTrigger) {
+				childMenuEscapes.set(event, this.childMenuTrigger);
 			}
 		};
 		const onKey = (event: KeyboardEvent) => {
@@ -167,23 +186,23 @@ export class ChartToolbar extends Component {
 				event.preventDefault();
 				event.stopPropagation();
 				// The native keymap can hide Menu earlier in this same key dispatch.
-				const dismissedTrigger = dateMenuEscapes.get(event);
+				const dismissedTrigger = childMenuEscapes.get(event);
 				if (dismissedTrigger) {
-					dateMenuEscapes.delete(event);
+					childMenuEscapes.delete(event);
 					event.stopImmediatePropagation();
-					this.closeDateGroupingMenu();
+					this.closeChildMenu();
 					dismissedTrigger.focus();
 					return;
 				}
-				if (this.dateGroupingMenu) {
+				if (this.childMenu) {
 					event.stopImmediatePropagation();
-					this.closeDateGroupingMenu(true);
+					this.closeChildMenu(true);
 					return;
 				}
 				this.closePanel?.();
 				button.focus();
 			}
-			if (this.dateGroupingMenu) return;
+			if (this.childMenu) return;
 			if (event.key === 'ArrowDown' && event.target === search) {
 				event.preventDefault();
 				results.querySelector<HTMLButtonElement>('.bases-chart-property-option')?.focus();
@@ -200,29 +219,45 @@ export class ChartToolbar extends Component {
 				else options[Math.min(next, options.length - 1)]?.focus();
 			}
 		};
-		const onResize = () => this.closePanel?.();
+		const onResize = () => {
+			if (modal) {
+				this.closeChildMenu();
+				updateMobileViewport();
+			} else this.closePanel?.();
+		};
 		const onFocus = (event: FocusEvent) => {
-			if (this.dateGroupingMenu) return;
-			if (!event.composedPath().includes(panel) && event.target !== button) this.closePanel?.();
+			if (this.childMenu) return;
+			if (!event.composedPath().includes(focusBoundary) && event.target !== button) this.closePanel?.();
 		};
 		doc.addEventListener('pointerdown', onOutside, true);
 		doc.addEventListener('keydown', onKey, true);
 		doc.addEventListener('focusin', onFocus);
 		win.addEventListener('keydown', onWindowKey, true);
 		win.addEventListener('resize', onResize);
-		this.closePanel = () => {
+		if (modal) win.visualViewport?.addEventListener('resize', onResize);
+		let closed = false;
+		const cleanup = (closeModal: boolean) => {
+			if (closed) return;
+			closed = true;
 			doc.removeEventListener('pointerdown', onOutside, true);
 			doc.removeEventListener('keydown', onKey, true);
 			doc.removeEventListener('focusin', onFocus);
 			win.removeEventListener('keydown', onWindowKey, true);
 			win.removeEventListener('resize', onResize);
-			this.closeDateGroupingMenu();
-			panel.remove();
+			if (modal) win.visualViewport?.removeEventListener('resize', onResize);
+			this.closeChildMenu();
+			if (!modal) panel.remove();
 			button.setAttribute('aria-expanded', 'false');
 			this.panel = null;
 			this.closePanel = null;
+			if (closeModal) modal?.close();
 		};
-		search.focus();
+		this.closePanel = () => cleanup(true);
+		if (modal) {
+			modal.setCloseCallback(() => cleanup(false));
+			modal.open();
+			panel.focus({ preventScroll: true });
+		} else search.focus();
 	}
 
 	private propertyIcon(id: string): string {
@@ -250,8 +285,8 @@ export class ChartToolbar extends Component {
 	private openDateGroupingMenu(button: HTMLButtonElement): void {
 		const panel = this.panel;
 		if (!panel) return;
-		if (this.dateGroupingMenu) {
-			this.closeDateGroupingMenu(true);
+		if (this.childMenu) {
+			this.closeChildMenu(true);
 			return;
 		}
 		// Let Obsidian choose native or DOM menus from the user's preference.
@@ -263,35 +298,71 @@ export class ChartToolbar extends Component {
 				this.view.setXDateGrouping(normalizeDateGrouping(unit));
 				button.setText(label);
 				this.changed();
-				this.closeDateGroupingMenu(true);
+				this.closeChildMenu(true);
 			}));
 		}
+		this.showChildMenu(menu, button, panel);
+	}
+
+	private showChildMenu(menu: Menu, button: HTMLButtonElement, panel: HTMLElement, restoreFocusOnHide = false): void {
 		menu.onHide(() => {
 			button.setAttribute('aria-expanded', 'false');
-			if (this.dateGroupingMenu === menu) {
-				this.dateGroupingMenu = null;
-				this.dateGroupingTrigger = null;
+			if (this.childMenu === menu) {
+				this.childMenu = null;
+				this.childMenuTrigger = null;
+				if (restoreFocusOnHide && this.panel === panel && button.isConnected) button.focus({ preventScroll: true });
 			}
 		});
-		this.dateGroupingMenu = menu;
-		this.dateGroupingTrigger = button;
+		this.childMenu = menu;
+		this.childMenuTrigger = button;
 		button.setAttribute('aria-expanded', 'true');
 		const rect = button.getBoundingClientRect();
 		menu.showAtPosition({ x: rect.left, y: rect.bottom + 4, width: rect.width, overlap: true, left: true }, button.ownerDocument);
 	}
 
-	private closeDateGroupingMenu(restoreFocus = false): void {
-		const menu = this.dateGroupingMenu;
-		const trigger = this.dateGroupingTrigger;
-		this.dateGroupingMenu = null;
-		this.dateGroupingTrigger = null;
+	private openPropertyMenu(button: HTMLButtonElement, id: import('obsidian').BasesPropertyId, move: (offset: number) => void, remove: () => void): void {
+		const panel = this.panel;
+		if (!panel) return;
+		const toggling = this.childMenuTrigger === button;
+		this.closeChildMenu();
+		if (toggling) {
+			button.focus({ preventScroll: true });
+			return;
+		}
+		const menu = new Menu().setParentElement(panel);
+		const perform = (action: () => void) => {
+			if (this.panel !== panel) return;
+			this.closeChildMenu();
+			action();
+		};
+		if (this.view.canEditFormulas()) {
+			const formula = id.startsWith('formula.');
+			menu.addItem(item => item.setTitle(formula ? 'Edit formula' : 'Edit property').setIcon(formula ? 'square-function' : 'pencil')
+				.onClick(() => perform(() => this.openEditor('y', id))));
+			menu.addSeparator();
+		}
+		const order = this.view.getYProperties();
+		const index = order.indexOf(id);
+		menu.addItem(item => item.setTitle('Move up').setIcon('arrow-up').setDisabled(index <= 0).onClick(() => perform(() => move(-1))));
+		menu.addItem(item => item.setTitle('Move down').setIcon('arrow-down').setDisabled(index < 0 || index === order.length - 1)
+			.onClick(() => perform(() => move(1))));
+		menu.addSeparator();
+		menu.addItem(item => item.setTitle('Remove').setIcon('x').onClick(() => perform(remove)));
+		this.showChildMenu(menu, button, panel, true);
+	}
+
+	private closeChildMenu(restoreFocus = false): void {
+		const menu = this.childMenu;
+		const trigger = this.childMenuTrigger;
+		this.childMenu = null;
+		this.childMenuTrigger = null;
 		trigger?.setAttribute('aria-expanded', 'false');
 		menu?.hide();
 		if (restoreFocus && this.panel) trigger?.focus();
 	}
 
 	private renderSelectedX(container: HTMLElement): void {
-		this.closeDateGroupingMenu();
+		this.closeChildMenu();
 		container.empty();
 		const x = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		if (!x) {
@@ -315,7 +386,7 @@ export class ChartToolbar extends Component {
 			});
 			dropdown.addEventListener('click', () => this.openDateGroupingMenu(dropdown));
 			dropdown.addEventListener('keydown', event => {
-				if (!this.dateGroupingMenu && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+				if (!this.childMenu && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
 					event.preventDefault();
 					this.openDateGroupingMenu(dropdown);
 				}
@@ -366,7 +437,7 @@ export class ChartToolbar extends Component {
 						}
 						this.changed();
 						render();
-						this.panel?.querySelector<HTMLInputElement>('input')?.focus();
+						this.focusAfterChange();
 					}
 				});
 				this.propertyEditButton(row, axis, id);
@@ -376,17 +447,18 @@ export class ChartToolbar extends Component {
 	}
 
 	private renderSelected(container: HTMLElement, render: () => void): void {
+		this.closeChildMenu();
 		container.empty();
 		const order = this.view.getYProperties();
 		if (!order.length) container.createDiv({ cls: 'bases-chart-panel-description', text: 'Add a property below to create a chart.' });
 		for (const [index, id] of order.entries()) {
 			const name = this.view.config.getDisplayName(id);
-			const row = container.createDiv({ cls: 'bases-chart-selected-property' });
+			const row = container.createDiv({ cls: `bases-chart-selected-property bases-chart-selected-y${Platform.isMobile ? ' is-compact' : ''}` });
 			row.dataset.property = id;
 			const property = row.createDiv({ cls: 'bases-chart-selected-name' });
 			setIcon(property.createSpan({ cls: 'bases-chart-property-icon' }), this.propertyIcon(id));
 			property.createSpan({ cls: 'bases-chart-property-name', text: name }).setAttribute('title', id);
-			this.propertyEditButton(property, 'y', id);
+			if (!Platform.isMobile) this.propertyEditButton(property, 'y', id);
 			const aggregate = new DropdownComponent(row);
 			const select = aggregate.selectEl;
 			select.addClass('bases-chart-aggregate-select');
@@ -410,20 +482,46 @@ export class ChartToolbar extends Component {
 				this.changed();
 				render();
 				const movedRow = Array.from(container.children).find(child => (child as HTMLElement).dataset.property === id);
-				const movedButton = Array.from(movedRow?.querySelectorAll<HTMLButtonElement>('button') ?? [])
-					.find(button => button.getAttribute('aria-label') === `Move ${name} ${offset < 0 ? 'up' : 'down'}`);
+				const movedButton = Platform.isMobile
+					? movedRow?.querySelector<HTMLButtonElement>('.bases-chart-property-more')
+					: Array.from(movedRow?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+						.find(button => button.getAttribute('aria-label') === `Move ${name} ${offset < 0 ? 'up' : 'down'}`);
 				if (movedButton && !movedButton.disabled) movedButton.focus();
-				else this.panel?.querySelector<HTMLInputElement>('input')?.focus();
+				else this.focusAfterChange();
 			};
-			this.iconButton(actions, 'arrow-up', `Move ${name} up`, () => move(-1)).disabled = index === 0;
-			this.iconButton(actions, 'arrow-down', `Move ${name} down`, () => move(1)).disabled = index === order.length - 1;
-			this.iconButton(actions, 'x', `Remove ${name}`, () => {
+			const remove = () => {
 				this.view.config.set(COMMON_SETTINGS.Y, this.view.getYProperties().filter(prop => prop !== id));
 				this.changed();
 				render();
-				this.panel?.querySelector<HTMLInputElement>('input')?.focus();
-			});
+				this.focusAfterChange();
+			};
+			if (Platform.isMobile) {
+				const more = this.iconButton(actions, 'ellipsis', `Options for ${name}`, () => this.openPropertyMenu(more, id, move, remove));
+				more.addClass('bases-chart-property-more');
+				more.setAttribute('aria-haspopup', 'menu');
+				more.setAttribute('aria-expanded', 'false');
+				more.addEventListener('keydown', event => {
+					if (!this.childMenu && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+						event.preventDefault();
+						this.openPropertyMenu(more, id, move, remove);
+					}
+				});
+			} else {
+				this.iconButton(actions, 'arrow-up', `Move ${name} up`, () => move(-1)).disabled = index === 0;
+				this.iconButton(actions, 'arrow-down', `Move ${name} down`, () => move(1)).disabled = index === order.length - 1;
+				this.iconButton(actions, 'x', `Remove ${name}`, remove);
+			}
 		}
+	}
+
+	private focusAfterChange(): void {
+		if (!this.panel) return;
+		const search = this.panel.querySelector<HTMLInputElement>('input');
+		// Touch edits should not summon the software keyboard. Keep an existing
+		// search session focused, otherwise focus the panel without scrolling.
+		if (Platform.isMobile) {
+			if (this.panel.ownerDocument.activeElement !== search) this.panel.focus({ preventScroll: true });
+		} else search?.focus();
 	}
 
 	private iconButton(parent: HTMLElement, icon: string, label: string, click: () => void): HTMLButtonElement {

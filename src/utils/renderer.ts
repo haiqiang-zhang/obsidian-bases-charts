@@ -43,9 +43,14 @@ export class ChartRenderer {
 	private plotBounds: TooltipBounds | null | undefined;
 	private pointColumns: PointColumn[] | undefined;
 	private handledClicks = new WeakSet<object>();
+	private touchGuideEnabled = false;
 
 	private onColumnClick = (event: PointerEvent): void => {
 		if (this.handledClicks.has(event) || !this.tooltipContext) return;
+		if (this.tooltip?.usesTouchPreview()) {
+			if (this.previewColumn(event)) this.handledClicks.add(event);
+			return;
+		}
 		const point = this.singlePointAt(event.offsetX, event.offsetY);
 		const column = point ? [point.raw] : this.columnAt(event.offsetX, event.offsetY);
 		if (!column.length) return;
@@ -57,6 +62,10 @@ export class ChartRenderer {
 	private onColumnMove = (event: PointerEvent): void => {
 		const chart = this.chart;
 		if (!chart) return;
+		if (this.tooltip?.usesTouchPreview()) {
+			this.previewColumn(event);
+			return;
+		}
 		const type = this.tooltipContext?.chartType;
 		if (type === 'chart-bar' || type === 'chart-area') {
 			chart.getZr().setCursorStyle(this.columnAt(event.offsetX, event.offsetY).length ? 'pointer' : 'default');
@@ -79,6 +88,7 @@ export class ChartRenderer {
 	constructor(
 		private containerEl: HTMLElement,
 		private view: ChartViewLike,
+		private previewEl?: HTMLElement,
 	) {
 		this.initialize();
 		this.unregisterMigration = containerEl.onWindowMigrated(() => {
@@ -90,7 +100,7 @@ export class ChartRenderer {
 
 	private initialize(): void {
 		this.chart = echarts.init(this.containerEl, undefined, { renderer: 'canvas' });
-		this.tooltip = new ChartTooltip(this.containerEl, this.view, () => this.hideTooltip());
+		this.tooltip = new ChartTooltip(this.containerEl, this.view, () => this.hideTooltip(), this.previewEl);
 		const win = this.containerEl.ownerDocument.defaultView;
 		let lastWidth: number | undefined;
 		let lastHeight: number | undefined;
@@ -117,11 +127,53 @@ export class ChartRenderer {
 		this.resizeObserver = new (win?.ResizeObserver ?? ResizeObserver)(scheduleResize);
 		this.resizeObserver.observe(this.containerEl);
 		const onScroll = () => this.hideTooltip();
+		let touch: { id: number; x: number; y: number; scrolling: boolean } | null = null;
+		const inspectTouch = (point: Touch) => {
+			const rect = this.containerEl.getBoundingClientRect();
+			const offsetX = point.clientX - rect.left;
+			const offsetY = point.clientY - rect.top;
+			if (this.previewColumn({ offsetX, offsetY })) return;
+			// Use ZRender's public hit-testing and event pipeline for pie sectors,
+			// radar polygons and scatter marks sharing the same X coordinate.
+			const zr = this.chart?.getZr();
+			const target = zr?.findHover(offsetX, offsetY)?.target;
+			if (target) zr?.trigger('mouseover', { target, offsetX, offsetY });
+		};
+		const onTouchStart = (event: TouchEvent) => {
+			if (!this.tooltip?.usesTouchPreview() || event.touches.length !== 1) { touch = null; return; }
+			const point = event.touches[0];
+			touch = { id: point.identifier, x: point.clientX, y: point.clientY, scrolling: false };
+			inspectTouch(point);
+		};
+		const onTouchMove = (event: TouchEvent) => {
+			if (!touch || !this.tooltip?.usesTouchPreview() || event.touches.length !== 1) return;
+			const point = event.touches[0];
+			if (point.identifier !== touch.id) return;
+			const dx = Math.abs(point.clientX - touch.x);
+			const dy = Math.abs(point.clientY - touch.y);
+			if (dy > 8 && dy > dx) touch.scrolling = true;
+			if (!touch.scrolling) inspectTouch(point);
+		};
+		const onTouchEnd = () => { touch = null; };
+		if (this.previewEl) {
+			// Native touch events also cover long presses and moves that WebViews
+			// do not translate into mouse events. Vertical scrolling stays native.
+			this.containerEl.addEventListener('touchstart', onTouchStart, { passive: true });
+			this.containerEl.addEventListener('touchmove', onTouchMove, { passive: true });
+			this.containerEl.addEventListener('touchend', onTouchEnd);
+			this.containerEl.addEventListener('touchcancel', onTouchEnd);
+		}
 		win?.addEventListener('resize', scheduleResize);
 		win?.addEventListener('scroll', onScroll, true);
 		this.removeWindowListener = () => {
 			win?.removeEventListener('resize', scheduleResize);
 			win?.removeEventListener('scroll', onScroll, true);
+			if (this.previewEl) {
+				this.containerEl.removeEventListener('touchstart', onTouchStart);
+				this.containerEl.removeEventListener('touchmove', onTouchMove);
+				this.containerEl.removeEventListener('touchend', onTouchEnd);
+				this.containerEl.removeEventListener('touchcancel', onTouchEnd);
+			}
 		};
 
 		this.chart.on('click', params => {
@@ -130,6 +182,11 @@ export class ChartRenderer {
 			if (params.event && this.handledClicks.has(params.event)) return;
 			const raw = (params.data as { _raw?: ProcessedData })?._raw;
 			if (!raw) return;
+			if (this.tooltipContext && this.tooltip?.usesTouchPreview()) {
+				if (!params.event || !this.previewColumn({ offsetX: params.event.offsetX, offsetY: params.event.offsetY })) this.tooltip.preview(params, this.tooltipContext);
+				if (params.event) this.handledClicks.add(params.event);
+				return;
+			}
 			if (raw.files.length && this.tooltipContext) {
 				if (params.event) this.handledClicks.add(params.event);
 				this.hideTooltip();
@@ -137,6 +194,11 @@ export class ChartRenderer {
 			} else if (raw.files.length === 1) {
 				const event = params.event?.event as MouseEvent | undefined;
 				void this.view.openFile(raw.files[0], !!(event?.ctrlKey || event?.metaKey));
+			}
+		});
+		this.chart.on('mouseover', params => {
+			if (this.tooltipContext && this.tooltip?.usesTouchPreview()) {
+				if (!params.event || !this.previewColumn({ offsetX: params.event.offsetX, offsetY: params.event.offsetY })) this.tooltip.preview(params, this.tooltipContext);
 			}
 		});
 		const zr = this.chart.getZr();
@@ -149,22 +211,28 @@ export class ChartRenderer {
 	}
 
 	private hideTooltip(): void {
-		if (['chart-line', 'chart-scatter'].includes(this.tooltipContext?.chartType ?? '')) {
+		if (this.touchGuideEnabled || ['chart-line', 'chart-scatter'].includes(this.tooltipContext?.chartType ?? '')) {
 			this.chart?.dispatchAction({ type: 'updateAxisPointer', currTrigger: 'leave' });
 		}
 		this.chart?.dispatchAction({ type: 'hideTip' });
 	}
 
 	private singlePointAt(x: number, y: number): ColumnPoint | null {
+		if (!['chart-line', 'chart-scatter'].includes(this.tooltipContext?.chartType ?? '')) return null;
+		const points = this.pointsAt(x, y);
+		const point = points.length === 1 ? points[0] : undefined;
+		return point?.raw.files.length ? point : null;
+	}
+
+	private pointsAt(x: number, y: number): ColumnPoint[] {
 		const chart = this.chart;
 		const axis = Array.isArray(this.option?.xAxis) ? this.option.xAxis[0] : this.option?.xAxis;
-		if (!chart || !axis || !['chart-line', 'chart-scatter'].includes(this.tooltipContext?.chartType ?? '')
-			|| !chart.containPixel({ gridIndex: 0 }, [x, y])) return null;
+		if (!chart || !axis || !chart.containPixel({ gridIndex: 0 }, [x, y])) return [];
 		const columns = this.pointColumns ??= this.indexPointColumns();
 		let column: PointColumn | undefined;
 		if (axis.type === 'category') {
 			const ordinal = chart.convertFromPixel({ xAxisIndex: 0 }, x) as unknown;
-			if (typeof ordinal !== 'number' || !Number.isFinite(ordinal)) return null;
+			if (typeof ordinal !== 'number' || !Number.isFinite(ordinal)) return [];
 			column = columns[Math.max(0, Math.min(columns.length - 1, Math.round(ordinal)))];
 		} else {
 			// Compare projected X positions, not data distances: log, time and
@@ -184,8 +252,28 @@ export class ChartRenderer {
 				column = difference < 0 || (difference === 0 && before.x < after.x) ? before : after;
 			}
 		}
-		const point = column?.points.length === 1 ? column.points[0] : undefined;
-		return point?.raw.files.length ? point : null;
+		return column?.points ?? [];
+	}
+
+	private previewColumn(event: PointerEvent): boolean {
+		if (!this.tooltip || !this.tooltipContext || !this.chart) return false;
+		const points = this.pointsAt(event.offsetX, event.offsetY);
+		// Scatter marks can share X without belonging to one aggregate. Keep the
+		// actual mark selectable instead of guessing between overlapping values.
+		if (!points.length || (this.tooltipContext.chartType === 'chart-scatter' && points.length !== 1)) return false;
+		const params = points.map(point => {
+			const color: unknown = this.chart!.getVisual({ seriesIndex: point.seriesIndex, dataIndex: point.dataIndex }, 'color');
+			return { data: { _raw: point.raw }, color };
+		});
+		if (!this.touchGuideEnabled && ['chart-bar', 'chart-area'].includes(this.tooltipContext.chartType)) {
+			const base = Array.isArray(this.option?.tooltip) ? this.option.tooltip[0] : this.option?.tooltip;
+			this.chart.setOption({ xAxis: { axisPointer: { show: true, type: 'line', snap: true,
+				label: { show: false }, lineStyle: { ...base?.axisPointer?.lineStyle, type: 'dashed', width: 1 } } } });
+			this.touchGuideEnabled = true;
+		}
+		this.chart.dispatchAction({ type: 'updateAxisPointer', currTrigger: 'mousemove',
+			seriesIndex: points[0].seriesIndex, dataIndex: points[0].dataIndex });
+		return this.tooltip.preview(params, this.tooltipContext);
 	}
 
 	private indexPointColumns(): PointColumn[] {
@@ -295,6 +383,7 @@ export class ChartRenderer {
 	setOption(option: EChartsOption, context?: ChartTooltipContext): void {
 		this.clearMessage();
 		this.hideTooltip();
+		this.tooltip?.resetTouchPreview();
 		const base = Array.isArray(option.tooltip) ? option.tooltip[0] : option.tooltip;
 		let rendered = context && this.tooltip
 			? { ...option, tooltip: this.tooltip.options(base ?? {}, context, params => this.tooltipAnchor(params),
@@ -310,6 +399,7 @@ export class ChartRenderer {
 		}
 		this.plotBounds = undefined;
 		this.pointColumns = undefined;
+		this.touchGuideEnabled = false;
 		this.chart?.setOption(rendered, { notMerge: true });
 		this.option = option;
 		this.tooltipContext = context;
@@ -325,6 +415,7 @@ export class ChartRenderer {
 	showMessage(message: string, action?: { label: string; onClick: () => void }): void {
 		this.clearMessage();
 		this.hideTooltip();
+		this.tooltip?.resetTouchPreview();
 		this.option = null;
 		this.tooltipContext = undefined;
 		this.pointColumns = undefined;

@@ -71,6 +71,7 @@ class Element {
 	createDiv(options) { return this.createEl('div', options); }
 	createSpan(options) { return this.createEl('span', options); }
 	addEventListener() {}
+	setAttribute() {}
 	empty() { this.children = []; }
 	addClass(name) { this.classes.add(name); }
 	removeClass(name) { this.classes.delete(name); }
@@ -250,7 +251,7 @@ test('radar combines selected values into one plot when only the second value pr
 	assert.deepEqual(Array.from(option.series[0].data[0].value), [1, 2, 3]);
 	assert.equal(context.chartType, 'chart-radar');
 	assert.equal(context.yLabel, 'Values');
-	const legend = host.radar.containerEl.children[1];
+	const legend = host.radar.containerEl.children.find(child => child.classes.has('bases-charts-plot-legend'));
 	assert.equal(legend.children[0].children[1].textContent, 'Spending');
 	assert.equal(legend.children[0].children[0].style.values.get('--color'), option.series[0].itemStyle.color,
 		'the legend must retain the same measure color when an earlier measure has no values');

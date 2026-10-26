@@ -66,7 +66,7 @@ export function buildBarOption(
 	const domain = hasDomainOverride ? data.getYDomainForChart(chartIndex) : undefined;
 
 	// Bar always uses category axis regardless of detected type
-	const { xAxis, xCategories, xAxisType } = buildXAxisConfig(data, chartIndex, xName, colors, 'category');
+	const { xAxis, xCategories, xAxisType, axisMedia } = buildXAxisConfig(data, chartIndex, xName, colors, 'category');
 
 	const seriesMap = new Map<number, ProcessedData[]>();
 	for (const dp of flatData) {
@@ -114,6 +114,7 @@ export function buildBarOption(
 	});
 
 	return {
+		media: axisMedia,
 		grid: gridOption(),
 		xAxis,
 		yAxis: {

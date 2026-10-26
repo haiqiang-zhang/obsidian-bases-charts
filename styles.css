@@ -865,3 +865,242 @@ body {
 .bases-chart-palette-check { display: flex; flex: 0 0 16px; }
 .bases-chart-palette-check svg { width: 16px; height: 16px; }
 .bases-chart-palette-empty { padding: 16px 10px; color: var(--text-muted); font-size: var(--font-ui-small); }
+
+/* Phone controls use Obsidian's native Modal sheet, header and dismissal. */
+.is-phone .modal-container.bases-chart-files-container {
+    align-items: flex-end;
+}
+.is-phone .modal:is(.bases-chart-files-modal, .bases-chart-axis-modal).mod-lg {
+    width: 100%;
+    max-width: 100%;
+    height: min(84dvh, 760px);
+    max-height: min(var(--chart-panel-viewport-height, 100dvh), calc(100dvh - var(--safe-area-inset-top, 0px) - var(--keyboard-height, 0px)));
+    margin: auto 0 0;
+    padding: 0;
+    border-radius: var(--touch-radius-s) var(--touch-radius-s) 0 0;
+    overflow: hidden;
+}
+.is-phone .modal:is(.bases-chart-files-modal, .bases-chart-axis-modal)::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: calc(50% - 18px);
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-l);
+    background: var(--background-modifier-border-hover);
+    pointer-events: none;
+}
+.is-phone :is(.bases-chart-files-modal, .bases-chart-axis-modal) .modal-header {
+    flex: 0 0 auto;
+    padding: var(--size-4-6) var(--size-4-4) var(--size-4-3);
+}
+.is-phone :is(.bases-chart-files-modal, .bases-chart-axis-modal) .modal-title {
+    margin: 0;
+    padding-inline: var(--touch-size-m);
+    font-size: var(--font-ui-large);
+}
+.is-phone .bases-chart-axis-modal .bases-chart-selection-count { margin-inline-start: var(--size-4-2); }
+.is-phone .bases-chart-files-modal .modal-content.bases-chart-files-content {
+    padding: var(--size-4-2) var(--size-4-4) max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
+    gap: var(--size-4-3);
+}
+.is-phone .bases-chart-files-tools { padding: 2px; }
+.is-phone .bases-chart-files-tools .bases-chart-files-search {
+    height: var(--touch-size-m);
+    flex-basis: 100%;
+    width: 100%;
+}
+/* A semantic table with stacked file/group information and visible values. */
+.is-phone .bases-chart-files-table,
+.is-phone .bases-chart-files-table-grouped { min-width: 0; }
+.is-phone .bases-chart-files-table :is(thead, tbody) { display: block; }
+.is-phone .bases-chart-files-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--background-primary);
+}
+.is-phone .bases-chart-files-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(52px, max-content);
+}
+.is-phone .bases-chart-files-table .bases-chart-file-row {
+    display: grid;
+    border-bottom: var(--border-width) solid var(--background-modifier-border);
+}
+.is-phone .bases-chart-files-table .bases-chart-file-row:last-child { border-bottom: 0; }
+.is-phone .bases-chart-files-table :is(th, td) {
+    position: static;
+    min-width: 0;
+    width: auto;
+    border: 0;
+    padding: var(--size-4-3);
+}
+.is-phone .bases-chart-files-table .bases-chart-files-group-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+.is-phone .bases-chart-files-table .bases-chart-file-cell {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 0;
+}
+.is-phone .bases-chart-files-table .bases-chart-file-open {
+    padding: var(--size-4-3);
+    min-height: var(--touch-size-l);
+}
+.is-phone .bases-chart-files-table .bases-chart-file-group {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 0 var(--size-4-3) var(--size-4-3);
+    font-size: var(--font-ui-smaller);
+    overflow-wrap: anywhere;
+}
+.is-phone .bases-chart-files-table .bases-chart-file-group::before {
+    content: attr(data-label) ': ';
+    color: var(--text-faint);
+}
+.is-phone .bases-chart-files-table :is(.bases-chart-file-value, .bases-chart-files-value-heading) {
+    grid-column: 2;
+    max-width: 110px;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.is-phone .bases-chart-files-table .bases-chart-file-value { grid-row: 1 / span 2; align-self: center; }
+.is-phone .bases-chart-files-table .bases-chart-files-empty { grid-column: 1 / -1; }
+
+.is-mobile .bases-chart-axis-modal {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.is-mobile .bases-chart-axis-modal .modal-content.bases-chart-axis-panel {
+    --input-height: var(--touch-size-m);
+    position: static;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    width: auto;
+    margin: 0;
+    padding: 0 var(--size-4-2) max(var(--size-4-3), var(--safe-area-inset-bottom, 0px));
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--background-primary);
+    outline: none;
+}
+.is-mobile .bases-chart-axis-panel .bases-chart-selection { max-height: min(260px, calc(var(--chart-panel-height) * 0.45)); }
+.is-mobile .bases-chart-axis-panel .bases-chart-selected-properties { gap: 0; }
+.is-mobile .bases-chart-axis-panel .bases-chart-selected-property {
+    min-height: 52px;
+    flex-wrap: nowrap;
+    background: transparent;
+    border-radius: 0;
+}
+.is-mobile .bases-chart-axis-panel .bases-chart-selected-property + .bases-chart-selected-property {
+    border-top: var(--border-width) solid var(--background-modifier-border);
+}
+.is-mobile .bases-chart-axis-panel .bases-chart-selected-name {
+    flex: 1 1 0;
+    min-height: 44px;
+    padding-inline: var(--size-4-2) var(--size-4-1);
+}
+.is-mobile .bases-chart-axis-panel .bases-chart-property-name { white-space: normal; overflow-wrap: anywhere; }
+.is-mobile .bases-chart-axis-panel select.bases-chart-aggregate-select {
+    flex: 0 0 auto;
+    height: 44px;
+    width: 88px;
+    max-width: 30%;
+    padding-inline-start: var(--size-4-2);
+    border-inline-start: 0;
+    color: var(--text-muted);
+}
+.is-mobile .bases-chart-axis-panel :is(button.bases-chart-property-option, button.bases-chart-add-formula, .bases-chart-date-grouping) { min-height: 44px; }
+.is-mobile .bases-chart-axis-panel button.bases-chart-property-edit {
+    width: 44px;
+    height: 44px;
+    opacity: 1;
+}
+.is-mobile .bases-chart-axis-panel .bases-chart-property-actions .clickable-icon { min-width: 44px; min-height: 44px; }
+.is-mobile .bases-chart-property-search input[type="search"] { height: 44px; }
+.is-mobile .bases-chart-palette-popover button.bases-chart-palette-option { min-height: 44px; font-size: var(--font-ui-medium); }
+.is-mobile .bases-chart-palette-search input[type="search"] { height: 44px; }
+/* Keep group colors visible before a phone's vertically stacked measures. */
+.is-phone .bases-data-chart-view > .bases-charts-plot-legend:not(.bases-charts-hidden) {
+    order: -1;
+    margin: 0 0 var(--size-4-4);
+    justify-content: flex-start;
+    padding-inline: var(--size-4-2);
+    gap: var(--size-4-2) var(--size-4-4);
+}
+.is-phone .bases-data-chart-view { padding-top: var(--size-4-4); }
+/* Short selections should not leave a mostly empty, full-height drawer. */
+.is-phone .modal.bases-chart-files-modal.mod-lg {
+    height: auto;
+    min-height: min(48dvh, 420px, calc(100dvh - var(--safe-area-inset-top, 0px) - var(--keyboard-height, 0px)));
+    max-height: min(72dvh, calc(100dvh - var(--safe-area-inset-top, 0px) - var(--keyboard-height, 0px)));
+}
+
+/* Portrait phones reserve a stable reading area below the plot. */
+.bases-chart-touch-preview { display: none; }
+@media (orientation: portrait) {
+    .is-phone .bases-data-chart-view { overflow: hidden; }
+    .is-phone .bases-data-chart-view > .bases-charts-plot-grid {
+        flex: 1 1 auto;
+        min-height: 160px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior-y: contain;
+    }
+    .is-phone .bases-data-chart-view .bases-charts-plot-grid-item { touch-action: pan-y; }
+    .is-phone .bases-data-chart-view::before,
+    .is-phone .bases-data-chart-view::after { display: none; }
+    .is-phone .bases-chart-touch-preview:not(.bases-charts-hidden) {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        min-height: 150px;
+        max-height: min(240px, 34dvh);
+        margin: var(--size-4-2) var(--size-4-2) 0;
+        padding-top: var(--size-4-3);
+        border-top: var(--border-width) solid var(--background-modifier-border);
+        color: var(--text-normal);
+        font-size: var(--font-ui-small);
+        overflow: hidden;
+    }
+}
+.bases-chart-touch-preview-empty {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--size-4-2);
+    padding: var(--size-4-4);
+    color: var(--text-muted);
+    text-align: center;
+}
+.bases-chart-touch-preview-empty svg { width: var(--icon-l); height: var(--icon-l); color: var(--text-faint); }
+.bases-chart-touch-preview-header { flex: 0 0 auto; padding-bottom: var(--size-4-2); }
+.bases-chart-touch-preview-property { font-size: var(--font-ui-smaller); color: var(--text-muted); }
+.bases-chart-touch-preview-title { font-weight: var(--font-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bases-chart-touch-preview-groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--size-4-1) var(--size-4-4);
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.bases-chart-touch-preview-row { display: flex; align-items: center; gap: var(--size-2-2); min-width: 0; min-height: 28px; }
+.bases-chart-touch-preview-swatch { flex: 0 0 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+.bases-chart-touch-preview-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }
+.bases-chart-touch-preview-value { font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.bases-chart-touch-preview-footer { display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; gap: var(--size-4-2); margin-top: auto; padding-top: var(--size-4-1); color: var(--text-muted); font-size: var(--font-ui-smaller); }
+.bases-chart-touch-preview-footer button { min-height: 44px; padding-inline: var(--size-4-3); background: transparent; box-shadow: none; color: var(--text-normal); font-weight: var(--font-medium); }

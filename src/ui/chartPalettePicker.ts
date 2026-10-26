@@ -1,4 +1,4 @@
-import { SearchComponent, setIcon } from 'obsidian';
+import { Platform, SearchComponent, setIcon } from 'obsidian';
 import { CHART_PALETTES, getChartPalette, getPaletteColors } from './chartPalettes';
 import type { ChartPalette } from './chartPalettes';
 
@@ -124,18 +124,33 @@ export class ChartPalettePicker {
 		this.list.id = `${this.id}-list`;
 		search.onChange(() => this.renderResults());
 		this.renderResults();
-		const rect = this.button.getBoundingClientRect();
-		const width = Math.max(0, Math.min(Math.max(rect.width, 280), win.innerWidth - 16));
-		const below = win.innerHeight - rect.bottom - 14;
-		const above = rect.top - 14;
-		const short = Math.max(below, above) < 180;
-		const useBelow = below >= 260 || below >= above;
-		const maxHeight = Math.min(420, short ? win.innerHeight - 16 : useBelow ? below : above);
-		panel.style.setProperty('--chart-palette-width', `${width}px`);
-		panel.style.setProperty('--chart-palette-height', `${Math.max(0, maxHeight)}px`);
-		panel.style.setProperty('--chart-palette-left', `${Math.max(8, Math.min(rect.left, win.innerWidth - width - 8))}px`);
-		if (short || useBelow) panel.style.setProperty('--chart-palette-top', `${short ? 8 : rect.bottom + 4}px`);
-		else panel.style.setProperty('--chart-palette-bottom', `${win.innerHeight - rect.top + 4}px`);
+		const mobile = Platform.isMobile;
+		const viewport = mobile ? win.visualViewport : null;
+		const position = () => {
+			const rect = this.button.getBoundingClientRect();
+			const left = viewport?.offsetLeft ?? 0;
+			const top = viewport?.offsetTop ?? 0;
+			const viewportWidth = viewport?.width ?? win.innerWidth;
+			const viewportHeight = viewport?.height ?? win.innerHeight;
+			const bottom = top + viewportHeight;
+			const width = Math.max(0, Math.min(Math.max(rect.width, 280), viewportWidth - 16));
+			// Keyboard panning can put the anchor outside the visible viewport.
+			// Clamp both placement regions before deciding which side to use.
+			const belowTop = Math.max(rect.bottom + 4, top + 8);
+			const aboveBottom = Math.min(rect.top - 4, bottom - 8);
+			const below = Math.max(0, bottom - belowTop - 10);
+			const above = Math.max(0, aboveBottom - top - 10);
+			const short = Math.max(below, above) < 180;
+			const useBelow = below >= 260 || below >= above;
+			const maxHeight = Math.max(0, Math.min(420, viewportHeight - 16, short ? viewportHeight - 16 : useBelow ? below : above));
+			panel.style.setProperty('--chart-palette-width', `${width}px`);
+			panel.style.setProperty('--chart-palette-height', `${maxHeight}px`);
+			panel.style.setProperty('--chart-palette-left', `${Math.max(left + 8, Math.min(rect.left, left + viewportWidth - width - 8))}px`);
+			// Clear the opposite edge when a keyboard resize flips placement.
+			panel.style.setProperty('--chart-palette-top', short || useBelow ? `${short ? top + 8 : belowTop}px` : 'auto');
+			panel.style.setProperty('--chart-palette-bottom', short || useBelow ? 'auto' : `${win.innerHeight - aboveBottom}px`);
+		};
+		position();
 		const onOutside = (event: PointerEvent) => {
 			if (!event.composedPath().includes(panel) && !event.composedPath().includes(this.button)) this.close();
 		};
@@ -151,19 +166,28 @@ export class ChartPalettePicker {
 				} else if (event.key === 'Tab') this.close(true);
 			}
 		};
-		const onResize = () => this.close();
-		const onScroll = (event: Event) => { if (!event.composedPath().includes(panel)) this.close(); };
+		const onResize = () => mobile ? position() : this.close();
+		const onScroll = (event: Event) => {
+			if (!event.composedPath().includes(panel)) {
+				if (mobile) position();
+				else this.close();
+			}
+		};
 		doc.addEventListener('pointerdown', onOutside, true);
 		doc.addEventListener('keydown', onKey, true);
 		win.addEventListener('resize', onResize);
 		win.addEventListener('scroll', onScroll, true);
+		viewport?.addEventListener('resize', position);
+		viewport?.addEventListener('scroll', position);
 		this.closeListeners = () => {
 			doc.removeEventListener('pointerdown', onOutside, true);
 			doc.removeEventListener('keydown', onKey, true);
 			win.removeEventListener('resize', onResize);
 			win.removeEventListener('scroll', onScroll, true);
+			viewport?.removeEventListener('resize', position);
+			viewport?.removeEventListener('scroll', position);
 		};
-		this.search.focus();
+		if (!mobile) this.search.focus();
 	}
 
 	close(restoreFocus = false): void {

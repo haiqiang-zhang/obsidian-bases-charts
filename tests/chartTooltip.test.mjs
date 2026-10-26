@@ -7,6 +7,7 @@ import { build } from 'esbuild';
 const result = await build({
 	stdin: {
 		contents: `
+			export { Platform } from 'obsidian';
 			export { ChartTooltip } from './src/ui/chartTooltip.ts';
 			export { tooltipMetrics, positionTooltip, visibleTooltipBounds, findPlotBounds } from './src/ui/tooltipGeometry.ts';
 		`,
@@ -23,7 +24,7 @@ const result = await build({
 			builder.onResolve({ filter: /^(obsidian|\.\/chartFilesModal)$/ }, args => ({ path: args.path, namespace: 'host-stub' }));
 			builder.onLoad({ filter: /.*/, namespace: 'host-stub' }, args => ({
 				contents: args.path === 'obsidian'
-					? 'export class DateValue {} export class ListValue {} export class NumberValue {} export class StringValue {}'
+					? 'export const Platform = { isMobile: false, isPhone: false }; export function setIcon(element, icon) { element.icon = icon; } export class DateValue {} export class ListValue {} export class NumberValue {} export class StringValue {}'
 					: `export class ChartFilesModal {
 						constructor(app, title, summary, files, openFile, details) {
 							Object.assign(this, { app, title, summary, files, openFile, details });
@@ -36,10 +37,11 @@ const result = await build({
 		},
 	}],
 });
-const { ChartTooltip, tooltipMetrics, positionTooltip, visibleTooltipBounds, findPlotBounds } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-tooltip-under-test.mjs`).toString('base64')}`);
+const { Platform, ChartTooltip, tooltipMetrics, positionTooltip, visibleTooltipBounds, findPlotBounds } = await import(`data:text/javascript;base64,${Buffer.from(`${result.outputFiles[0].text}\n//# sourceURL=chart-tooltip-under-test.mjs`).toString('base64')}`);
 
 class Element {
 	children = [];
+	parentElement = null;
 	attributes = new Map();
 	listeners = new Map();
 	style = { values: new Map(), setProperty(name, value) { this.values.set(name, value); } };
@@ -54,13 +56,17 @@ class Element {
 	createEl(tag, options) {
 		const child = new Element(this.ownerDocument, options);
 		child.tag = tag;
+		child.parentElement = this;
 		this.children.push(child);
 		return child;
 	}
 	createDiv(options) { return this.createEl('div', options); }
 	createSpan(options) { return this.createEl('span', options); }
+	empty() { for (const child of this.children) child.parentElement = null; this.children = []; }
+	addClass(cls) { if (!this.className.split(' ').includes(cls)) this.className = `${this.className} ${cls}`.trim(); }
+	setAttribute(name, value) { this.attributes.set(name, value); }
 	addEventListener(name, callback) { this.listeners.set(name, callback); }
-	dispatch(name, event = {}) { return this.listeners.get(name)?.(event); }
+	dispatch(name, event = {}) { if (name !== 'click' || !this.disabled) return this.listeners.get(name)?.(event); }
 	find(cls) {
 		if (this.className.split(' ').includes(cls)) return this;
 		for (const child of this.children) {
@@ -82,21 +88,187 @@ function rawPoint(count = 63, overrides = {}) {
 	};
 }
 
-function harness(width = 1280, height = 900, fontSize = 13, tooltipContext = context) {
+function harness(width = 1280, height = 900, fontSize = 13, tooltipContext = context, touchPreview = false) {
 	const app = { modals: [], events: [] };
 	const opened = [];
 	const doc = {
 		defaultView: { innerWidth: width, innerHeight: height, getComputedStyle: () => ({ fontSize: `${fontSize}px` }) },
 	};
 	doc.defaultView.createDiv = options => new Element(doc, options);
+	doc.defaultView.matchMedia = query => {
+		assert.equal(query, '(orientation: portrait)');
+		return { matches: doc.defaultView.innerHeight >= doc.defaultView.innerWidth };
+	};
 	doc.body = new Element(doc);
 	const container = new Element(doc);
 	container.getBoundingClientRect = () => ({ left: 150, top: 80 });
 	const view = { app, openFile: async (path, newTab) => { opened.push({ path, newTab }); } };
-	const tooltip = new ChartTooltip(container, view, () => app.events.push('hide'));
+	const previewEl = touchPreview ? doc.body.createDiv() : undefined;
+	const tooltip = new ChartTooltip(container, view, () => app.events.push('hide'), previewEl);
 	const options = tooltip.options({ trigger: 'axis' }, tooltipContext);
-	return { app, opened, doc, container, tooltip, options };
+	return { app, opened, doc, container, tooltip, options, previewEl, view };
 }
+
+function previewButton(previewEl) { return previewEl.find('bases-chart-touch-preview-footer').children.find(child => child.tag === 'button'); }
+
+test('fixed touch previews activate only for portrait phones with a shared preview host', () => {
+	try {
+		Platform.isPhone = true;
+		Platform.isMobile = true;
+		const state = harness(390, 844, 13, context, true);
+		assert.equal(state.tooltip.usesTouchPreview(), true);
+		assert.equal(harness(390, 844).tooltip.usesTouchPreview(), false, 'AI charts and callers without a host retain their behavior');
+		state.doc.defaultView.innerWidth = 844;
+		state.doc.defaultView.innerHeight = 390;
+		assert.equal(state.tooltip.usesTouchPreview(), false);
+		assert.equal(state.tooltip.preview({ data: { _raw: rawPoint() } }, context), false);
+		assert.equal(state.previewEl.children.length, 0);
+		state.doc.defaultView.innerWidth = 390;
+		state.doc.defaultView.innerHeight = 844;
+		assert.equal(state.tooltip.usesTouchPreview(), true, 'orientation is evaluated against the owning window');
+		Platform.isPhone = false;
+		assert.equal(state.tooltip.usesTouchPreview(), false, 'a portrait tablet must keep the full chart');
+	} finally {
+		Platform.isPhone = Platform.isMobile = false;
+	}
+});
+
+test('resetting the shared preview shows an accessible instruction without opening data', () => {
+	const { tooltip, previewEl, app } = harness(390, 844, 13, context, true);
+	tooltip.resetTouchPreview();
+	const empty = previewEl.find('bases-chart-touch-preview-empty');
+	assert.equal(previewEl.attributes.get('role'), 'region');
+	assert.equal(previewEl.attributes.get('aria-label'), 'Chart selection');
+	assert.equal(empty.children[0].icon, 'touchpad');
+	assert.equal(empty.children[0].attributes.get('aria-hidden'), 'true');
+	assert.equal(empty.children[1].textContent, 'Touch the chart to inspect data.');
+	assert.equal(previewEl.find('bases-chart-touch-preview-footer'), null);
+	assert.deepEqual(app.modals, []);
+});
+
+test('portrait preview caps groups and lazily opens all source files without replacing the selection', () => {
+	Platform.isPhone = Platform.isMobile = true;
+	try {
+		const grouped = { ...context, groupNames: ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth'] };
+		const { tooltip, previewEl, app, options } = harness(390, 844, 13, grouped, true);
+		let fileValuesRead = 0;
+		const params = grouped.groupNames.map((_, groupIndex) => ({ color: `#00${groupIndex}000`, data: { _raw: rawPoint(2, {
+			groupIndex, y: groupIndex, files: [`group-${groupIndex}-a.md`, `group-${groupIndex}-b.md`],
+			fileValues: [groupIndex, 0],
+		}) } }));
+		for (const param of params) Object.defineProperty(param.data._raw, 'fileValues', { get() { fileValuesRead++; return [param.data._raw.groupIndex, 0]; } });
+		assert.equal(tooltip.preview(params, grouped), true);
+		assert.equal(fileValuesRead, 0, 'touch moves must not build the entire file list');
+		assert.equal(options.show, false);
+		assert.equal(options.triggerOn, 'none');
+		const header = previewEl.find('bases-chart-touch-preview-header');
+		assert.equal(header.attributes.get('aria-live'), 'polite');
+		assert.equal(previewEl.find('bases-chart-touch-preview-property').textContent, 'Folder · File count');
+		assert.equal(previewEl.find('bases-chart-touch-preview-title').textContent, 'Study/Computer science');
+		const rows = previewEl.find('bases-chart-touch-preview-groups').children;
+		assert.deepEqual(rows.map(row => row.find('bases-chart-touch-preview-name').textContent), ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth']);
+		assert.deepEqual(rows.map(row => row.find('bases-chart-touch-preview-value').textContent), ['0', '1', '2', '3', '4', '5']);
+		assert.equal(rows[1].find('bases-chart-touch-preview-swatch').style.values.get('background-color'), '#001000');
+		assert.equal(previewEl.find('bases-chart-touch-preview-footer').children[0].textContent, '16 files · +2 more groups');
+		const button = previewButton(previewEl);
+		assert.equal(button.textContent, 'View data');
+		assert.equal(button.attributes.get('aria-haspopup'), 'dialog');
+		assert.equal(app.modals.length, 0, 'selecting a datum never opens the drawer');
+		button.dispatch('click');
+		assert.equal(app.modals[0].files.length, 16);
+		assert.ok(fileValuesRead > 0);
+		assert.equal(app.modals[0].files.at(-1).group, 'Eighth');
+		app.modals[0].close();
+		assert.equal(previewEl.find('bases-chart-touch-preview-header'), header, 'opening/closing data preserves the fixed selection');
+		assert.equal(previewButton(previewEl), button);
+		tooltip.dispose();
+	} finally {
+		Platform.isPhone = Platform.isMobile = false;
+	}
+});
+
+test('unchanged previews preserve their action while opening the newest files, and invalid touches retain the selection', () => {
+	Platform.isPhone = Platform.isMobile = true;
+	try {
+		const { tooltip, previewEl, app } = harness(390, 844, 13, context, true);
+		tooltip.preview({ data: { _raw: rawPoint(1, { files: ['old.md'] }) } }, context);
+		const button = previewButton(previewEl);
+		assert.equal(tooltip.preview({ data: { _raw: rawPoint(1, { files: ['new.md'] }) } }, context), true);
+		assert.equal(previewButton(previewEl), button, 'do not discard a focused button on repeated column moves');
+		assert.equal(tooltip.preview({ data: { _raw: null } }, context), false);
+		assert.equal(previewButton(previewEl), button);
+		button.dispatch('click');
+		assert.equal(app.modals[0].files[0].path, 'new.md');
+		tooltip.resetTouchPreview();
+		assert.equal(previewEl.find('bases-chart-touch-preview-header'), null);
+		button.dispatch('click');
+		assert.equal(app.modals.length, 1, 'reset removes the previous selection even if a detached action is invoked');
+		tooltip.dispose();
+	} finally {
+		Platform.isPhone = Platform.isMobile = false;
+	}
+});
+
+test('multiple chart renderers can replace the shared preview without stale deduplication', () => {
+	Platform.isPhone = Platform.isMobile = true;
+	try {
+		const { tooltip, previewEl, container, view, app } = harness(390, 844, 13, context, true);
+		const other = new ChartTooltip(container, view, () => {}, previewEl);
+		const first = { data: { _raw: rawPoint(1, { x: 'First chart', files: ['first.md'] }) } };
+		tooltip.preview(first, context);
+		other.preview({ data: { _raw: rawPoint(1, { x: 'Second chart', files: ['second.md'] }) } }, context);
+		assert.equal(previewEl.find('bases-chart-touch-preview-title').textContent, 'Second chart');
+		previewButton(previewEl).dispatch('click');
+		assert.equal(app.modals.at(-1).files[0].path, 'second.md');
+		tooltip.preview(first, context);
+		assert.equal(previewEl.find('bases-chart-touch-preview-title').textContent, 'First chart');
+		previewButton(previewEl).dispatch('click');
+		assert.equal(app.modals.at(-1).files[0].path, 'first.md');
+		tooltip.dispose();
+		other.dispose();
+	} finally {
+		Platform.isPhone = Platform.isMobile = false;
+	}
+});
+
+test('shared grouped previews identify the selected measure even when group values are identical', () => {
+	Platform.isPhone = Platform.isMobile = true;
+	try {
+		const { tooltip, previewEl } = harness(390, 844, 13, context, true);
+		const grouped = { ...context, groupNames: ['Work', 'Study'], yLabel: 'Hours (Sum)' };
+		const params = { data: { _raw: rawPoint(1) } };
+		tooltip.preview(params, grouped);
+		assert.equal(previewEl.find('bases-chart-touch-preview-property').textContent, 'Folder · Hours (Sum)');
+		tooltip.preview(params, { ...grouped, yLabel: 'Score (Average)' });
+		assert.equal(previewEl.find('bases-chart-touch-preview-property').textContent, 'Folder · Score (Average)');
+		tooltip.dispose();
+	} finally {
+		Platform.isPhone = Platform.isMobile = false;
+	}
+});
+
+test('fixed previews keep malicious labels as text and preserve pie percentages', () => {
+	Platform.isPhone = Platform.isMobile = true;
+	try {
+		const special = { ...context, xName: '<b>Folder</b>', yLabel: '<svg onload=alert(1)>', chartType: 'chart-pie', showPercentages: true };
+		const { tooltip, previewEl, app } = harness(390, 844, 13, special, true);
+		tooltip.preview({ percent: 12.5, data: { _raw: rawPoint(1, { x: '<img src=x onerror=alert(1)>', y: 5 }) } }, special);
+		assert.equal(previewEl.find('bases-chart-touch-preview-property').textContent, '<b>Folder</b> · <svg onload=alert(1)>');
+		assert.equal(previewEl.find('bases-chart-touch-preview-title').textContent, '<img src=x onerror=alert(1)>');
+		assert.equal(previewEl.find('bases-chart-touch-preview-name').textContent, '<svg onload=alert(1)>');
+		assert.equal(previewEl.find('bases-chart-touch-preview-value').textContent, '5 (12.5%)');
+		assert.equal(previewEl.find('bases-chart-touch-preview-footer').children[0].textContent, '1 file');
+		previewButton(previewEl).dispatch('click');
+		assert.equal(app.modals[0].summary, '<svg onload=alert(1)>: 5 (12.5%)');
+		tooltip.preview({ data: { _raw: rawPoint(0) } }, special);
+		assert.equal(previewButton(previewEl).disabled, true, 'empty selections have no actionable source data');
+		previewButton(previewEl).dispatch('click');
+		assert.equal(app.modals.length, 1);
+		tooltip.dispose();
+	} finally {
+		Platform.isPhone = Platform.isMobile = false;
+	}
+});
 
 test('63-file columns show a small summary with no interactive file preview', () => {
 	for (const [width, height, fontSize] of [[1280, 900, 13], [360, 320, 13], [360, 190, 13], [1280, 900, 26]]) {
@@ -344,4 +516,21 @@ test('a large radar preview caps visible categories while the modal retains all 
 	assert.equal(app.modals[0].files.length, 12);
 	assert.deepEqual(app.modals[0].files.map(file => file.value), values.map(item => item.value));
 	tooltip.dispose();
+});
+
+
+test('mobile charts without a fixed preview retain data drawer access without a floating tooltip', () => {
+    Platform.isMobile = true;
+    try {
+        const { options, tooltip, app } = harness(390, 844);
+        assert.equal(options.show, false);
+        assert.equal(options.triggerOn, 'none');
+        tooltip.openFiles(rawPoint(8), context);
+        assert.equal(app.modals.length, 1);
+        assert.equal(app.modals[0].files.length, 8);
+        assert.equal(app.events.at(-1), 'open');
+    } finally {
+        Platform.isMobile = false;
+    }
+    assert.equal(harness().options.show, true);
 });
