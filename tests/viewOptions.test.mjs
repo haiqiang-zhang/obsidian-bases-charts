@@ -62,8 +62,24 @@ test('scatter hides the unused label property while keeping every valid Y-scale 
 });
 
 test('bar and line keep their appearance controls and valid Y-scale settings', () => {
-	assert.deepEqual(optionKeys(barChartRegistration.viewOptions()), ['color-palette', 'show-labels', 'show-percentages', ...scaleKeys]);
+	assert.deepEqual(optionKeys(barChartRegistration.viewOptions()), ['color-palette', 'bar-layout', 'show-labels', 'show-percentages', ...scaleKeys]);
 	assert.deepEqual(optionKeys(lineChartRegistration.viewOptions()), ['color-palette', 'null-handling', ...scaleKeys]);
+});
+
+test('only bar views expose stacking; 100% hides incompatible formatting and scale controls via native API', () => {
+	let layout = 'grouped';
+	const options = barChartRegistration.viewOptions({ get: () => layout });
+	const picker = options.find(o => o.key === 'bar-layout');
+	assert.equal(picker.type, 'dropdown'); assert.equal(picker.default, 'grouped');
+	assert.deepEqual(picker.options, { grouped: 'Grouped', stacked: 'Stacked', percent: '100% Stacked' });
+	const format = options.find(o => o.key === 'show-percentages'), scale = options.find(o => o.type === 'group');
+	for (layout of ['grouped', 'stacked', 'percent', 'unknown']) {
+		assert.equal(format.shouldHide(), layout === 'percent');
+		assert.equal(scale.shouldHide(), layout === 'percent');
+	}
+	for (const r of [lineChartRegistration, scatterChartRegistration, areaChartRegistration, pieChartRegistration, radarChartRegistration]) {
+		assert.ok(!optionKeys(r.viewOptions()).includes('bar-layout'));
+	}
 });
 
 test('all six chart registrations expose the same native per-view palette dropdown', () => {

@@ -26,9 +26,19 @@ In **Configure view**, **Gap handling** offers **Leave gap** and **Fill with 0**
 
 ## Bar
 
-Each X category has a bar for each native Bases group.
+Choose **Bar layout** in the native view settings:
 
-**Show labels** displays values above the bars. **Show as percentages** formats the existing values with a percent sign; it does not calculate each bar's share of the total. Use percentage values or a suitable formula when enabling it.
+| Layout | Display |
+| --- | --- |
+| Grouped | One bar per group, placed side by side. The default for existing views. |
+| Stacked | Group contributions stacked at each X value. Positive and negative values stack separately. |
+| 100% Stacked | Each group's share of the sum of displayed group values at that X position. The Y axis is fixed at 0–100%. |
+
+**Show labels** places values above grouped bars and inside stacked segments. Labels that cannot fit inside a segment are hidden; hover or touch the column to inspect all values.
+
+100% Stacked requires non-negative aggregated values. A zero-total column remains zero. The tooltip shows original values alongside percentages, and the data details keep the original file values. Manual Y limits and **Sync across charts** do not apply to this layout.
+
+In Grouped and Stacked layouts, **Format values as percentages** only adds a percent sign to existing values. It does not normalize the data. Use **100% Stacked** to calculate shares.
 
 ![Bar chart comparing category values using native Bases groups.](/gallery/02-bar.png)
 

@@ -111,6 +111,50 @@ function harness(width = 1280, height = 900, fontSize = 13, tooltipContext = con
 
 function previewButton(previewEl) { return previewEl.find('bases-chart-touch-preview-footer').children.find(child => child.tag === 'button'); }
 
+test('100% bar tooltips display original contributions and shares, while details retain source values', () => {
+	const normalized = { ...context, barLayout: 'percent', groupNames: ['Database', 'Networks', 'OS'], aggregateMode: 'Sum', showPercentages: true };
+	const h = harness(1280, 900, 13, normalized);
+	const raw = [2, 3, 1].map((y, groupIndex) => rawPoint(1, { y, groupIndex, fileValues: [y] }));
+	const root = h.options.formatter(raw.map(p => ({ data: { _raw: p }, color: '#5785B1' })));
+	const rows = root.find('bases-chart-tooltip-preview').children;
+	assert.deepEqual(rows.slice(0, 3).map(row => row.find('bases-chart-tooltip-file-value').textContent), ['2 (33.3%)', '3 (50.0%)', '1 (16.7%)']);
+	assert.equal(root.find('bases-chart-tooltip-total').find('bases-chart-tooltip-file-value').textContent, '6');
+	h.tooltip.openFiles(raw, normalized);
+	assert.deepEqual(h.app.modals[0].files.map(file => file.value), [2, 3, 1]);
+	assert.deepEqual(h.app.modals[0].files.map(file => file.group), normalized.groupNames);
+});
+
+test('ordinary stack summaries distinguish sums of group averages from an overall average', () => {
+	const grouped = { ...context, barLayout: 'stacked', groupNames: ['One', 'Two'], aggregateMode: 'Average' };
+	const h = harness(1280, 900, 13, grouped);
+	const root = h.options.formatter([80, 90].map((y, groupIndex) => ({ data: { _raw: rawPoint(1, { y, groupIndex }) } })));
+	assert.equal(root.find('bases-chart-tooltip-total').find('bases-chart-tooltip-file-name').textContent, 'Sum of groups');
+	assert.equal(root.find('bases-chart-tooltip-total').find('bases-chart-tooltip-file-value').textContent, '170');
+});
+
+test('zero-total percentage columns show 0% without invalid values', () => {
+	const h = harness(1280, 900, 13, { ...context, barLayout: 'percent' });
+	const root = h.options.formatter({ data: { _raw: rawPoint(1, { y: 0, fileValues: [0] }) } });
+	assert.equal(root.find('bases-chart-tooltip-file-value').textContent, '0 (0.0%)');
+	assert.equal(root.find('bases-chart-tooltip-total').find('bases-chart-tooltip-file-value').textContent, '0');
+});
+
+test('portrait percentage inspection keeps raw values and shares after touch release and opens raw details', () => {
+	Platform.isPhone = Platform.isMobile = true;
+	try {
+		const normalized = { ...context, barLayout: 'percent', groupNames: ['One', 'Two'], aggregateMode: 'Sum' };
+		const h = harness(390, 844, 13, normalized, true);
+		const params = [2, 6].map((y, groupIndex) => ({ data: { _raw: rawPoint(1, { y, groupIndex, fileValues: [y] }) } }));
+		assert.equal(h.tooltip.preview(params, normalized), true);
+		const groups = h.previewEl.find('bases-chart-touch-preview-groups');
+		assert.match(groups.className, /is-percent/);
+		assert.deepEqual(groups.children.map(row => row.find('bases-chart-touch-preview-value').textContent), ['2 (25.0%)', '6 (75.0%)', '8']);
+		previewButton(h.previewEl).dispatch('click');
+		assert.deepEqual(h.app.modals[0].files.map(file => file.value), [2, 6]);
+		assert.equal(h.previewEl.find('bases-chart-touch-preview-total').find('bases-chart-touch-preview-value').textContent, '8');
+	} finally { Platform.isPhone = Platform.isMobile = false; }
+});
+
 test('fixed touch previews activate only for portrait phones with a shared preview host', () => {
 	try {
 		Platform.isPhone = true;

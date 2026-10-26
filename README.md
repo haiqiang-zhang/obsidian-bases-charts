@@ -24,6 +24,7 @@ Each Data Chart uses the Base's current results. Select note, file, or formula p
 - **Native Bases controls.** Filter, sort, and group your notes. Use file folders, note properties, or formulas as X values.
 - **Calendar grouping.** Combine timestamps by day, week, month, or year without changing the source property.
 - **Independent measures.** Add and reorder Y properties, each with its own Sum, Average, Count, Min, or Max aggregation. Scatter also supports None.
+- **Bar layouts.** Compare groups side by side, stack their values, or show each group's share in a 100% stacked column. Data details retain the original values.
 - **Per-view palettes.** Choose Auto, Colorful, Earth, Coastal, or single-color palettes, with light and dark variants.
 - **Source-file inspection.** Hover for a compact, anchored summary. Click a chart mark or supported column to open a searchable table of its source files.
 - **Responsive layout.** Cartesian charts use the available width; Pie and Radar sit at the center. Multiple measures form separate charts, while Radar overlays them.
@@ -66,7 +67,7 @@ The example shows a Reference Library chart alongside the source table and Claud
 
 ### Community plugins (recommended)
 
-Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-views) from the Obsidian community plugin directory, then enable it. Requires **Obsidian 1.12.0 or later** and the Bases core plugin.
+Install [Bases Chart Views](https://community.obsidian.md/plugins/bases-chart-views) from the Obsidian community plugin directory, then enable it. Requires **Obsidian 1.14.5 or later** and the Bases core plugin.
 
 ### BRAT
 

@@ -72,4 +72,6 @@ For Line, Bar, Stacked Area, and Scatter, open **Configure view → Y scale**:
 - **Min Y override** fixes the lower bound.
 - **Max Y override** fixes the upper bound.
 
+Bar's **100% Stacked** layout uses a fixed 0–100% scale and hides these controls. Switching back restores the saved scale settings.
+
 Leave an override empty to let the chart determine it. Compare like units when synchronizing scales. Pie has no Cartesian Y scale; Radar has its own scale setting.

@@ -7,6 +7,7 @@ import { COMMON_SETTINGS } from './types';
 import { ChartRenderer } from '../utils/renderer';
 import { resolveColors } from '../ui/colors';
 import { getChartStyle } from '../ui/chartStyle';
+import { BAR_LAYOUT_KEY, normalizeBarLayout } from './stacking';
 
 export class ChartLayout {
 	private renderers: ChartRenderer[] = [];
@@ -101,6 +102,8 @@ export class ChartLayout {
 				groupNames: data.getGroupIdentifiers().map((_, index) => data.getGroupName(index)),
 				chartType: this.view.type,
 				showPercentages: Boolean(this.view.config.get('show-percentages')),
+				barLayout: this.view.type === 'chart-bar' ? normalizeBarLayout(this.view.config.get(BAR_LAYOUT_KEY)) : undefined,
+				aggregateMode: propId ? this.view.getAggregateModeForProperty(propId) : undefined,
 			});
 		}
 	}

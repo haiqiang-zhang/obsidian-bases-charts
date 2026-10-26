@@ -2,6 +2,9 @@ import { Platform, setIcon } from 'obsidian';
 import type { App } from 'obsidian';
 import type { TooltipComponentOption } from 'echarts';
 import type { ProcessedData } from '../dataCharts/data';
+import { AggregateMode } from '../dataCharts/aggregate';
+import { stackPercentage } from '../dataCharts/stacking';
+import type { BarLayout } from '../dataCharts/stacking';
 import { toCompactString } from '../utils/utils';
 import { ChartFilesModal } from './chartFilesModal';
 import type { ChartFileItem } from './chartFilesModal';
@@ -14,6 +17,8 @@ export interface ChartTooltipContext {
 	groupNames: string[];
 	chartType: string;
 	showPercentages: boolean;
+	barLayout?: BarLayout;
+	aggregateMode?: AggregateMode;
 }
 
 interface TooltipPoint {
@@ -28,6 +33,7 @@ interface Selection {
 	files: ChartFileItem[];
 	fileCount: number;
 	groups: { name: string; value: string; color?: string }[];
+	total?: { name: string; value: string };
 	propertyLabel?: string;
 	valueLabel?: string;
 	groupLabel?: string;
@@ -79,7 +85,7 @@ export class ChartTooltip {
 		const visibleGroups = selected.groups.slice(0, 6);
 		const hiddenGroups = selected.groups.length - visibleGroups.length;
 		const property = `${selected.propertyLabel ?? context.xName} · ${selected.valueLabel ?? context.yLabel}`;
-		const key = JSON.stringify([property, selected.x, visibleGroups, hiddenGroups, selected.detailLabel, selected.fileCount]);
+		const key = JSON.stringify([property, selected.x, visibleGroups, hiddenGroups, selected.total, selected.detailLabel, selected.fileCount]);
 		// Repeated moves in the same column must not replace the focused action or
 		// announce the same selection again. Another chart may share this panel.
 		if (this.touchPreviewKey === key && this.touchPreviewHeader?.parentElement === this.previewEl) return true;
@@ -94,12 +100,18 @@ export class ChartTooltip {
 		header.createDiv({ cls: 'bases-chart-touch-preview-property', text: property });
 		header.createDiv({ cls: 'bases-chart-touch-preview-title', text: selected.x });
 		const groups = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-groups' });
+		if (context.chartType === 'chart-bar' && context.barLayout === 'percent') groups.addClass('is-percent');
 		for (const group of visibleGroups) {
 			const row = groups.createDiv({ cls: 'bases-chart-touch-preview-row' });
 			const swatch = row.createSpan({ cls: 'bases-chart-touch-preview-swatch', attr: { 'aria-hidden': 'true' } });
 			if (group.color) swatch.style.setProperty('background-color', group.color);
 			row.createSpan({ cls: 'bases-chart-touch-preview-name', text: group.name });
 			row.createSpan({ cls: 'bases-chart-touch-preview-value', text: group.value });
+		}
+		if (selected.total) {
+			const row = groups.createDiv({ cls: 'bases-chart-touch-preview-row bases-chart-touch-preview-total' });
+			row.createSpan({ cls: 'bases-chart-touch-preview-name', text: selected.total.name });
+			row.createSpan({ cls: 'bases-chart-touch-preview-value', text: selected.total.value });
 		}
 		const footer = this.previewEl.createDiv({ cls: 'bases-chart-touch-preview-footer' });
 		footer.createSpan({ text: `${selected.fileCount} ${selected.fileCount === 1 ? 'file' : 'files'}${hiddenGroups
@@ -191,8 +203,12 @@ export class ChartTooltip {
 			};
 		}
 		const x = first.x instanceof Date ? first.x.toLocaleString() : String(first.x);
+		const stacked = context.chartType === 'chart-bar' && (context.barLayout === 'stacked' || context.barLayout === 'percent');
+		const normalized = stacked && context.barLayout === 'percent';
+		const total = valid.reduce((sum, point) => sum + point.data!._raw!.y, 0);
 		const formatValue = (value: number, percent?: number) => {
 			const label = toCompactString(value);
+			if (normalized) return `${label} (${stackPercentage(value, total).toFixed(1)}%)`;
 			if (!context.showPercentages) return label;
 			if (context.chartType === 'chart-pie' && typeof percent === 'number') return `${label} (${percent.toFixed(1)}%)`;
 			return context.chartType === 'chart-bar' ? `${label}%` : label;
@@ -210,7 +226,11 @@ export class ChartTooltip {
 		const summary = valid.length === 1
 			? `${context.groupNames.length > 1 ? `${groups[0].name} · ` : ''}${context.yLabel}: ${formatValue(first.y, valid[0].percent)}`
 			: `${context.yLabel} · ${valid.length} groups`;
-		return { x, summary, files, fileCount, groups };
+		return { x, summary, files, fileCount, groups, total: stacked ? {
+			name: context.aggregateMode && [AggregateMode.AVERAGE, AggregateMode.MIN, AggregateMode.MAX].includes(context.aggregateMode)
+				? 'Sum of groups' : 'Total',
+			value: `${toCompactString(total)}${!normalized && context.showPercentages ? '%' : ''}`,
+		} : undefined };
 	}
 
 	private render(params: unknown, context: ChartTooltipContext, available: TooltipBounds | null): HTMLElement | string {
@@ -232,13 +252,19 @@ export class ChartTooltip {
 		header.createDiv({ cls: 'bases-chart-tooltip-property', text: selected.propertyLabel ?? context.xName });
 		header.createDiv({ cls: 'bases-chart-tooltip-title', text: selected.x }).title = selected.x;
 		const list = root.createDiv({ cls: 'bases-chart-tooltip-preview' });
-		const visible = Math.min(selected.groups.length, metrics.rowLimit);
+		const showTotal = !!selected.total && metrics.rowLimit > 0;
+		const visible = Math.min(selected.groups.length, Math.max(0, metrics.rowLimit - (showTotal ? 1 : 0)));
 		for (const group of selected.groups.slice(0, visible)) {
 			const row = list.createDiv({ cls: 'bases-chart-tooltip-row' });
 			const swatch = row.createSpan({ cls: 'bases-chart-tooltip-swatch' });
 			if (group.color) swatch.style.setProperty('background-color', group.color);
 			row.createSpan({ cls: 'bases-chart-tooltip-file-name', text: group.name }).title = group.name;
 			row.createSpan({ cls: 'bases-chart-tooltip-file-value', text: group.value });
+		}
+		if (showTotal && selected.total) {
+			const row = list.createDiv({ cls: 'bases-chart-tooltip-row bases-chart-tooltip-total' });
+			row.createSpan({ cls: 'bases-chart-tooltip-file-name', text: selected.total.name });
+			row.createSpan({ cls: 'bases-chart-tooltip-file-value', text: selected.total.value });
 		}
 		if (selected.fileCount) {
 			const footer = root.createDiv({ cls: 'bases-chart-tooltip-footer' });

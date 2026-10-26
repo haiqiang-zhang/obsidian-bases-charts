@@ -14,7 +14,7 @@ For example, with X set to `Week`, Y set to `Hours`, and Group set to `Activity`
 Use the **Group** menu in the toolbar. The charts use the groups selected by Bases and preserve their manual order. Filtering groups changes the data shown in the chart.
 
 - Line and Scatter use one color per group.
-- Bar places group bars next to each other within a category.
+- Bar supports Grouped, Stacked, and 100% Stacked layouts.
 - Stacked Area stacks group contributions.
 - Pie includes group and category in slice labels.
 - Radar creates a profile for each selected measure and group.
@@ -35,6 +35,23 @@ Open **Y axes** (or **Values**) and use the aggregation control beside each sele
 | None | Keep observations separate; Scatter only | Each session as a point |
 
 Aggregation happens within each **X value, Y property, and group**. With calendar grouping, timestamps first become day, week, month, or year buckets.
+
+## Stack group contributions
+
+In a Bar view, open the native view settings and set **Bar layout** to **Stacked** or **100% Stacked**. The setting belongs to that view and applies independently to each selected Y property.
+
+For example, with X = day, Y = hours (Sum), and Group = subject:
+
+| Day | Database | Networks | Operating systems | Total |
+| --- | ---: | ---: | ---: | ---: |
+| Monday | 2 | 3 | 1 | 6 |
+| Tuesday | 4 | 1 | 2 | 7 |
+
+Stacked bars have heights of 6 and 7. In 100% Stacked, Monday's segments are 33.3%, 50%, and 16.7%; Tuesday's percentages use its own total of 7. Missing group contributions are zero; they do not create source files in the data details.
+
+Stacks add the **aggregated group values**. With Sum or Count and non-overlapping groups, this matches the ungrouped total. With Average, Min, or Max, the sum is not the overall aggregate. The tooltip labels it **Sum of groups**. In 100% Stacked, percentages are shares of that sum, not shares of the original records.
+
+Ordinary Stacked supports negative values on the opposite side of zero. 100% Stacked requires non-negative group values. All-zero columns stay at zero rather than dividing by zero. Click a column to inspect all its source records, including their group and original value.
 
 ## Count notes or count a property
 

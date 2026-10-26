@@ -15,7 +15,7 @@ interface ChartRegistration {
 	name: string;
 	icon: string;
 	createView: new (controller: QueryController, containerEl: HTMLElement) => BasesView;
-	viewOptions: () => import('obsidian').BasesAllOptions[];
+	viewOptions: (config: import('obsidian').BasesViewConfig) => import('obsidian').BasesAllOptions[];
 }
 
 const chartRegistrations: ChartRegistration[] = [

@@ -7,6 +7,9 @@ import { buildXAxisConfig, buildYAxisConfig, mapXValue } from '../axis';
 import { toXKey } from '../../utils/utils';
 import type { ResolvedColors } from '../../ui/colors';
 import { getResolvedColor, gridOption } from '../../ui/colors';
+import { getStackedDomain } from '../stacking';
+
+export { getStackedDomain as getStackedAreaDomain } from '../stacking';
 
 export class AreaChartView extends DataChartView {
 	readonly type = AREA_CHART_VIEW_TYPE;
@@ -31,27 +34,6 @@ export const areaChartRegistration = {
 	createView: AreaChartView,
 	viewOptions: () => DataChartView.buildViewOptions(DataChartView.commonViewOptionGroups()),
 };
-
-/** Match ECharts' same-sign stacks, including a zero baseline for area fills. */
-export function getStackedAreaDomain(data: DataWrapper, chartIndex: number): [number, number] {
-	const indices = data.yDomain.synced ? data.getChartIdentifiers().map((_, index) => index) : [chartIndex];
-	let min = 0;
-	let max = 0;
-	for (const index of indices) {
-		const totals = new Map<string, [number, number]>();
-		for (const point of data.getFlat(index)) {
-			const key = toXKey(point.x);
-			const total = totals.get(key) ?? [0, 0];
-			total[point.y < 0 ? 0 : 1] += point.y;
-			totals.set(key, total);
-		}
-		for (const [negative, positive] of totals.values()) {
-			min = Math.min(min, negative);
-			max = Math.max(max, positive);
-		}
-	}
-	return [data.yDomain.min ?? min, data.yDomain.max ?? max];
-}
 
 export function buildAreaOption(
 	data: DataWrapper,
@@ -114,7 +96,7 @@ export function buildAreaOption(
 		media: axisMedia,
 		grid: gridOption(),
 		xAxis,
-		yAxis: buildYAxisConfig(yLabel, colors, data.hasDomainOverride() ? getStackedAreaDomain(data, chartIndex) : undefined),
+		yAxis: buildYAxisConfig(yLabel, colors, data.hasDomainOverride() ? getStackedDomain(data, chartIndex) : undefined),
 		tooltip: {
 			trigger: 'axis',
 			axisPointer: { type: 'line', axis: 'x', label: { show: false }, lineStyle: { color: colors.grid, type: 'dashed', width: 1 } },

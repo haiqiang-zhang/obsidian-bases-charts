@@ -11,7 +11,7 @@ description: Install Bases Chart Views from the Obsidian community plugin direct
 
 You can also search for **Bases Chart Views** in **Settings → Community plugins → Browse** inside Obsidian.
 
-The plugin requires **Obsidian 1.12.0 or later**. Enable the **Bases** core plugin before creating a chart view. Use a current Obsidian version for the latest native property and formula editing support.
+The plugin requires **Obsidian 1.14.5 or later**. Enable the **Bases** core plugin before creating a chart view. Use a current Obsidian version for the latest native property and formula editing support.
 
 ## BRAT
 

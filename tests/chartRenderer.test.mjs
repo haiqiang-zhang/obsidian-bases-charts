@@ -563,6 +563,23 @@ test('area tooltip anchors use stacked display heights while retaining original 
 	}
 });
 
+test('100% bar anchors use normalized stack edges while column clicks retain every original contribution', () => {
+	const state = harness();
+	const a = { x: 'Mon', y: 2, groupIndex: 0, files: ['a.md'], fileValues: [2] };
+	const b = { x: 'Mon', y: 6, groupIndex: 1, files: ['b.md'], fileValues: [6] };
+	const first = { value: 25, _raw: a, _stackY: 25 }, second = { value: 75, _raw: b, _stackY: 100 };
+	const context = { chartType: 'chart-bar', barLayout: 'percent', groupNames: ['A', 'B'] };
+	state.renderer.setOption({ xAxis: { type: 'category', data: ['Mon'] }, series: [
+		{ type: 'bar', stack: 'total', data: [first] }, { type: 'bar', stack: 'total', data: [second] },
+	] }, context);
+	const anchor = state.tooltips[0].calls[0].anchor;
+	assert.deepEqual(Array.from(anchor({ seriesIndex: 1, dataIndex: 0, data: second })), [0, 100]);
+	state.charts[0].ordinal = 0;
+	state.charts[0].zr.handlers.get('click')({ offsetX: 200, offsetY: 80 });
+	assert.deepEqual(Array.from(state.tooltips[0].opened[0].raw), [a, b]);
+	state.renderer.dispose();
+});
+
 test('numeric area clicks select the nearest aligned X across all groups without duplicate activation', () => {
 	const state = harness();
 	const context = { chartType: 'chart-area', xName: 'Period', yLabel: 'Amount', groupNames: ['A', 'B'] };
