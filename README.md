@@ -4,7 +4,7 @@ Interactive charts for [Obsidian Bases](https://help.obsidian.md/bases), powered
 
 Six chart types display a Base's filtered results. AI Chart renders saved ECharts configurations created with Claudian.
 
-[Install](https://community.obsidian.md/plugins/bases-chart-views) · [Documentation](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview) · [UI gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots) · [Mobile gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/mobile-gallery)
+[Install](https://community.obsidian.md/plugins/bases-chart-views) · [Documentation](https://haiqiang-zhang.github.io/obsidian-bases-charts/overview) · [UI gallery](https://haiqiang-zhang.github.io/obsidian-bases-charts/screenshots)
 
 ![Eight weeks of studio work in a stacked area chart, with native Bases controls and an anchored weekly summary.](gallery/images/overview.png)
 

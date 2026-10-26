@@ -1,6 +1,10 @@
 import { defineConfig } from '@rspress/core';
 
 const repository = 'https://github.com/haiqiang-zhang/obsidian-bases-charts';
+const galleryItems = [
+  { text: 'Desktop UI', link: '/screenshots' },
+  { text: 'Mobile UI', link: '/mobile-gallery' },
+];
 
 export default defineConfig({
   title: 'Bases Chart Views',
@@ -25,8 +29,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Docs', link: '/overview' },
-      { text: 'UI Gallery', link: '/screenshots' },
-      { text: 'Mobile UI', link: '/mobile-gallery' },
+      { text: 'UI Gallery', items: galleryItems },
       { text: 'GitHub', link: repository },
     ],
     sidebar: {
@@ -34,8 +37,7 @@ export default defineConfig({
         { text: 'Start here', items: [
           { text: 'Overview', link: '/overview' },
           { text: 'Installation', link: '/installation' },
-          { text: 'UI Gallery', link: '/screenshots' },
-          { text: 'Mobile UI gallery', link: '/mobile-gallery' },
+          { text: 'UI Gallery', items: galleryItems, collapsible: false },
         ] },
         { text: 'Build a chart', items: [
           { text: 'Chart types', link: '/chart-types' },

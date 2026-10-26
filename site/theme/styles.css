@@ -187,7 +187,7 @@
   background: var(--rp-c-bg);
 }
 .home-chart-media {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   flex: 0 0 auto;
   overflow: hidden;
   background: #fff;
