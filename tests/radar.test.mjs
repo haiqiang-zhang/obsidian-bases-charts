@@ -117,6 +117,43 @@ function assertTextFits(chart) {
 	}
 }
 
+test('phone radar names wrap completely in two lines and restore desktop and tiny-width formatting', () => {
+	const categories = ['Accessibility', 'Documentation', 'Performance', 'Reliability', 'Usability', 'Visual design'];
+	const wrapper = data(categories.flatMap((category, index) => [point(category, index + 2), point(category, index + 3, 1)]), categories);
+	const option = buildRadarOption(wrapper, colors);
+	const chart = echarts.init(null, null, { renderer: 'svg', ssr: true, width: 320, height: 360 });
+	try {
+		chart.setOption({ ...option, animation: false }, { notMerge: true });
+		for (const [width, height] of [[320, 300], [320, 360], [374, 300], [374, 360], [1200, 500], [240, 300], [374, 300], [1200, 500]]) {
+			chart.resize({ width, height });
+			assertTextFits(chart);
+			const radar = chart.getOption().radar[0];
+			const formatted = categories.map(category => radar.axisName.formatter(category));
+			assert.deepEqual(radar.indicator.map(indicator => indicator.name), categories, 'line breaks must not change indicator identity');
+			assert.deepEqual(chart.getOption().series.map(series => series.data[0].value), option.series.map(series => series.data[0].value));
+			if (width >= 280 && width <= 519) {
+				assert.equal(radar.axisName.fontSize, 11, 'wrapping must not make phone text smaller');
+				assert.deepEqual(formatted.map(name => name.replace(/\s/g, '')), categories.map(name => name.replace(/\s/g, '')),
+					'normal phone widths must display complete indicator names');
+				assert.ok(formatted.every(name => name.split('\n').length <= 2));
+				assert.ok(formatted.every(name => !name.includes('…')), 'short names must fit in one or two lines without truncation');
+				assert.ok(['Visual design', 'Visual\ndesign'].includes(formatted.at(-1)), 'wrapping should preserve word boundaries');
+				const visibleLines = chart.getZr().storage.getDisplayList(true)
+					.filter(element => element.type === 'tspan' && !element.ignore && !element.invisible)
+					.map(element => element.style.text);
+				for (const line of formatted.flatMap(name => name.split('\n'))) {
+					assert.ok(visibleLines.includes(line), `${JSON.stringify(line)} must be rendered at ${width}×${height}`);
+				}
+			} else {
+				assert.ok(formatted.every(name => !name.includes('\n')), 'desktop and very narrow names must return to one line');
+				assert.equal(radar.axisName.lineHeight, undefined, 'restoring the original layout must clear the wrap line height');
+				assert.equal(radar.radius, width < 280 ? '42%' : '70%');
+				if (width > 519) assert.deepEqual(formatted, categories, 'desktop names must be complete');
+			}
+		}
+	} finally { chart.dispose(); }
+});
+
 for (const categoryCount of [3, 6, 12, 24]) {
 	test(`real ECharts renders ${categoryCount}-spoke radar centered with readable labels across repeated narrow/wide resizes`, () => {
 		const categories = Array.from({ length: categoryCount }, (_, index) => `Category ${index + 1} / A very long research department name`);

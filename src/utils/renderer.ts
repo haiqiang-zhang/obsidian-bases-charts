@@ -1,5 +1,5 @@
 import type { App } from 'obsidian';
-import type { EChartsOption } from 'echarts';
+import type { EChartsOption, LineSeriesOption, BarSeriesOption, PieSeriesOption, RadarSeriesOption, ScatterSeriesOption } from 'echarts';
 import type { ProcessedData } from '../dataCharts/data';
 import { echarts } from '../echarts';
 import { ChartTooltip } from '../ui/chartTooltip';
@@ -396,6 +396,20 @@ export class ChartRenderer {
 				triggerTooltip: context.chartType === 'chart-line',
 				label: { show: false }, lineStyle: { ...base?.axisPointer?.lineStyle, type: 'dashed', width: 1 },
 			} }) };
+		}
+		if (this.tooltip?.usesTouchPreview() && rendered.series) {
+			const series = Array.isArray(rendered.series) ? rendered.series : [rendered.series];
+			// A finger can leave ECharts' hovered-series state active after release.
+			// Keep every comparison visible while the fixed preview identifies data.
+			const touchSeries = <T extends LineSeriesOption | BarSeriesOption | PieSeriesOption | RadarSeriesOption | ScatterSeriesOption>(item: T): T => ({ ...item, emphasis: {
+				...item.emphasis, focus: 'none' as const, disabled: true,
+			} });
+			rendered = { ...rendered, series: series.map(item => {
+				switch (item.type) {
+					case 'line': case 'bar': case 'pie': case 'radar': case 'scatter': return touchSeries(item);
+					default: return item;
+				}
+			}) };
 		}
 		this.plotBounds = undefined;
 		this.pointColumns = undefined;

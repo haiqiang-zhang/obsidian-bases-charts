@@ -99,6 +99,7 @@ export function buildPieOption(
 			color: colors.palette[(isGrouped ? d.groupIndex : i) % colors.palette.length],
 		},
 	}));
+	const labelFormatter = showPercentages ? '{b}: {d}%' : '{b}';
 
 	return {
 		tooltip: { trigger: 'item' },
@@ -119,9 +120,7 @@ export function buildPieOption(
 							color: colors.text,
 							bleedMargin: 8,
 							overflow: 'truncate',
-							formatter: showPercentages
-								? '{b}: {d}%'
-								: '{b}',
+							formatter: labelFormatter,
 						}
 					: {
 							show: false,
@@ -153,10 +152,26 @@ export function buildPieOption(
 		media: showLabels ? [
 			{
 				query: { maxWidth: 519 },
-				option: { series: [{ radius: ['36%', '62%'], labelLine: { length: 10, length2: 10 } }] },
+				option: { series: [{
+					radius: ['36%', '62%'],
+					label: {
+						formatter: showPercentages ? '{b}\n{d}%' : '{b}',
+						width: 88, lineHeight: 16,
+						alignTo: 'edge', edgeDistance: 8, distanceToLabelLine: 4,
+					},
+					labelLine: { length: 6, length2: 6 },
+				}] },
 			},
 			{
-				option: { series: [{ radius: ['44%', '76%'], labelLine: { length: 15, length2: 15 } }] },
+				query: { maxWidth: 279 },
+				option: { series: [{ radius: ['30%', '52%'], label: { width: 60, edgeDistance: 6 }, labelLine: { length: 4, length2: 4 } }] },
+			},
+			{
+				option: { series: [{
+					radius: ['44%', '76%'],
+					label: { formatter: labelFormatter, width: undefined, lineHeight: undefined, alignTo: 'none', edgeDistance: '25%', distanceToLabelLine: 5 },
+					labelLine: { length: 15, length2: 15 },
+				}] },
 			},
 		] : [],
 	};

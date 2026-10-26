@@ -120,6 +120,27 @@ function indicatorRange(values: number[]): { min: number; max: number } {
 	return { min: roundOutward(min), max: max === min ? 1 : roundOutward(max) };
 }
 
+/** Fit short names in two lines; keep long paths bounded to the same space. */
+function wrapAxisName(name: string, width: number, font: string): string {
+	const fits = (text: string) => format.truncateText(text, width, font, '') === text;
+	if (fits(name)) return name;
+	const prefix = format.truncateText(name, width, font, '');
+	const characters = Array.from(name);
+	const candidates = characters.slice(1, Array.from(prefix).length + 1).map((_, index) => {
+		const split = index + 1;
+		const first = characters.slice(0, split).join('').trimEnd();
+		const second = characters.slice(split).join('').trimStart();
+		return { first, second, wordBoundary: /\s$/.test(characters[split - 1]) || /^\s/.test(characters[split]) };
+	}).filter(({ first, second }) => first && second && fits(first) && fits(second));
+	candidates.sort((a, b) => Number(b.wordBoundary) - Number(a.wordBoundary)
+		|| Math.abs(a.first.length - a.second.length) - Math.abs(b.first.length - b.second.length));
+	const balanced = candidates[0];
+	if (balanced) return `${balanced.first}\n${balanced.second}`;
+	const lastSpace = prefix.lastIndexOf(' ');
+	const split = lastSpace > prefix.length / 2 ? lastSpace : prefix.length;
+	return `${name.slice(0, split).trimEnd()}\n${format.truncateText(name.slice(split).trimStart(), width, font, '…')}`;
+}
+
 export function buildRadarOption(data: DataWrapper, colors: ResolvedColors, options: RadarOptions = { scale: 'shared', showFill: true }): EChartsOption {
 	const categories = getRadarCategories(data);
 	if (categories.length < 3) return { series: [] };
@@ -129,11 +150,16 @@ export function buildRadarOption(data: DataWrapper, colors: ResolvedColors, opti
 	const sharedRange = indicatorRange(allValues);
 	const labelStep = Math.max(1, Math.ceil(categories.length / 12));
 	const visibleNames = new Set(categories.filter((_, index) => index % labelStep === 0).map(categoryLabel));
-	// Radar axis names do not honor axisName.width in ECharts 6.1. Truncate
+	// Radar axis names do not honor axisName.width in ECharts 6.1. Format
 	// their display text through ECharts, retaining full indicator identities.
-	const axisName = (width: number, fontSize: number) => ({
+	const axisName = (width: number, fontSize: number, wrap = false) => ({
 		color: colors.mutedText ?? colors.text, fontSize,
-		formatter: (name = '') => visibleNames.has(name) ? format.truncateText(name, width, `${fontSize}px sans-serif`, '…') : '',
+		lineHeight: wrap ? 14 : undefined,
+		formatter: (name = '') => {
+			if (!visibleNames.has(name)) return '';
+			const font = `${fontSize}px sans-serif`;
+			return wrap ? wrapAxisName(name, width, font) : format.truncateText(name, width, font, '…');
+		},
 	});
 	const indicator = categories.map(key => ({
 		name: categoryLabel(key),
@@ -180,7 +206,8 @@ export function buildRadarOption(data: DataWrapper, colors: ResolvedColors, opti
 		tooltip: { trigger: 'item' },
 		series,
 		media: [
-			{ query: { maxWidth: 519 }, option: { radar: { radius: '52%', axisNameGap: 8, axisName: axisName(60, 11) } } },
+			{ query: { maxWidth: 519 }, option: { radar: { radius: '52%', axisNameGap: 8, axisName: axisName(84, 11, true) } } },
+			{ query: { maxWidth: 359 }, option: { radar: { axisName: axisName(70, 11, true) } } },
 			{ query: { maxWidth: 279 }, option: { radar: { radius: '42%', axisNameGap: 8, axisName: axisName(40, 11) } } },
 			{ option: { radar: { radius: '70%', axisNameGap: 10, axisName: axisName(112, 12) } } },
 		],

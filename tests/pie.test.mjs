@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import * as echarts from 'echarts';
 
 // Exercise the real chart option builder outside Obsidian. Only the host's
 // value classes and the view lifecycle are stubbed; no chart logic is mocked.
@@ -66,4 +67,65 @@ test('empty groups do not shift palette identity or create duplicate slices', ()
 	const points = [point('Task', 2, 2)];
 	const option = buildPieOption(wrapper(points, ['Empty', 'Also empty', 'Visible']), 0, colors, true, false, true);
 	assert.deepEqual(option.series[0].data.map(slice => [slice.name, slice.itemStyle.color]), [['Visible · Task', 'green']]);
+});
+
+function visibleText(chart) {
+	return chart.getZr().storage.getDisplayList(true).filter(element => element.type === 'tspan' && !element.ignore && !element.invisible);
+}
+
+function assertTextFits(chart) {
+	for (const element of visibleText(chart)) {
+		const bounds = element.getBoundingRect().clone();
+		const transform = element.getComputedTransform();
+		if (transform) bounds.applyTransform(transform);
+		assert.ok(bounds.x >= -1 && bounds.y >= -1 && bounds.x + bounds.width <= chart.getWidth() + 1 && bounds.y + bounds.height <= chart.getHeight() + 1,
+			`${JSON.stringify(element.style.text)} overflows ${chart.getWidth()}×${chart.getHeight()}: ${JSON.stringify(bounds)}`);
+	}
+}
+
+for (const showPercentages of [false, true]) {
+	test(`phone pie names remain complete with percentages ${showPercentages ? 'enabled' : 'disabled'} and restore desktop formatting`, () => {
+		const points = [point('Design', 294), point('Engineering', 377), point('Research', 270), point('Writing', 191)];
+		const option = buildPieOption(wrapper(points, []), 0, colors, true, showPercentages, true);
+		const chart = echarts.init(null, null, { renderer: 'svg', ssr: true, width: 320, height: 300 });
+		try {
+			chart.setOption({ ...option, animation: false }, { notMerge: true });
+			for (const [width, height] of [[320, 300], [320, 340], [374, 300], [374, 340], [1200, 500], [240, 300], [320, 300], [1200, 500]]) {
+				chart.resize({ width, height });
+				assertTextFits(chart);
+				const series = chart.getOption().series[0];
+				assert.deepEqual(series.data.map(slice => ({ name: slice.name, value: slice.value, raw: slice._raw })),
+					points.map(point => ({ name: point.x, value: point.y, raw: point })), 'formatting must preserve full category names, values, and selection metadata');
+				if (width >= 280 && width <= 519) {
+					const text = visibleText(chart).map(element => element.style.text);
+					for (const point of points) assert.ok(text.includes(point.x), `${point.x} must render in full at ${width}×${height}: ${JSON.stringify(text)}`);
+					assert.equal(series.label.formatter, showPercentages ? '{b}\n{d}%' : '{b}');
+					if (showPercentages) assert.equal(text.filter(value => /^\d+(?:\.\d+)?%$/.test(value)).length, points.length, 'every percentage must have its own complete line');
+				} else if (width > 519) {
+					assert.equal(series.label.formatter, option.series[0].label.formatter);
+					assert.equal(series.label.width, undefined);
+					assert.equal(series.label.lineHeight, undefined);
+					assert.equal(series.label.alignTo, 'none');
+					assert.deepEqual(series.radius, ['44%', '76%']);
+					assert.equal(series.labelLine.length, 15);
+					assert.equal(series.labelLine.length2, 15);
+				}
+			}
+		} finally { chart.dispose(); }
+	});
+}
+
+test('phone media never enables labels when the view disables them', () => {
+	const points = [point('Design', 4), point('Engineering', 3), point('Research', 2), point('Writing', 1)];
+	const option = buildPieOption(wrapper(points, []), 0, colors, false, true, true);
+	const chart = echarts.init(null, null, { renderer: 'svg', ssr: true, width: 320, height: 300 });
+	try {
+		chart.setOption({ ...option, animation: false }, { notMerge: true });
+		for (const width of [320, 374, 1000, 240]) {
+			chart.resize({ width, height: 300 });
+			assert.equal(chart.getOption().series[0].label.show, false);
+			assert.equal(chart.getOption().series[0].labelLine.show, false);
+			assert.equal(visibleText(chart).length, 0);
+		}
+	} finally { chart.dispose(); }
 });

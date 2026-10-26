@@ -1058,6 +1058,16 @@ body {
         overflow-x: hidden;
         overscroll-behavior-y: contain;
     }
+    .is-phone .bases-data-chart-view > .bases-charts-plot-grid:has(> .bases-charts-plot-grid-item:only-child) {
+        grid-template-rows: minmax(0, 1fr);
+        overflow: visible;
+    }
+    .is-phone .bases-data-chart-view > .bases-charts-plot-grid > .bases-charts-plot-grid-item:only-child {
+        height: 100%;
+        min-height: 0;
+        max-height: none;
+        aspect-ratio: auto;
+    }
     .is-phone .bases-data-chart-view .bases-charts-plot-grid-item { touch-action: pan-y; }
     .is-phone .bases-data-chart-view::before,
     .is-phone .bases-data-chart-view::after { display: none; }
@@ -1099,6 +1109,7 @@ body {
     overscroll-behavior: contain;
 }
 .bases-chart-touch-preview-row { display: flex; align-items: center; gap: var(--size-2-2); min-width: 0; min-height: 28px; }
+.bases-chart-touch-preview-row:only-child { grid-column: 1 / -1; }
 .bases-chart-touch-preview-swatch { flex: 0 0 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
 .bases-chart-touch-preview-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }
 .bases-chart-touch-preview-value { font-variant-numeric: tabular-nums; flex-shrink: 0; }

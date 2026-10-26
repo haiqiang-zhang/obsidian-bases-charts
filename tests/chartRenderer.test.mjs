@@ -862,3 +862,17 @@ test('native long touch and horizontal drag inspect data while vertical drag rem
 	state.renderer.dispose();
 	assert.equal(state.container.listeners.size, 0);
 });
+
+test('portrait comparisons retain every series color after touch selection', () => {
+	const state = harness(true);
+	const series = [{ type: 'bar', emphasis: { focus: 'series', label: { fontSize: 14 } }, data: [1, 2] }];
+	state.tooltips[0].touchPreview = true;
+	state.renderer.setOption({ series }, { chartType: 'chart-bar' });
+	assert.equal(state.charts[0].current.series[0].emphasis.disabled, true);
+	assert.equal(state.charts[0].current.series[0].emphasis.focus, 'none');
+	assert.equal(series[0].emphasis.focus, 'series', 'do not mutate stored desktop options');
+	state.tooltips[0].touchPreview = false;
+	state.renderer.setOption({ series }, { chartType: 'chart-bar' });
+	assert.equal(state.charts[0].current.series[0].emphasis.focus, 'series');
+	state.renderer.dispose();
+});
