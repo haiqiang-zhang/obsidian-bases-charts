@@ -11,7 +11,7 @@ import { ChartToolbar } from '../ui/chartToolbar';
 import { ChartFormulaEditor } from '../ui/chartFormulaEditor';
 import { prepareChartGroups } from './grouping';
 import { COMMON_SETTINGS } from './types';
-import { bucketDateValues, isDateProperty, normalizeDateGrouping } from './dateBuckets';
+import { bucketDateValues, buildDateTimeline, isDateProperty, normalizeDateGrouping } from './dateBuckets';
 import type { DateGrouping } from './dateBuckets';
 import { detectXAxisType, parseValueAsNumber, parseValueAsX, toXKey } from '../utils/utils';
 import type { ResolvedColors } from '../ui/colors';
@@ -120,6 +120,22 @@ export abstract class DataChartView extends BaseChartView {
 		if (property) this.config.set(COMMON_SETTINGS.X_DATE_GROUPING, { property, unit: normalizeDateGrouping(unit) });
 	}
 
+	supportsMissingDates(): boolean {
+		return ['chart-bar', 'chart-line', 'chart-area', 'chart-scatter'].includes(this.type) && this.isDateXAxis();
+	}
+
+	getShowMissingDates(): boolean {
+		const setting = this.config?.get(COMMON_SETTINGS.X_DATE_GAPS);
+		if (!setting || typeof setting !== 'object' || Array.isArray(setting) || !this.supportsMissingDates()) return false;
+		const { property, enabled } = setting as { property?: unknown; enabled?: unknown };
+		return property === this.config.getAsPropertyId(COMMON_SETTINGS.X) && enabled === true;
+	}
+
+	setShowMissingDates(enabled: boolean): void {
+		const property = this.config?.getAsPropertyId(COMMON_SETTINGS.X);
+		if (property) this.config.set(COMMON_SETTINGS.X_DATE_GAPS, { property, enabled });
+	}
+
 	processData(): DataWrapper {
 		const xField = this.config.getAsPropertyId(COMMON_SETTINGS.X);
 		const propertyOrder = this.getYProperties();
@@ -182,6 +198,8 @@ export abstract class DataChartView extends BaseChartView {
 		const wrapper = new PropertySeparatedData(
 			aggregatedData, groupBySet, sortedXValues, xAxisType,
 			yDomain, chartIds, chartNameMap,
+			dateGrouping !== 'exact' && this.getShowMissingDates()
+				? buildDateTimeline(sortedXValues.map(String), dateGrouping) : null,
 		);
 
 		// For synced Y axes, backfill global min/max into the domain
@@ -279,8 +297,8 @@ export abstract class DataChartView extends BaseChartView {
 			: this.getYAxisLabel(data.getChartName(chartIndex), this.getYProperties()[chartIndex]);
 	}
 
-	getChartMessage(_data: DataWrapper, _chartIndex: number): string | null {
-		return null;
+	getChartMessage(data: DataWrapper, _chartIndex: number): string | null {
+		return data.dateTimeline?.error ?? null;
 	}
 
 	getYDomainOverrides(): YDomainOverrides {

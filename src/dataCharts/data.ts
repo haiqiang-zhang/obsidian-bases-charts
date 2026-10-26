@@ -1,6 +1,7 @@
 import type { BasesPropertyId } from 'obsidian';
 import type { XAxisType } from '../utils/utils';
 import { toXKey } from '../utils/utils';
+import type { DateTimeline } from './dateBuckets';
 
 export interface YDomainOverrides {
 	min: number | null;
@@ -179,6 +180,7 @@ export class PropertySeparatedData extends AbstractDataWrapper<BasesPropertyId, 
 		yDomain: YDomainOverrides,
 		chartIds: BasesPropertyId[],
 		chartNameMap: Map<BasesPropertyId, string>,
+		readonly dateTimeline: DateTimeline | null = null,
 	) {
 		super(data, groupBySet, sortedXOrder, xAxisType, yDomain);
 		this.chartIds = chartIds;

@@ -71,6 +71,9 @@ export function buildAreaOption(
 			stackStrategy: 'samesign' as const,
 			data: keys.map(key => {
 				const point = group.get(key);
+				// A missing group can contribute zero to an existing stack, but a
+				// whole missing period must break the area instead of dipping to zero.
+				if (data.dateTimeline && !values.has(key)) return { value: null, _raw: null };
 				const y = point?.y ?? 0;
 				const totals = stackTotals.get(key) ?? [0, 0];
 				const sign = y < 0 ? 0 : 1;

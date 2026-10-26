@@ -36,6 +36,8 @@ Open **Y axes** (or **Values**) and use the aggregation control beside each sele
 
 Aggregation happens within each **X value, Y property, and group**. With calendar grouping, timestamps first become day, week, month, or year buckets.
 
+[Show missing dates](./axes-and-dates#show-missing-dates) adds empty calendar positions without adding records to an aggregation. Missing values remain distinct from recorded zeros.
+
 ## Stack group contributions
 
 In a Bar view, open the native view settings and set **Bar layout** to **Stacked** or **100% Stacked**. The setting belongs to that view and applies independently to each selected Y property.

@@ -66,6 +66,19 @@ const result = await build({
 						setValue(value) { this.selectEl.value = value; return this; }
 						onChange(callback) { this.selectEl.addEventListener('change', () => callback(this.selectEl.value)); return this; }
 					}
+					export class ToggleComponent {
+						constructor(container) {
+							this.toggleEl = container.createEl('button', { cls: 'checkbox-container' });
+							this.toggleEl.setAttribute('role', 'switch');
+							this.toggleEl.addEventListener('click', () => {
+								if (!this.disabled) { this.setValue(!this.value); this.callback?.(this.value); }
+							});
+						}
+						setValue(value) { this.value = value; this.toggleEl.setAttribute('aria-checked', String(value)); return this; }
+						setDisabled(value) { this.disabled = value; this.toggleEl.disabled = value; return this; }
+						setTooltip(value) { this.toggleEl.setAttribute('aria-label', value); return this; }
+						onChange(callback) { this.callback = callback; return this; }
+					}
 					export class Menu {
 						static instances = [];
 						static preference = false;
@@ -219,7 +232,7 @@ class Element extends EventTargetFixture {
 	}
 }
 
-function harness(x = 'formula.bucket', { date = false, formulaEditor = true, grouping = 'exact', mobile = false } = {}) {
+function harness(x = 'formula.bucket', { date = false, formulaEditor = true, grouping = 'exact', mobile = false, type = 'chart-bar' } = {}) {
 	Platform.isMobile = mobile;
 	Platform.isPhone = mobile;
 	const doc = new EventTargetFixture();
@@ -249,7 +262,7 @@ function harness(x = 'formula.bucket', { date = false, formulaEditor = true, gro
 	const formulaCalls = [];
 	let updateCount = 0;
 	const view = {
-		type: 'chart-bar', containerEl: container, app: { doc },
+		type, containerEl: container, app: { doc },
 		// The selected formula is deliberately absent: old saved properties must still show.
 		allProperties: ['file.folder', 'note.status', 'note.hours', 'note.score', 'note.mood', 'formula.ratio', 'file.folder'],
 		config: {
@@ -262,6 +275,9 @@ function harness(x = 'formula.bucket', { date = false, formulaEditor = true, gro
 		isDateXAxis: () => date,
 		getXDateGrouping: () => settings.get('x-date-grouping')?.unit ?? 'exact',
 		setXDateGrouping: unit => view.config.set('x-date-grouping', { property: settings.get('x'), unit }),
+		supportsMissingDates: () => date && ['chart-bar', 'chart-line', 'chart-area', 'chart-scatter'].includes(type),
+		getShowMissingDates: () => settings.get('x-date-gaps')?.property === settings.get('x') && settings.get('x-date-gaps')?.enabled === true,
+		setShowMissingDates: enabled => view.config.set('x-date-gaps', { property: settings.get('x'), enabled }),
 		canEditFormulas: () => formulaEditor,
 		openFormulaEditor: (anchor, axis, propertyId) => {
 			assert.equal(doc.body.querySelector('.bases-chart-axis-panel'), null, 'close the picker before opening the native editor');
@@ -1044,4 +1060,69 @@ test('reordering a Y formula preserves move-button focus despite its extra edit 
 	assert.equal(state.doc.activeElement, action(ratio, 'Move Ratio up'));
 	assert.deepEqual(state.formulaCalls, []);
 	state.toolbar.onunload();
+});
+
+for (const mobile of [false, true]) test(`missing-date native toggle persists in the ${mobile ? 'mobile' : 'desktop'} X picker without closing it`, () => {
+	const state = harness('note.completed at', { date: true, grouping: 'day', mobile });
+	try {
+		state.toolbar.openAxis('x');
+		const panel = state.panel();
+		const row = panel.querySelector('.bases-chart-date-gaps');
+		const toggle = row.querySelector('.checkbox-container');
+		assert.equal(row.querySelector('span').textContent, 'Show missing dates');
+		assert.equal(toggle.getAttribute('aria-label'), 'Show missing dates');
+		assert.equal(toggle.getAttribute('aria-checked'), 'false');
+		assert.equal(toggle.disabled, false);
+		toggle.dispatch('click');
+		assert.deepEqual(state.writes, [{ key: 'x-date-gaps', value: { property: 'note.completed at', enabled: true } }]);
+		assert.equal(toggle.getAttribute('aria-checked'), 'true');
+		assert.equal(state.panel(), panel);
+		assert.equal(state.updateCount, 1);
+		state.toolbar.openAxis('x');
+		state.toolbar.openAxis('x');
+		assert.equal(state.panel().querySelector('.bases-chart-date-gaps').querySelector('.checkbox-container').getAttribute('aria-checked'), 'true');
+	} finally { state.toolbar.onunload(); Platform.isMobile = false; Platform.isPhone = false; }
+});
+
+test('missing-date toggle follows grouping changes without changing Exact time or forgetting its saved choice', () => {
+	const state = harness('note.completed at', { date: true });
+	try {
+		state.toolbar.openAxis('x');
+		const panel = state.panel();
+		const toggle = panel.querySelector('.bases-chart-date-gaps').querySelector('.checkbox-container');
+		const dropdown = panel.querySelector('.bases-chart-date-grouping').querySelector('button');
+		assert.equal(toggle.disabled, true);
+		assert.match(toggle.getAttribute('aria-label'), /Show missing dates. Choose Day, Week, Month, or Year/);
+		toggle.dispatch('click');
+		assert.deepEqual(state.writes, []);
+		const selectGrouping = title => {
+			dropdown.dispatch('click');
+			const menu = Menu.instances.at(-1);
+			menu.items.find(item => item.title === title).callback();
+			menu.hide();
+		};
+		selectGrouping('Day');
+		assert.equal(toggle.disabled, false);
+		toggle.dispatch('click');
+		selectGrouping('Exact time');
+		assert.equal(toggle.disabled, true);
+		assert.equal(toggle.getAttribute('aria-checked'), 'true');
+		selectGrouping('Week');
+		assert.equal(toggle.disabled, false);
+		assert.equal(toggle.getAttribute('aria-checked'), 'true');
+		assert.equal(state.settings.get('x-date-grouping').unit, 'week');
+	} finally { state.toolbar.onunload(); }
+});
+
+test('missing-date control is limited to date X axes in Cartesian views', () => {
+	for (const type of ['chart-bar', 'chart-line', 'chart-area', 'chart-scatter', 'chart-pie', 'chart-radar']) {
+		for (const date of [false, true]) {
+			const state = harness(date ? 'note.completed at' : 'note.status', { type, date, grouping: 'day' });
+			state.toolbar.openAxis('x');
+			assert.equal(Boolean(state.panel().querySelector('.bases-chart-date-gaps')), date && !['chart-pie', 'chart-radar'].includes(type));
+			state.toolbar.openAxis('y');
+			assert.equal(state.panel().querySelector('.bases-chart-date-gaps'), null);
+			state.toolbar.onunload();
+		}
+	}
 });

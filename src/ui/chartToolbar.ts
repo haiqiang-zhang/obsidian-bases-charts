@@ -1,4 +1,4 @@
-import { Component, DropdownComponent, Menu, Modal, Platform, SearchComponent, setIcon } from 'obsidian';
+import { Component, DropdownComponent, Menu, Modal, Platform, SearchComponent, ToggleComponent, setIcon } from 'obsidian';
 import type { DataChartView } from '../dataCharts/dataChartView';
 import { AggregateMode, aggregateKey } from '../dataCharts/aggregate';
 import { COMMON_SETTINGS } from '../dataCharts/types';
@@ -17,6 +17,7 @@ export class ChartToolbar extends Component {
 	private closePanel: (() => void) | null = null;
 	private childMenu: Menu | null = null;
 	private childMenuTrigger: HTMLButtonElement | null = null;
+	private dateGapToggle: ToggleComponent | null = null;
 
 	constructor(private view: DataChartView) {
 		super();
@@ -71,6 +72,7 @@ export class ChartToolbar extends Component {
 		const xSummary = x ? `${this.view.config.getDisplayName(x)}${grouping === 'exact' ? '' : ` · ${DATE_GROUPING_OPTIONS[grouping]}`}` : 'Choose';
 		this.updateButton('x', xSummary, x ? `${this.axisLabel('x')}: ${xSummary}` : `Choose ${this.axisLabel('x')}`);
 		this.updateButton('y', String(y.length), `${this.axisLabel('y')}: ${y.length} selected`);
+		this.updateDateGapToggle();
 		for (const row of Array.from(this.panel?.querySelectorAll<HTMLElement>('.bases-chart-selected-property') ?? [])) {
 			const id = row.dataset.property;
 			const select = row.querySelector<HTMLSelectElement>('.bases-chart-aggregate-select');
@@ -249,6 +251,7 @@ export class ChartToolbar extends Component {
 			if (!modal) panel.remove();
 			button.setAttribute('aria-expanded', 'false');
 			this.panel = null;
+			this.dateGapToggle = null;
 			this.closePanel = null;
 			if (closeModal) modal?.close();
 		};
@@ -363,6 +366,7 @@ export class ChartToolbar extends Component {
 
 	private renderSelectedX(container: HTMLElement): void {
 		this.closeChildMenu();
+		this.dateGapToggle = null;
 		container.empty();
 		const x = this.view.config.getAsPropertyId(COMMON_SETTINGS.X);
 		if (!x) {
@@ -391,7 +395,24 @@ export class ChartToolbar extends Component {
 					this.openDateGroupingMenu(dropdown);
 				}
 			});
+			if (this.view.supportsMissingDates()) {
+				const gapRow = container.createDiv({ cls: 'bases-chart-date-gaps' });
+				gapRow.createSpan({ text: 'Show missing dates' });
+				this.dateGapToggle = new ToggleComponent(gapRow).onChange(enabled => {
+					if (this.view.getXDateGrouping() === 'exact') return;
+					this.view.setShowMissingDates(enabled);
+					this.changed();
+				});
+				this.updateDateGapToggle();
+			}
 		}
+	}
+
+	private updateDateGapToggle(): void {
+		if (!this.dateGapToggle) return;
+		const disabled = this.view.getXDateGrouping() === 'exact';
+		this.dateGapToggle.setValue(this.view.getShowMissingDates()).setDisabled(disabled)
+			.setTooltip(disabled ? 'Show missing dates. Choose Day, Week, Month, or Year to enable.' : 'Show missing dates');
 	}
 
 	private renderProperties(container: HTMLElement, axis: Axis, query: string, render: () => void): void {

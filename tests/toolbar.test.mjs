@@ -19,6 +19,7 @@ const result = await build({
 					export class Component { registeredEvents = []; registerEvent(ref) { this.registeredEvents.push(ref); } }
 					export class SearchComponent {}
 					export class DropdownComponent {}
+					export class ToggleComponent {}
 					export class Menu {}
 					export class Modal {}
 					export const Platform = { isMobile: false, isPhone: false };

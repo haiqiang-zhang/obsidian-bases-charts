@@ -27,7 +27,7 @@ hero:
 | Topic | Includes | Guide |
 | --- | --- | --- |
 | Chart types | Line, bar, stacked area, pie, radar, and scatter. | [Views →](./chart-types) |
-| Axes and dates | Note properties, file properties, formulas, and calendar date grouping. | [Axes →](./axes-and-dates) |
+| Axes and dates | Note properties, file properties, formulas, calendar grouping, and missing dates. | [Axes →](./axes-and-dates) |
 | Groups and aggregation | Bases groups and a separate aggregation for each value property. | [Groups →](./groups-and-aggregation) |
 | Data details | A searchable table of the files contributing to a chart value. | [Files →](./explore-data) |
 | Appearance | Per-view color palettes and chart-specific display options. | [Settings →](./colors-and-layout) |

@@ -22,7 +22,9 @@ export function buildXAxisConfig(
 } {
 	const flatData = data.getFlat(chartIndex);
 	const flatXSet = new Set(flatData.map(d => toXKey(d.x)));
-	const xCategories = data.sortedXOrder.filter(x => flatXSet.has(x));
+	// An explicit calendar timeline also contains periods with no Y samples.
+	// Keep those positions without adding synthetic observations to the data.
+	const xCategories = data.dateTimeline?.categories ?? data.sortedXOrder.filter(x => flatXSet.has(x));
 	const labelColor = colors.mutedText ?? colors.text;
 
 	const xAxis: XAXisComponentOption = {

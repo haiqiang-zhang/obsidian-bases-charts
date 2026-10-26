@@ -71,32 +71,39 @@ export function buildLineOption(
 		seriesMap.set(dp.groupIndex, arr);
 	}
 
-	const series = Array.from(seriesMap.entries()).sort(([a], [b]) => a - b).map(([groupIdx, points]) => ({
-		type: 'line' as const,
-		name: data.getGroupName(groupIdx),
-		data: xAxisType === 'category'
-			? xCategories.map(cat => {
-					const match = points.find(p => String(mapXValue(p, xAxisType)) === cat);
-					return match ? { value: match.y, _raw: match } : { value: treatNullAsZero ? 0 : null, _raw: null };
-				})
-			: points.map(p => ({
-					value: [mapXValue(p, xAxisType), p.y],
-					_raw: p,
-				})),
-		itemStyle: {
-			color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
-		},
-		lineStyle: {
-			color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
-			width: 2,
-		},
-		connectNulls: !treatNullAsZero,
-		showSymbol: true,
-		symbolSize: 4,
-		emphasis: {
-			focus: 'series' as const,
-		},
-	}));
+	const series = Array.from(seriesMap.entries()).sort(([a], [b]) => a - b).map(([groupIdx, points]) => {
+		const pointsByCategory = new Map<string, ProcessedData>();
+		for (const point of points) {
+			const key = String(mapXValue(point, xAxisType));
+			if (!pointsByCategory.has(key)) pointsByCategory.set(key, point);
+		}
+		return {
+			type: 'line' as const,
+			name: data.getGroupName(groupIdx),
+			data: xAxisType === 'category'
+				? xCategories.map(cat => {
+						const match = pointsByCategory.get(cat);
+						return match ? { value: match.y, _raw: match } : { value: treatNullAsZero ? 0 : null, _raw: null };
+					})
+				: points.map(p => ({
+						value: [mapXValue(p, xAxisType), p.y],
+						_raw: p,
+					})),
+			itemStyle: {
+				color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
+			},
+			lineStyle: {
+				color: getResolvedColor(colors.palette, colors.accent, groupIdx, isGrouped),
+				width: 2,
+			},
+			connectNulls: data.dateTimeline ? false : !treatNullAsZero,
+			showSymbol: true,
+			symbolSize: 4,
+			emphasis: {
+				focus: 'series' as const,
+			},
+		};
+	});
 
 	return {
 		media: axisMedia,

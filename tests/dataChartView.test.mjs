@@ -386,3 +386,89 @@ test('calendar grouping leaves Scatter None aggregation unchanged', () => {
 	assert.deepEqual(data.getFlat(0).map(point => [point.x, point.y]), [['2026-10-24', 2]]);
 	assert.deepEqual(data.getFlat(0)[0].files, ['0.md', '1.md']);
 });
+
+function datedGapView(extraConfig = {}, groups) {
+	const entries = [
+		entry('2026-08-31.md', '', 2, { 'formula.Date': new DateValue('2026-08-31'), 'note.score': new NullValue() }),
+		entry('2026-09-03.md', '', null, { 'formula.Date': new DateValue('2026-09-03'), 'note.amount': new NullValue(), 'note.score': new NumberValue(7) }),
+		entry('2026-09-06.md', '', 0, { 'formula.Date': new DateValue('2026-09-06'), 'note.score': new NumberValue(9) }),
+	];
+	return makeView(entries, groups?.(entries), { x: 'formula.Date', y: ['note.amount', 'note.score'], ...extraConfig });
+}
+
+test('date gaps preserve missing Y periods, original values, and daily-note date formulas', () => {
+	const view = datedGapView();
+	assert.equal(view.getShowMissingDates(), false);
+	view.setXDateGrouping('day');
+	const compact = view.processData();
+	assert.equal(compact.dateTimeline, null);
+	view.setShowMissingDates(true);
+	assert.deepEqual(view.config.get('x-date-gaps'), { property: 'formula.Date', enabled: true });
+	const data = view.processData();
+	assert.deepEqual(data.dateTimeline.categories, ['2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-05', '2026-09-06']);
+	assert.equal(data.dateTimeline.error, null);
+	assert.deepEqual(data.data, compact.data, 'timeline expansion must not fabricate observations or change aggregates');
+	assert.deepEqual(data.getFlat(0).map(p => [p.x, p.y, p.files, p.fileValues]), [
+		['2026-08-31', 2, ['2026-08-31.md'], [2]], ['2026-09-06', 0, ['2026-09-06.md'], [0]],
+	]);
+	assert.deepEqual(data.getFlat(1).map(p => [p.x, p.y]), [['2026-09-03', 7], ['2026-09-06', 9]]);
+	view.config.set('sort', [{ property: 'formula.Date', direction: 'DESC' }]);
+	assert.deepEqual(view.processData().dateTimeline.categories, data.dateTimeline.categories.toReversed());
+	view.setShowMissingDates(false);
+	assert.equal(view.processData().dateTimeline, null);
+});
+
+test('date-gap settings are property-bound, validated, and inactive for exact time or non-Cartesian charts', () => {
+	const view = datedGapView();
+	view.setShowMissingDates(true);
+	assert.equal(view.getXDateGrouping(), 'exact');
+	assert.equal(view.processData().dateTimeline, null, 'enabling gaps must never silently regroup exact timestamps');
+	view.setXDateGrouping('day');
+	assert.ok(view.processData().dateTimeline);
+	view.config.set('x', 'file.folder');
+	assert.equal(view.supportsMissingDates(), false);
+	assert.equal(view.getShowMissingDates(), false);
+	view.config.set('x', 'formula.Date');
+	assert.equal(view.getShowMissingDates(), true);
+	for (const type of ['chart-pie', 'chart-radar', 'chart-ai']) {
+		view.type = type;
+		assert.equal(view.supportsMissingDates(), false);
+		assert.equal(view.processData().dateTimeline, null);
+	}
+	for (const type of ['chart-bar', 'chart-line', 'chart-area', 'chart-scatter']) {
+		view.type = type;
+		assert.equal(view.supportsMissingDates(), true);
+		assert.ok(view.processData().dateTimeline);
+	}
+	for (const invalid of [true, 'true', [], {}, { property: 'formula.Date', enabled: 'true' }, { property: 'note.other', enabled: true }]) {
+		view.config.set('x-date-gaps', invalid);
+		assert.equal(view.getShowMissingDates(), false);
+		assert.equal(view.processData().dateTimeline, null);
+	}
+});
+
+test('date range follows visible Base groups and includes dates with missing selected measures', () => {
+	const view = datedGapView({}, entries => [group([entries[0], entries[1]], new StringValue('Visible'))]);
+	view.setXDateGrouping('day');
+	view.setShowMissingDates(true);
+	assert.deepEqual(view.processData().dateTimeline.categories, ['2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03']);
+	view.config.set('y', ['note.amount']);
+	const data = view.processData();
+	assert.equal(data.dateTimeline.categories.at(-1), '2026-09-03', 'missing selected Y at the edge still reserves its calendar slot');
+	assert.deepEqual(data.getFlat(0).flatMap(p => p.files), ['2026-08-31.md']);
+});
+
+test('file timestamps support gaps and oversized date ranges produce a recoverable chart message', () => {
+	const view = makeView([
+		entry('first.md', '', 2, { 'file.mtime': new NumberValue(new Date('2000-01-01T12:00:00').getTime()) }),
+		entry('last.md', '', 3, { 'file.mtime': new NumberValue(new Date('2100-01-01T12:00:00').getTime()) }),
+	], undefined, { x: 'file.mtime' });
+	view.setXDateGrouping('day');
+	view.setShowMissingDates(true);
+	assert.match(view.getChartMessage(view.processData(), 0), /10,000 periods/);
+	view.setXDateGrouping('year');
+	const data = view.processData();
+	assert.equal(data.dateTimeline.categories.length, 101);
+	assert.equal(view.getChartMessage(data, 0), null);
+	assert.equal(data.data.length, 2);
+});

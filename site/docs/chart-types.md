@@ -16,6 +16,8 @@ All six Data Chart views read the Base's filtered results and support per-proper
 | Radar | Comparing profiles across categories | Dimension → planned and actual values |
 | Scatter | Relationships and individual observations | Duration → score, grouped by subject |
 
+Line, Bar, Stacked Area, and Scatter support [Show missing dates](./axes-and-dates#show-missing-dates) for calendar-grouped X axes. This preserves empty days, weeks, months, or years between the first and last visible dates.
+
 ## Line
 
 Use a line chart for a date, numeric, or category axis. [Date grouping](./axes-and-dates#date-grouping) combines timestamps into calendar periods before aggregation.
@@ -46,7 +48,7 @@ In Grouped and Stacked layouts, **Format values as percentages** only adds a per
 
 Groups stack into a cumulative total at each X position.
 
-Missing group values at an existing X position are filled with zero. Positive and negative values stack separately. Scale synchronization uses stacked totals.
+Missing group values at an existing X position are filled with zero. With **Show missing dates** enabled, a whole period without values remains a gap. Positive and negative values stack separately. Scale synchronization uses stacked totals.
 
 ![Stacked area chart showing contributions to a total over time.](/gallery/03-area.png)
 

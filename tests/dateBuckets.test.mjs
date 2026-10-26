@@ -29,7 +29,7 @@ const result = await build({
 		},
 	}],
 });
-const { normalizeDateGrouping, isDateProperty, bucketDateValues, DateValue, StringValue, NumberValue, ListValue, NullValue } = await import(
+const { normalizeDateGrouping, isDateProperty, bucketDateValues, buildDateTimeline, MAX_DATE_PERIODS, DateValue, StringValue, NumberValue, ListValue, NullValue } = await import(
 	`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`,
 );
 
@@ -122,4 +122,36 @@ test('malformed dates never silently roll into valid days and numeric millis req
 	assert.equal(bucketDateValues(new NumberValue(0), 'day', 'note.amount'), null);
 	assert.equal(bucketDateValues(new NumberValue(Infinity), 'day', 'file.ctime'), null);
 	inTimezone('UTC', () => assert.deepEqual(bucketDateValues(new NumberValue(0), 'day', 'file.ctime'), ['1970-01-01']));
+});
+
+test('calendar timeline retains missing dates across month, leap-year, and DST boundaries', () => {
+	for (const timezone of ['America/New_York', 'Asia/Shanghai', 'Pacific/Auckland']) inTimezone(timezone, () => {
+		assert.deepEqual(buildDateTimeline(['2026-08-31', '2026-09-06'], 'day'), {
+			categories: ['2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-05', '2026-09-06'], error: null,
+		});
+		assert.deepEqual(buildDateTimeline(['2024-02-28', '2024-03-01'], 'day').categories, ['2024-02-28', '2024-02-29', '2024-03-01']);
+		assert.deepEqual(buildDateTimeline(['2026-03-07', '2026-03-10'], 'day').categories, ['2026-03-07', '2026-03-08', '2026-03-09', '2026-03-10']);
+		assert.deepEqual(buildDateTimeline(['2026-10-31', '2026-11-02'], 'day').categories, ['2026-10-31', '2026-11-01', '2026-11-02']);
+	});
+});
+
+test('calendar timeline uses whole weeks, months and years and preserves descending order', () => {
+	assert.deepEqual(buildDateTimeline(['2026-12-28', '2027-01-11'], 'week').categories, ['2026-12-28', '2027-01-04', '2027-01-11']);
+	assert.deepEqual(buildDateTimeline(['2027-02', '2026-11'], 'month').categories, ['2027-02', '2027-01', '2026-12', '2026-11']);
+	assert.deepEqual(buildDateTimeline(['0099', '0101'], 'year').categories, ['0099', '0100', '0101']);
+	assert.deepEqual(buildDateTimeline(['2026-01-01', '2026-01-01'], 'day').categories, ['2026-01-01']);
+	assert.deepEqual(buildDateTimeline([], 'day'), { categories: [], error: null });
+});
+
+test('very large timelines fail explicitly without allocating an unbounded number of categories', () => {
+	const first = new Date('2000-01-01T12:00:00Z');
+	const last = new Date(first);
+	last.setUTCDate(last.getUTCDate() + MAX_DATE_PERIODS - 1);
+	assert.equal(buildDateTimeline(['2000-01-01', last.toISOString().slice(0, 10)], 'day').categories.length, MAX_DATE_PERIODS);
+	last.setUTCDate(last.getUTCDate() + 1);
+	const overflow = buildDateTimeline(['2000-01-01', last.toISOString().slice(0, 10)], 'day');
+	assert.deepEqual(overflow.categories, []);
+	assert.match(overflow.error, /10,000 periods/);
+	assert.match(overflow.error, /Date grouping/);
+	assert.match(buildDateTimeline(['not a date'], 'day').error, /Cannot build/);
 });

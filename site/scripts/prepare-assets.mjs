@@ -35,6 +35,7 @@ await cp(resolve(source, manifestName), resolve(destination, manifestName));
 const examples = resolve(site, 'docs/public/examples');
 await mkdir(examples, { recursive: true });
 await cp(resolve(site, '../images/ai-charts.png'), resolve(examples, 'ai-charts.png'));
+await cp(resolve(site, '../images/date-gaps.png'), resolve(examples, 'date-gaps.png'));
 
 // Mobile captures have their own manifest and remain separate from the desktop set.
 const mobileSource = resolve(source, 'mobile');

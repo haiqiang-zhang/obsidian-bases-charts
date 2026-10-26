@@ -13,6 +13,13 @@ export type DateGrouping = keyof typeof DATE_GROUPING_OPTIONS;
 type CalendarGrouping = Exclude<DateGrouping, 'exact'>;
 interface CalendarDate { year: number; month: number; day: number }
 
+export interface DateTimeline {
+	categories: string[];
+	error: string | null;
+}
+
+export const MAX_DATE_PERIODS = 10_000;
+
 export function normalizeDateGrouping(value: unknown): DateGrouping {
 	return typeof value === 'string' && Object.hasOwn(DATE_GROUPING_OPTIONS, value)
 		? value as DateGrouping : 'exact';
@@ -114,4 +121,36 @@ export function bucketDateValues(value: Value | null, grouping: CalendarGrouping
 		if (date) buckets.add(bucketKey(date, grouping));
 	}
 	return buckets.size ? [...buckets] : null;
+}
+
+/** Expand calendar slots only; missing dates never become observations. */
+export function buildDateTimeline(keys: string[], grouping: CalendarGrouping): DateTimeline {
+	if (!keys.length) return { categories: [], error: null };
+	const ordered = [...new Set(keys)].sort();
+	const first = ordered[0];
+	const last = ordered[ordered.length - 1];
+	const start = parseCalendarDate(grouping === 'year' ? `${first}-01-01`
+		: grouping === 'month' ? `${first}-01` : first);
+	if (!start) return { categories: [], error: 'Cannot build a timeline from these dates.' };
+	const cursor = new Date(0);
+	cursor.setUTCFullYear(start.year, start.month - 1, start.day);
+	cursor.setUTCHours(12, 0, 0, 0);
+	const categories: string[] = [];
+	let key = first;
+	while (key <= last) {
+		if (categories.length === MAX_DATE_PERIODS) return {
+			categories: [],
+			error: 'This date range exceeds 10,000 periods. Choose a larger Date grouping, narrow the Base filters, or turn off Show missing dates.',
+		};
+		categories.push(key);
+		// UTC calendar arithmetic avoids skipped/repeated local days around DST.
+		if (grouping === 'year') cursor.setUTCFullYear(cursor.getUTCFullYear() + 1);
+		else if (grouping === 'month') cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+		else cursor.setUTCDate(cursor.getUTCDate() + (grouping === 'week' ? 7 : 1));
+		const next = bucketKey({ year: cursor.getUTCFullYear(), month: cursor.getUTCMonth() + 1, day: cursor.getUTCDate() }, grouping);
+		if (next <= key) break;
+		key = next;
+	}
+	if (keys.length > 1 && keys[0] > keys[keys.length - 1]) categories.reverse();
+	return { categories, error: null };
 }

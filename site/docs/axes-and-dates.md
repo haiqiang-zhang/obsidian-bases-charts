@@ -1,6 +1,6 @@
 ---
 title: Axes and dates
-description: X and Y properties, calendar grouping, formulas, sorting, and scale settings.
+description: X and Y properties, calendar grouping, missing dates, formulas, sorting, and scale settings.
 ---
 
 # Axes and dates
@@ -44,9 +44,37 @@ Date grouping combines timestamps into calendar periods before Y values are aggr
 | Month | Combines records into calendar months |
 | Year | Combines records into calendar years |
 
-Calendar grouping follows local dates. Timestamps with time zones are interpreted in the local time zone. Only periods containing records are shown; the chart does not create an empty period for every missing day or week.
+Calendar grouping follows local dates. Timestamps with time zones are interpreted in the local time zone. By default, the X axis includes only periods with values for that chart. Enable **Show missing dates** to preserve empty periods.
 
 The grouping choice belongs to the selected X property in that view. Changing to another X property does not apply the previous property's calendar grouping to it.
+
+## Show missing dates
+
+Line, Bar, Stacked Area, and Scatter can leave space for missing calendar periods:
+
+1. Open **X axis** and select a date, datetime, or date-valued formula property.
+2. Set **Date grouping** to **Day**, **Week**, **Month**, or **Year**.
+3. Enable **Show missing dates**, directly below **Date grouping**.
+
+![X-axis settings with Day grouping and Show missing dates enabled; the chart retains five empty days between August 31 and September 6.](/examples/date-gaps.png)
+
+The chart includes every period between the first and last visible dates. For example, if values exist only on August 31 and September 6, daily grouping leaves five empty positions for September 1–5. A note with a date but no value for the selected Y property also leaves an empty position.
+
+Missing periods have no source files or data details. They do not change aggregates or percentages. A recorded zero remains a real value. In Line charts, **Gap handling → Leave gap** breaks the line across missing periods; **Fill with 0** explicitly draws them at zero without creating source records.
+
+The range follows the Base's filters and visible groups. It does not extend to today or beyond the first and last visible dates. A descending sort on the X property reverses the timeline. The toggle is off by default and is saved for the selected X property in each view.
+
+**Exact time** retains individual timestamps without defining a calendar interval, so **Show missing dates** is disabled in that mode. To keep the chart responsive, a range exceeding 10,000 periods displays a message asking you to choose a larger grouping or turn the toggle off.
+
+### Daily note filenames
+
+For daily notes named `YYYY-MM-DD`, add a formula such as:
+
+```js
+date(file.name)
+```
+
+Select that formula as X, choose **Day**, and enable **Show missing dates**. Keep the formula date-valued; formatting it as text with `.format()` removes its date type.
 
 ## Formulas and property editing
 

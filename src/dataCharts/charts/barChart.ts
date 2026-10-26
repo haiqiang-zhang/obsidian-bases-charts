@@ -58,6 +58,7 @@ export class BarChartView extends DataChartView {
 	}
 
 	getChartMessage(data: DataWrapper, chartIndex: number): string | null {
+		if (data.dateTimeline?.error) return data.dateTimeline.error;
 		return normalizeBarLayout(this.config.get(BAR_LAYOUT_KEY)) === 'percent'
 			&& data.getFlat(chartIndex).some(point => point.y < 0)
 			? '100% Stacked requires non-negative values. Choose Stacked to compare positive and negative values.' : null;
@@ -120,7 +121,8 @@ export function buildBarOption(
 			edge[sign] += value;
 			const stackY = value === 0 ? edge.previous : edge[sign];
 			if (stackY !== 0) edge.previous = stackY;
-			return { value, _raw: match ?? null, ...(stacked ? { _stackY: stackY } : {}) };
+			return { value: data.dateTimeline && !match ? null : value, _raw: match ?? null,
+				...(stacked ? { _stackY: stackY } : {}) };
 		});
 
 		const config: BarSeriesOption = {
@@ -153,6 +155,7 @@ export function buildBarOption(
 				...(stacked ? { overflow: 'truncate' as const, ellipsis: '', lineOverflow: 'truncate' as const }
 					: { color: colors.mutedText ?? colors.text }),
 				formatter: (params: { value: unknown }) => {
+					if (params.value == null) return '';
 					const val = params.value as number;
 					if (stacked && val === 0) return '';
 					return percent || showPercentages ? `${val.toFixed(1)}%` : toCompactString(val);

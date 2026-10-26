@@ -22,7 +22,7 @@ Six chart types display a Base's filtered results. AI Chart renders saved EChart
 Each Data Chart uses the Base's current results. Select note, file, or formula properties from the toolbar, then choose an aggregation for each measure.
 
 - **Native Bases controls.** Filter, sort, and group your notes. Use file folders, note properties, or formulas as X values.
-- **Calendar grouping.** Combine timestamps by day, week, month, or year without changing the source property.
+- **Calendar grouping.** Combine timestamps by day, week, month, or year. Enable [Show missing dates](https://haiqiang-zhang.github.io/obsidian-bases-charts/axes-and-dates#show-missing-dates) to keep empty periods on the X axis.
 - **Independent measures.** Add and reorder Y properties, each with its own Sum, Average, Count, Min, or Max aggregation. Scatter also supports None.
 - **Bar layouts.** Compare groups side by side, stack their values, or show each group's share in a 100% stacked column. Data details retain the original values.
 - **Per-view palettes.** Choose Auto, Colorful, Earth, Coastal, or single-color palettes, with light and dark variants.
