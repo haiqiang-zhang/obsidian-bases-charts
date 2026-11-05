@@ -31,6 +31,7 @@ Open **Y axes** (or **Values**) and use the aggregation control beside each sele
 | --- | --- | --- |
 | Sum | Add numeric values | Total hours by project |
 | Average | Mean of numeric values | Average rating by subject |
+| Median | Middle numeric value; the mean of the middle pair for an even count | Typical session length by activity |
 | Count | Count records with a value | Number of files by folder |
 | Min | Smallest numeric value | Shortest session by activity |
 | Max | Largest numeric value | Highest score by subject |
@@ -53,7 +54,7 @@ For example, with X = day, Y = hours (Sum), and Group = subject:
 
 Stacked bars have heights of 6 and 7. In 100% Stacked, Monday's segments are 33.3%, 50%, and 16.7%; Tuesday's percentages use its own total of 7. Missing group contributions are zero; they do not create source files in the data details.
 
-Stacks add the **aggregated group values**. With Sum or Count and non-overlapping groups, this matches the ungrouped total. With Average, Min, or Max, the sum is not the overall aggregate. The tooltip labels it **Sum of groups**. In 100% Stacked, percentages are shares of that sum, not shares of the original records.
+Stacks add the **aggregated group values**. With Sum or Count and non-overlapping groups, this matches the ungrouped total. With Average, Median, Min, or Max, the sum is not the overall aggregate. The tooltip labels it **Sum of groups**. In 100% Stacked, percentages are shares of that sum, not shares of the original records.
 
 Ordinary Stacked supports negative values on the opposite side of zero. 100% Stacked requires non-negative group values. All-zero columns stay at zero rather than dividing by zero. Click a column to inspect all its source records, including their group and original value.
 

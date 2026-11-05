@@ -174,6 +174,13 @@ test('ordinary stack summaries distinguish sums of group averages from an overal
 	assert.equal(root.find('bases-chart-tooltip-total').find('bases-chart-tooltip-file-value').textContent, '170');
 });
 
+test('ordinary stack summaries label sums of group medians as Sum of groups', () => {
+	const grouped = { ...context, barLayout: 'stacked', groupNames: ['One', 'Two'], aggregateMode: 'Median' };
+	const h = harness(1280, 900, 13, grouped);
+	const root = h.options.formatter([80, 90].map((y, groupIndex) => ({ data: { _raw: rawPoint(1, { y, groupIndex }) } })));
+	assert.equal(root.find('bases-chart-tooltip-total').find('bases-chart-tooltip-file-name').textContent, 'Sum of groups');
+});
+
 test('zero-total percentage columns show 0% without invalid values', () => {
 	const h = harness(1280, 900, 13, { ...context, barLayout: 'percent' });
 	const root = h.options.formatter({ data: { _raw: rawPoint(1, { y: 0, fileValues: [0] }) } });
