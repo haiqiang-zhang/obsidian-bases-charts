@@ -21,7 +21,7 @@ The vault's root folder appears as `/`. Pie and Radar call this control **Catego
 
 Open **Y axes** to add measures. Each selected property has its own aggregation control. Reorder or remove properties from the selected list.
 
-Use numeric properties with **Sum**, **Average**, **Min**, or **Max**. Use **Count** for the number of records with a value, including text properties. Scatter also supports **None** to preserve separate observations.
+Use numeric properties with **Sum**, **Average**, **Median**, **Min**, or **Max**. Use **Count** for the number of records with a value, including text properties. Scatter also supports **None** to preserve separate observations.
 
 Pie and Radar call this control **Values**. See [Groups and aggregation](./groups-and-aggregation) for examples.
 

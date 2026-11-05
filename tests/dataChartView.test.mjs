@@ -145,6 +145,22 @@ test('interleaved groups preserve global Sort and omit hidden categories', () =>
 	assert.deepEqual(data.getFlat(0).flatMap(point => point.files), ['A/red.md', 'B/blue.md', 'C/red.md', 'D/blue.md']);
 });
 
+test('Median uses the middle value for odd buckets and averages the middle pair for even buckets', () => {
+	const entries = [
+		entry('Odd/one.md', 'Odd', 1),
+		entry('Odd/two.md', 'Odd', 100),
+		entry('Odd/three.md', 'Odd', 5),
+		entry('Even/one.md', 'Even', 8),
+		entry('Even/two.md', 'Even', 2),
+		entry('Even/three.md', 'Even', 4),
+		entry('Even/four.md', 'Even', 10),
+	];
+	const view = makeView(entries, undefined, { 'aggregate:note.amount': 'Median' });
+
+	assert.equal(view.getAggregateModeForProperty('note.amount'), 'Median');
+	assert.deepEqual(view.processData().getFlat(0).map(point => [point.x, point.y]), [['Odd', 5], ['Even', 6]]);
+});
+
 test('groups with the same display text never sum into the same bucket', () => {
 	const numeric = entry('Shared/numeric.md', 'Shared', 2);
 	const text = entry('Shared/text.md', 'Shared', 5);

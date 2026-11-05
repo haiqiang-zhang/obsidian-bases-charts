@@ -239,7 +239,7 @@ export class ChartTooltip {
 			? `${isGrouped ? `${groups[0].name} · ` : ''}${context.yLabel}: ${formatValue(first.y, valid[0].percent)}`
 			: `${context.yLabel} · ${valid.length} groups`;
 		return { x, summary, files, fileCount, groups, total: stacked ? {
-			name: context.aggregateMode && [AggregateMode.AVERAGE, AggregateMode.MIN, AggregateMode.MAX].includes(context.aggregateMode)
+			name: context.aggregateMode && [AggregateMode.AVERAGE, AggregateMode.MEDIAN, AggregateMode.MIN, AggregateMode.MAX].includes(context.aggregateMode)
 				? 'Sum of groups' : 'Total',
 			value: `${toCompactString(total)}${!normalized && context.showPercentages ? '%' : ''}`,
 		} : undefined };

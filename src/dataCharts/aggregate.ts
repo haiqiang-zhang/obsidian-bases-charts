@@ -5,6 +5,7 @@ import { toXKey } from '../utils/utils';
 export enum AggregateMode {
 	NONE = 'None',
 	AVERAGE = 'Average',
+	MEDIAN = 'Median',
 	SUM = 'Sum',
 	COUNT = 'Count',
 	MIN = 'Min',
@@ -13,6 +14,12 @@ export enum AggregateMode {
 
 export function aggregateKey(propId: BasesPropertyId): string {
 	return `aggregate:${propId}`;
+}
+
+function median(values: number[]): number {
+	const sorted = [...values].sort((a, b) => a - b);
+	const middle = Math.floor(sorted.length / 2);
+	return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 export function aggregateData(data: ProcessedData[], modes: Map<number, AggregateMode>, chartType: string): ProcessedData[] {
@@ -55,6 +62,9 @@ export function aggregateData(data: ProcessedData[], modes: Map<number, Aggregat
 				break;
 			case AggregateMode.AVERAGE:
 				y = bucket.reduce((sum, d) => sum + d.y, 0) / bucket.length;
+				break;
+			case AggregateMode.MEDIAN:
+				y = median(bucket.map(d => d.y));
 				break;
 			case AggregateMode.COUNT:
 				y = bucket.length;
